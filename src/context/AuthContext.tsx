@@ -3,7 +3,11 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import {
+  GoogleSignin,
+  statusCodes,
+  SignInSuccessResponse
+} from '@react-native-google-signin/google-signin';
 
 // React Native Firebase imports
 import auth from '@react-native-firebase/auth';
@@ -248,53 +252,83 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   // Google Sign-In
+
+  
   const googleLogin = async () => {
     try {
       setLoading(true);
-      
+  
+      // Ensure Google Play Services are available (on Android)
+      await GoogleSignin.hasPlayServices({ 
+        showPlayServicesUpdateDialog: true 
+      });
+  
       // Sign out from any existing Google session
       await GoogleSignin.signOut();
-      
-      // Check for Play Services availability (on Android)
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      
-      // Sign in with Google
-      const { idToken } = await GoogleSignin.signIn();
-      
-      if (!idToken) {
-        throw new Error('Failed to get ID token from Google Sign In');
-      }
-      
-      // Create Firebase credential
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-      
-      // Sign in to Firebase
-      const userCredential = await auth().signInWithCredential(googleCredential);
-      
-      // Check/create Firestore user document using Firebase user data
-      if (userCredential.user) {
-        const userDoc = await firestore().collection('users').doc(userCredential.user.uid).get();
-          
-        if (!userDoc.exists) {
-          // Parse name from Firebase displayName
-          const displayName = userCredential.user.displayName || '';
-          const nameParts = displayName.split(' ');
-          const firstName = nameParts[0] || '';
-          const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
-          
-          const newUser = {
-            uid: userCredential.user.uid,
-            fname: firstName,
-            lname: lastName,
-            email: userCredential.user.email || '',
-            createdAt: firestore.Timestamp.now(),
-          };
-
-          await firestore().collection('users').doc(userCredential.user.uid).set(newUser);
+  
+      // Perform Google Sign-In
+      const signInResponse = await GoogleSignin.signIn();
+  
+      // Type guard to ensure successful response
+      if (signInResponse.type === 'success') {
+        const { idToken, user } = signInResponse.data;
+  
+        if (!idToken) {
+          throw new Error('Failed to get ID token from Google Sign In');
         }
+  
+        // Create Firebase credential
+        const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+  
+        // Sign in to Firebase
+        const userCredential = await auth().signInWithCredential(googleCredential);
+  
+        // Check/create Firestore user document
+        if (userCredential.user) {
+          const userDoc = await firestore()
+            .collection('users')
+            .doc(userCredential.user.uid)
+            .get();
+  
+          if (!userDoc.exists) {
+            const newUser = {
+              uid: userCredential.user.uid,
+              fname: user.givenName || '',
+              lname: user.familyName || '',
+              email: user.email || '',
+              createdAt: firestore.Timestamp.now(),
+            };
+  
+            await firestore()
+              .collection('users')
+              .doc(userCredential.user.uid)
+              .set(newUser);
+          }
+        }
+      } else {
+        throw new Error('Google Sign-In failed');
       }
     } catch (error: any) {
-      handleAuthError(error);
+      // Comprehensive error handling
+      if (error.code) {
+        switch (error.code) {
+          case statusCodes.SIGN_IN_CANCELLED:
+            console.log('User cancelled Google Sign-In');
+            break;
+          case statusCodes.IN_PROGRESS:
+            console.log('Sign-in is already in progress');
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            console.log('Google Play Services not available');
+            break;
+          default:
+            handleAuthError(error);
+        }
+      } else {
+        // Handle other types of errors
+        handleAuthError(error);
+      }
+      
       throw error;
     } finally {
       setLoading(false);
