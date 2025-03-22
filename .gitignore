@@ -96,7 +96,6 @@ GoogleService-InfoDev.plist
 GoogleService-InfoPreview.plist
 
 # Local env files
-.env*.local
 .env
 
 # Temporary files

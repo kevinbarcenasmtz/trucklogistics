@@ -36,7 +36,7 @@ export default function LoginScreen() {
 
     try {
       await login(email, password);
-      // router.replace("/(app)/home");
+      router.replace("/(app)/home");
     } catch (error: any) {
       Alert.alert("Login Failed", error.message);
     }
@@ -46,7 +46,7 @@ export default function LoginScreen() {
     try {
       setIsGoogleLoading(true);
       await googleLogin();
-      // router.replace("/(app)/home");
+      router.replace("/(app)/home");
     } catch (error: any) {
       if (error.message) {
         Alert.alert("Google Sign-In Failed", error.message);

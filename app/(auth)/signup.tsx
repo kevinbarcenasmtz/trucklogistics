@@ -48,7 +48,7 @@ export default function SignupScreen() {
   
     try {
       await register(email, password, fname, lname);
-      // router.replace("/(app)/home");
+      router.replace("/(app)/home");
     } catch (error: any) {
       Alert.alert("Registration Failed", error.message);
     }
@@ -58,7 +58,7 @@ export default function SignupScreen() {
     try {
       setIsGoogleLoading(true);
       await googleLogin();
-      // router.replace("/(app)/home");
+      router.replace("/(app)/home");
     } catch (error: any) {
       if (error.message) {
         Alert.alert("Google Sign-In Failed", error.message);

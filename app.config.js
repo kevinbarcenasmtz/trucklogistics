@@ -19,40 +19,89 @@ const getBundleIdentifier = () => {
 
 // Get the version suffix based on environment
 const getVersionSuffix = () => {
-  if (IS_DEV) return '-dev';
-  if (IS_PREVIEW) return '-beta';
+  if (IS_DEV) return '.1';
+  if (IS_PREVIEW) return '.2';
   return '';
 };
 
-// Import base config from app.json
-const { expo: baseConfig } = require('./app.json');
+// The modules property should be moved to the dynamic config
+const moduleConfig = {
+  ios: {
+    podfileProperties: {
+      'use_modular_headers': true
+    }
+  }
+};
 
-// Create the dynamic configuration
-module.exports = ({ config }) => {
+// Instead of importing from app.json, define the base config directly here
+module.exports = () => {
   return {
-    ...baseConfig,
     name: getAppName(),
-    version: baseConfig.version + getVersionSuffix(),
+    slug: "trucklogistics",
+    version: "1.0.0" + getVersionSuffix(),
+    orientation: "portrait",
+    icon: "./assets/images/icon.png",
+    scheme: "trucklogistics-dev",
+    userInterfaceStyle: "automatic",
+    newArchEnabled: true,
     ios: {
-      ...baseConfig.ios,
+      supportsTablet: true,
       bundleIdentifier: getBundleIdentifier(),
-      googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || './GoogleService-InfoDev.plist',
-      
-    },
-    modules: {
-      ios: {
-        podfileProperties: {
-          'use_modular_headers': true
-        }
-      }
+      infoPlist: {
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || './GoogleService-InfoDev.plist'
     },
     android: {
-      ...baseConfig.android || {},
       package: getBundleIdentifier(),
       googleServicesFile: process.env.GOOGLE_SERVICES_JSON || './google-services.json'
     },
+    web: {
+      bundler: "metro",
+      output: "static",
+      favicon: "./assets/images/favicon.png"
+    },
+    plugins: [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      "@react-native-google-signin/google-signin"
+    ],
+    experiments: {
+      typedRoutes: true
+    },
+    // Moved modules from app.json to here
+    modules: moduleConfig,
     extra: {
-      ...baseConfig.extra,
+      router: {
+        origin: false
+      },
+      eas: {
+        projectId: "8178d963-9b4a-44b4-ae89-042607e45d02"
+      },
       // API URLs
       ocrApiUrl: process.env.EXPO_PUBLIC_OCR_API_URL,
       
@@ -78,6 +127,7 @@ module.exports = ({ config }) => {
       fallbackToCacheTimeout: 0,
       url: "https://u.expo.dev/8178d963-9b4a-44b4-ae89-042607e45d02"
     },
-    runtimeVersion: "1.0.0" + getVersionSuffix()
+    runtimeVersion: "1.0.0" + getVersionSuffix(),
+    owner: "kevin14767"
   };
 };

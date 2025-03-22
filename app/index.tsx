@@ -1,150 +1,83 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, View, SafeAreaView, TouchableOpacity } from "react-native";
-import { useRouter } from "expo-router";
+globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+
+import React, { useEffect, useState } from 'react';
+import { StyleSheet, View, ActivityIndicator } from "react-native";
+import { Redirect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { getThemeStyles } from "@/src/theme";
-import ThemeToggle from '@/src/theme/ThemeToggle';
 
 export default function Index(): JSX.Element {
   const { theme } = useTheme();
-  const { user, signOut, loading } = useAuth();
-  const router = useRouter();
+  const { user, loading: authContextLoading } = useAuth();
   const themeStyles = getThemeStyles(theme);
+  
+  const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
+  const [isLanguageSelected, setIsLanguageSelected] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Redirect to auth screen if not authenticated
   useEffect(() => {
-    if (!user && !loading) {
-      router.replace("/(auth)/language");
-    }
-  }, [user, loading, router]);
+    const checkAppStatus = async () => {
+      try {
+        // Check both onboarding and language selection status
+        const [onboardingValue, languageValue] = await Promise.all([
+          AsyncStorage.getItem("onboardingCompleted"),
+          AsyncStorage.getItem("languageSelected")
+        ]);
+        
+        setIsOnboardingCompleted(onboardingValue === "true");
+        setIsLanguageSelected(languageValue === "true");
+      } catch (error) {
+        console.error("Error checking app status:", error);
+        setIsOnboardingCompleted(false);
+        setIsLanguageSelected(false);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Handle sign out
-  const handleSignOut = async () => {
-    await signOut();
-    router.replace("/(auth)/login");
-  };
+    checkAppStatus();
+  }, []);
 
-  if (loading) {
+  // Show loading indicator while checking statuses
+  if (authContextLoading || loading) {
     return (
-      <SafeAreaView style={[
+      <View style={[
         styles.container,
         { backgroundColor: themeStyles.colors.background }
       ]}>
-        <View style={styles.content}>
-          <Text style={[
-            styles.title,
-            { color: themeStyles.colors.text.primary }
-          ]}>
-            Loading...
-          </Text>
-        </View>
-      </SafeAreaView>
+        <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
+      </View>
     );
   }
 
-  // If not authenticated, don't render content (will redirect via useEffect)
-  if (!user) {
-    return null;
+  // Routing logic following the flow:
+  // language screen → onboarding → login/signup → home app
+  
+  // Step 1: Check if language is selected
+  if (!isLanguageSelected) {
+    return <Redirect href="/(auth)/language" />;
   }
-
-  return (
-    <SafeAreaView style={[
-      styles.container,
-      { backgroundColor: themeStyles.colors.background }
-    ]}>
-      <View style={styles.content}>
-        <Text style={[
-          styles.title,
-          { color: themeStyles.colors.text.primary }
-        ]}>
-          TruckLogistics
-        </Text>
-        
-        <View style={[
-          styles.card,
-          { 
-            backgroundColor: themeStyles.colors.surface,
-            borderColor: themeStyles.colors.border,
-            ...themeStyles.shadow.md
-          }
-        ]}>
-          <Text style={[
-            styles.cardText,
-            { color: themeStyles.colors.text.primary }
-          ]}>
-            Welcome, {user?.displayName || 'User'}
-          </Text>
-          
-          <Text style={[
-            styles.cardSubText,
-            { color: themeStyles.colors.text.secondary }
-          ]}>
-            You are signed in with {user?.email}
-          </Text>
-
-          <TouchableOpacity
-            style={[
-              styles.signOutButton,
-              { backgroundColor: themeStyles.colors.greenThemeColor }
-            ]}
-            onPress={handleSignOut}
-          >
-            <Text style={styles.signOutButtonText}>Sign Out</Text>
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.themeToggleContainer}>
-          <ThemeToggle />
-        </View>
-      </View>
-    </SafeAreaView>
-  );
+  
+  // Step 2: Check if onboarding is completed
+  if (!isOnboardingCompleted) {
+    return <Redirect href="/(auth)/onboarding" />;
+  }
+  
+  // Step 3: Check if user is authenticated
+  if (!user) {
+    return <Redirect href="/(auth)/login" />;
+  }
+  
+  // Step 4: User is authenticated and has completed all steps, go to home
+  return <Redirect href="/(app)/home" />;
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  content: {
-    flex: 1,
-    alignItems: "center",
     justifyContent: "center",
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 24,
-  },
-  card: {
-    width: "100%",
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    marginBottom: 24,
-  },
-  cardText: {
-    fontSize: 18,
-    fontWeight: "500",
-    marginBottom: 8,
-  },
-  cardSubText: {
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  themeToggleContainer: {
-    marginTop: 16,
-  },
-  signOutButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 4,
-    alignItems: 'center',
-  },
-  signOutButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-  },
+    alignItems: "center"
+  }
 });
