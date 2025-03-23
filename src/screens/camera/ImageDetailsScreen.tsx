@@ -1,27 +1,29 @@
-// src/components/camera/ImageDetailsScreen.tsx
+// src/screens/camera/ImageDetailsScreen.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
-  Image, 
   StyleSheet, 
   TouchableOpacity, 
-  Text, 
   ScrollView, 
-  ActivityIndicator,
-  Animated,
-  Dimensions
+  Animated, 
+  Text
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import OCRProcessor from './OCRprocessor';
 import { AIClassificationService } from '@/src/services/AIClassificationService';
 import { AIClassifiedReceipt, Receipt } from '@/src/types/ReceiptInterfaces';
 import * as Haptics from 'expo-haptics';
-
-const { width } = Dimensions.get('window');
+import { ScreenHeader, ActionButton } from '@/src/components/camera/CameraUIComponents';
+import {
+  ImagePreview,
+  RecognizedTextDisplay,
+  ClassificationDisplay,
+  AnalyzingIndicator
+} from '@/src/components/camera/ImageDetailComponents';
 
 export default function ImageDetailsScreen() {
   const { uri } = useLocalSearchParams();
@@ -37,12 +39,15 @@ export default function ImageDetailsScreen() {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
+
+  const [ocrError, setOcrError] = useState<string | null>(null);
   
   // Handle OCR recognition completion
   const handleTextRecognized = async (text: string) => {
+    setOcrError(null);
     setRecognizedText(text);
     setShowOCR(false);
-    
+
     // Animate in the text container
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -99,10 +104,31 @@ export default function ImageDetailsScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
+  const handleOcrError = (errorMessage: string) => {
+    setOcrError(errorMessage);
+    setShowOCR(false);
+    
+    // Show error to user
+    try {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } catch (error) {
+      console.warn('Haptic feedback not supported', error);
+    }        
+  };
+  
+  // Then in the JSX:
+  {showOCR && (
+    <OCRProcessor 
+      imageUri={uri as string} 
+      onTextRecognized={handleTextRecognized}
+      onError={handleOcrError}
+    />
+  )}
+
   // Navigate to verification screen
   const handleContinue = () => {
     if (!recognizedText) {
-      alert('Please extract the text first');
+      alert(t('extractTextFirst', 'Please extract the text first'));
       return;
     }
     
@@ -187,259 +213,81 @@ export default function ImageDetailsScreen() {
       styles.container,
       { backgroundColor: themeStyles.colors.black_grey }
     ]}>
-      {/* Header */}
-      <View style={[
-        styles.header,
-        { 
-          borderBottomColor: themeStyles.colors.darkGrey
-        }
-      ]}>
-        <TouchableOpacity 
-          style={[
-            styles.backButton,
-            { backgroundColor: themeStyles.colors.darkGrey }
-          ]}
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-        >
-          <MaterialIcons name="arrow-back" size={24} color={themeStyles.colors.white} />
-        </TouchableOpacity>
-        <Text style={[
-          styles.headerTitle,
-          { color: themeStyles.colors.white }
-        ]}>{t('receiptScanner', 'Receipt Scanner')}</Text>
-        <View style={styles.rightHeaderPlaceholder} />
-      </View>
+      <ScreenHeader 
+        title={t('receiptScanner', 'Receipt Scanner')}
+        onBack={() => router.back()}
+      />
       
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.contentContainer}>
           {/* Image Container */}
-          <View style={[
-            styles.imageContainer,
-            { 
-              backgroundColor: themeStyles.colors.darkGrey,
-              ...themeStyles.shadow.md
-            }
-          ]}>
-            <Image 
-              source={{ uri: uri as string }} 
-              style={styles.image}
-              resizeMode="cover" 
+          {!recognizedText ? (
+            <ImagePreview 
+              uri={uri as string} 
+              onScanPress={startOCR} 
             />
-            {!recognizedText && (
-              <View style={styles.imagePlaceholder}>
-                <Text style={[
-                  styles.imagePlaceholderText,
-                  { color: themeStyles.colors.white }
-                ]}>
-                  {t('tapToScan', 'Tap to scan receipt')}
-                </Text>
-              </View>
-            )}
-          </View>
+          ) : (
+            <View style={[
+              styles.imageContainer,
+              { 
+                backgroundColor: themeStyles.colors.darkGrey,
+                ...themeStyles.shadow.md
+              }
+            ]}>
+              <TouchableOpacity onPress={startOCR}>
+                <View style={styles.rescanContainer}>
+                  <Text style={[
+                    styles.rescanText, 
+                    { color: themeStyles.colors.white }
+                  ]}>
+                    {t('scanned', 'Scanned')}
+                  </Text>
+                  <Feather 
+                    name="refresh-cw" 
+                    size={16} 
+                    color={themeStyles.colors.white} 
+                    style={{ marginLeft: horizontalScale(4) }}
+                  />
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
           
           {/* Text Recognition Results */}
-          {recognizedText ? (
-            <Animated.View 
-              style={[
-                styles.textContainer,
-                {
-                  backgroundColor: themeStyles.colors.darkGrey,
-                  ...themeStyles.shadow.sm,
-                  opacity: fadeAnim,
-                  transform: [{ translateY: slideAnim }]
-                }
-              ]}
-            >
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="document-scanner" size={20} color={themeStyles.colors.greenThemeColor} />
-                <Text style={[
-                  styles.sectionTitle,
-                  { color: themeStyles.colors.white }
-                ]}>{t('recognizedText', 'Recognized Text')}</Text>
-              </View>
-              <ScrollView style={styles.textScroll}>
-                <Text style={[
-                  styles.recognizedText,
-                  { color: themeStyles.colors.grey }
-                ]}>{recognizedText}</Text>
-              </ScrollView>
-            </Animated.View>
-          ) : (
-            <TouchableOpacity 
-              style={[
-                styles.actionButton,
-                { 
-                  backgroundColor: themeStyles.colors.greenThemeColor,
-                  ...themeStyles.shadow.md
-                }
-              ]}
-              onPress={startOCR}
-            >
-              <MaterialIcons name="document-scanner" size={24} color={themeStyles.colors.white} />
-              <Text style={[
-                styles.buttonText,
-                { color: themeStyles.colors.white }
-              ]}>{t('scanReceipt', 'Scan Receipt')}</Text>
-            </TouchableOpacity>
+          {recognizedText && (
+            <RecognizedTextDisplay 
+              text={recognizedText}
+              fadeAnim={fadeAnim}
+              slideAnim={slideAnim}
+            />
           )}
           
           {/* Classification Results */}
           {classifiedData && (
-            <View style={[
-              styles.classificationContainer,
-              { 
-                backgroundColor: themeStyles.colors.darkGrey,
-                ...themeStyles.shadow.sm
-              }
-            ]}>
-              <View style={styles.sectionHeader}>
-                <MaterialIcons name="auto-awesome" size={20} color={themeStyles.colors.greenThemeColor} />
-                <Text style={[
-                  styles.sectionTitle,
-                  { color: themeStyles.colors.white }
-                ]}>{t('aiClassification', 'AI Classification')}</Text>
-                <View style={[
-                  styles.confidenceBadge,
-                  { backgroundColor: getConfidenceColor(safeGetProperty(classifiedData, 'confidence', 0)) }
-                ]}>
-                  <Text style={[
-                    styles.confidenceText,
-                    { color: themeStyles.colors.black_grey }
-                  ]}>
-                    {Math.round((safeGetProperty(classifiedData, 'confidence', 0) * 100))}%
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.classificationGrid}>
-                <View style={styles.classificationItem}>
-                  <Text style={[
-                    styles.itemLabel,
-                    { color: themeStyles.colors.grey }
-                  ]}>{t('receiptType', 'Type')}</Text>
-                  <View style={[
-                    styles.typeTag,
-                    { backgroundColor: themeStyles.colors.greenThemeColor }
-                  ]}>
-                    <Text style={[
-                      styles.typeTagText,
-                      { color: themeStyles.colors.white }
-                    ]}>
-                      {safeGetProperty(classifiedData, 'type', 'Other')}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.classificationItem}>
-                  <Text style={[
-                    styles.itemLabel,
-                    { color: themeStyles.colors.grey }
-                  ]}>{t('amount', 'Amount')}</Text>
-                  <Text style={[
-                    styles.itemValueLarge,
-                    { color: themeStyles.colors.white }
-                  ]}>
-                    {formatCurrency(safeGetProperty(classifiedData, 'amount', ''))}
-                  </Text>
-                </View>
-                
-                <View style={styles.classificationItem}>
-                  <Text style={[
-                    styles.itemLabel,
-                    { color: themeStyles.colors.grey }
-                  ]}>{t('date', 'Date')}</Text>
-                  <Text style={[
-                    styles.itemValue,
-                    { color: themeStyles.colors.white }
-                  ]}>
-                    {safeGetProperty(classifiedData, 'date', 'Unknown')}
-                  </Text>
-                </View>
-                
-                <View style={styles.classificationItem}>
-                  <Text style={[
-                    styles.itemLabel,
-                    { color: themeStyles.colors.grey }
-                  ]}>{t('vendor', 'Vendor')}</Text>
-                  <Text style={[
-                    styles.itemValue,
-                    { color: themeStyles.colors.white }
-                  ]} numberOfLines={1}>
-                    {safeGetProperty(classifiedData, 'vendorName', 'Unknown Vendor')}
-                  </Text>
-                </View>
-                
-                <View style={styles.classificationItem}>
-                  <Text style={[
-                    styles.itemLabel,
-                    { color: themeStyles.colors.grey }
-                  ]}>{t('vehicle', 'Vehicle')}</Text>
-                  <Text style={[
-                    styles.itemValue,
-                    { color: themeStyles.colors.white }
-                  ]}>
-                    {safeGetProperty(classifiedData, 'vehicle', 'Unknown Vehicle')}
-                  </Text>
-                </View>
-                
-                {safeGetProperty(classifiedData, 'location', '') && (
-                  <View style={styles.classificationItem}>
-                    <Text style={[
-                      styles.itemLabel,
-                      { color: themeStyles.colors.grey }
-                    ]}>{t('location', 'Location')}</Text>
-                    <Text style={[
-                      styles.itemValue,
-                      { color: themeStyles.colors.white }
-                    ]} numberOfLines={1}>
-                      {safeGetProperty(classifiedData, 'location', '')}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
+            <ClassificationDisplay 
+              data={classifiedData}
+              formatCurrency={formatCurrency}
+              getConfidenceColor={getConfidenceColor}
+              safeGetProperty={safeGetProperty}
+            />
           )}
           
           {/* Classification Loading */}
-          {isClassifying && (
-            <View style={[
-              styles.classifyingContainer,
-              { 
-                backgroundColor: themeStyles.colors.darkGrey,
-                ...themeStyles.shadow.sm
-              }
-            ]}>
-              <ActivityIndicator size="small" color={themeStyles.colors.greenThemeColor} />
-              <Text style={[
-                styles.classifyingText,
-                { color: themeStyles.colors.grey }
-              ]}>{t('analyzing', 'Analyzing receipt...')}</Text>
-            </View>
-          )}
+          {isClassifying && <AnalyzingIndicator />}
           
           {/* Continue Button */}
           {recognizedText && !isClassifying && (
             <View style={styles.buttonWrapper}>
-              <TouchableOpacity 
-                style={[
-                  styles.continueButton,
-                  { 
-                    backgroundColor: themeStyles.colors.greenThemeColor,
-                    borderColor: themeStyles.colors.white,
-                    ...themeStyles.shadow.md
-                  }
-                ]}
+              <ActionButton
+                title={t('continue', 'Continue')}
+                icon="arrow-forward"
                 onPress={handleContinue}
-              >
-                <Text style={[
-                  styles.buttonText,
-                  { color: themeStyles.colors.white }
-                ]}>{t('continue', 'Continue')}</Text>
-                <Feather name="arrow-right" size={20} color={themeStyles.colors.white} />
-              </TouchableOpacity>
+                backgroundColor={themeStyles.colors.greenThemeColor}
+                style={styles.continueButton}
+              />
             </View>
           )}
         </View>
@@ -460,26 +308,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: horizontalScale(16),
-    paddingTop: verticalScale(60),
-    paddingBottom: verticalScale(16),
-    borderBottomWidth: 1,
-  },
-  headerTitle: {
-    fontSize: moderateScale(18),
-    fontWeight: 'bold',
-  },
-  backButton: {
-    padding: moderateScale(8),
-    borderRadius: moderateScale(20),
-  },
-  rightHeaderPlaceholder: {
-    width: 40,
-  },
   scrollView: {
     flex: 1,
   },
@@ -488,134 +316,28 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(48),
     paddingHorizontal: horizontalScale(16),
   },
-  scrollViewContent: {
-    paddingBottom: verticalScale(120),
-  },
   contentContainer: {
     padding: horizontalScale(16),
   },
   imageContainer: {
     width: '100%',
-    height: verticalScale(200),
+    height: verticalScale(60),
     borderRadius: moderateScale(12),
-    overflow: 'hidden',
     marginBottom: verticalScale(16),
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  imagePlaceholder: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.3)',
   },
-  imagePlaceholderText: {
-    fontSize: moderateScale(16),
-    fontWeight: '500',
-  },
-  textContainer: {
-    width: '100%',
-    borderRadius: moderateScale(12),
-    padding: horizontalScale(16),
-    marginBottom: verticalScale(16),
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: verticalScale(8),
-  },
-  sectionTitle: {
-    fontSize: moderateScale(16),
-    fontWeight: 'bold',
-    marginLeft: horizontalScale(8),
-  },
-  textScroll: {
-    maxHeight: verticalScale(100),
-  },
-  recognizedText: {
-    fontSize: moderateScale(12),
-    lineHeight: moderateScale(16),
-  },
-  actionButton: {
-    padding: moderateScale(16),
-    borderRadius: moderateScale(12),
+  rescanContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: verticalScale(16),
+    padding: moderateScale(8),
   },
-  buttonText: {
-    fontWeight: 'bold',
-    fontSize: moderateScale(16),
-    marginLeft: horizontalScale(8),
-  },
-  classificationContainer: {
-    width: '100%',
-    borderRadius: moderateScale(12),
-    padding: horizontalScale(16),
-    marginBottom: verticalScale(16),
-  },
-  classificationGrid: {
-    marginTop: verticalScale(8),
-  },
-  classificationItem: {
-    marginBottom: verticalScale(8),
-  },
-  itemLabel: {
-    fontSize: moderateScale(12),
-    marginBottom: verticalScale(2),
-  },
-  itemValue: {
+  rescanText: {
     fontSize: moderateScale(14),
     fontWeight: '500',
-  },
-  itemValueLarge: {
-    fontSize: moderateScale(20),
-    fontWeight: 'bold',
-  },
-  typeTag: {
-    paddingHorizontal: horizontalScale(8),
-    paddingVertical: verticalScale(2),
-    borderRadius: moderateScale(4),
-    alignSelf: 'flex-start',
-  },
-  typeTagText: {
-    fontSize: moderateScale(12),
-    fontWeight: '600',
-  },
-  confidenceBadge: {
-    marginLeft: 'auto',
-    paddingHorizontal: horizontalScale(8),
-    paddingVertical: verticalScale(2),
-    borderRadius: moderateScale(10),
-  },
-  confidenceText: {
-    fontSize: moderateScale(12),
-    fontWeight: '600',
-  },
-  classifyingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: moderateScale(16),
-    borderRadius: moderateScale(12),
-  },
-  classifyingText: {
-    marginLeft: horizontalScale(8),
-    fontSize: moderateScale(14),
   },
   continueButton: {
-    padding: moderateScale(16),
-    borderRadius: moderateScale(12),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
+    borderWidth: 0,
+  }
 });

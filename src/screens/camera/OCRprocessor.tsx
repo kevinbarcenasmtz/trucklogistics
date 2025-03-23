@@ -1,12 +1,11 @@
-// src/components/camera/OCRProcessor.tsx
+// src/screens/camera/OCRProcessor.tsx
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, 
   Text, 
   StyleSheet, 
-  ActivityIndicator,
   Animated,
-  Easing
+  Easing,
 } from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, moderateScale, verticalScale, horizontalScale } from '@/src/theme';
@@ -17,15 +16,21 @@ import { MaterialIcons } from '@expo/vector-icons';
 interface OCRProcessorProps {
   imageUri: string;
   onTextRecognized: (text: string) => void;
+  onError?: (error: string) => void;
 }
 
-const OCRProcessor: React.FC<OCRProcessorProps> = ({ imageUri, onTextRecognized }) => {
+const OCRProcessor: React.FC<OCRProcessorProps> = ({ 
+  imageUri, 
+  onTextRecognized,
+  onError = (errorMsg) => console.error(errorMsg)
+}) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<'preparing' | 'processing' | 'analyzing' | 'finalizing'>('preparing');
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
+  const isDarkTheme = theme === 'dark';
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -122,10 +127,10 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({ imageUri, onTextRecognized 
         ]).start(() => {
           setIsProcessing(false);
           // Pass text to parent component
-          onTextRecognized(text);
+          onTextRecognized(text || '');
         });
       }, 500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('OCR Error:', error);
       
       // Fade out animation on error
@@ -135,7 +140,9 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({ imageUri, onTextRecognized 
         useNativeDriver: true
       }).start(() => {
         setIsProcessing(false);
-        onTextRecognized('Text extraction failed. Please try again with a clearer image.');
+        // Call the error handler with an appropriate message
+        onError(typeof error === 'string' ? error : 
+                error?.message || 'Text extraction failed. Please try again with a clearer image.');
       });
     }
   };
@@ -153,39 +160,49 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({ imageUri, onTextRecognized 
       default: return t('processing', 'Processing...');
     }
   };
-  
-  // Get icon for current stage
-  const getStageIcon = () => {
-    switch (stage) {
-      case 'preparing': return 'image';
-      case 'processing': return 'document-scanner';
-      case 'analyzing': return 'analytics';
-      case 'finalizing': return 'check-circle';
-      default: return 'hourglass-empty';
+
+  // We need a semi-transparent background that works in both themes
+  const overlayBackgroundColor = isDarkTheme 
+    ? 'rgba(0, 0, 0, 0.8)' 
+    : 'rgba(0, 0, 0, 0.5)';
+
+  // Get background color for icon container based on theme
+  const getIconContainerBackgroundColor = () => {
+    if (isDarkTheme) {
+      // Use a safe fallback for dark theme
+      return themeStyles.colors.darkGrey || '#29292b';
     }
+    return themeStyles.colors.surface;
+  };
+
+  // Get background color for progress bar based on theme
+  const getProgressBackgroundColor = () => {
+    if (isDarkTheme) {
+      // Use a safe fallback for dark theme
+      return themeStyles.colors.black_grey || '#1c1c1e';
+    }
+    return themeStyles.colors.border;
   };
 
   return (
     <View style={[
       styles.overlay,
-      { backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+      { backgroundColor: overlayBackgroundColor }
     ]}>
       <Animated.View 
         style={[
           styles.processingCard,
           {
-            backgroundColor: themeStyles.colors.darkGrey,
+            backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.background,
             ...themeStyles.shadow.md,
             opacity: fadeAnim,
-            transform: [
-              { scale: scaleAnim }
-            ]
+            transform: [{ scale: scaleAnim }]
           }
         ]}
       >
         <View style={[
           styles.iconContainer,
-          { backgroundColor: themeStyles.colors.background.elevated || themeStyles.colors.background.card }
+          { backgroundColor: getIconContainerBackgroundColor() }
         ]}>
           <Animated.View style={{
             transform: [{ rotate: spin }]
@@ -200,18 +217,18 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({ imageUri, onTextRecognized 
         
         <Text style={[
           styles.processingTitle,
-          { color: themeStyles.colors.white }
+          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
         ]}>{t('processingImage', 'Processing Image')}</Text>
         
         <Text style={[
           styles.stageText,
-          { color: themeStyles.colors.grey }
+          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
         ]}>{getStageMessage()}</Text>
         
         <View style={styles.progressBarContainer}>
           <View style={[
             styles.progressBackground,
-            { backgroundColor: themeStyles.colors.background.elevated || themeStyles.colors.black_grey }
+            { backgroundColor: getProgressBackgroundColor() }
           ]}>
             <Animated.View 
               style={[
@@ -225,45 +242,49 @@ const OCRProcessor: React.FC<OCRProcessorProps> = ({ imageUri, onTextRecognized 
           </View>
           <Text style={[
             styles.progressText,
-            { color: themeStyles.colors.grey }
+            { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
           ]}>{`${Math.round(progress)}%`}</Text>
         </View>
         
         <View style={styles.stageIndicator}>
           <MaterialIcons 
-            name={getStageIcon()} 
+            name="image" 
             size={20} 
-            color={progress >= 25 ? themeStyles.colors.greenThemeColor : themeStyles.colors.grey} 
+            color={progress >= 25 ? themeStyles.colors.greenThemeColor : isDarkTheme ? 
+              themeStyles.colors.grey : themeStyles.colors.text.secondary} 
           />
           <View style={[
             styles.stageLine, 
-            { backgroundColor: themeStyles.colors.background.elevated || themeStyles.colors.black_grey },
+            { backgroundColor: getProgressBackgroundColor() },
             progress >= 50 && { backgroundColor: themeStyles.colors.greenThemeColor }
           ]} />
           <MaterialIcons 
             name="text-fields" 
             size={20} 
-            color={progress >= 50 ? themeStyles.colors.greenThemeColor : themeStyles.colors.grey} 
+            color={progress >= 50 ? themeStyles.colors.greenThemeColor : isDarkTheme ? 
+              themeStyles.colors.grey : themeStyles.colors.text.secondary} 
           />
           <View style={[
             styles.stageLine, 
-            { backgroundColor: themeStyles.colors.background.elevated || themeStyles.colors.black_grey },
+            { backgroundColor: getProgressBackgroundColor() },
             progress >= 75 && { backgroundColor: themeStyles.colors.greenThemeColor }
           ]} />
           <MaterialIcons 
             name="auto-awesome" 
             size={20} 
-            color={progress >= 75 ? themeStyles.colors.greenThemeColor : themeStyles.colors.grey} 
+            color={progress >= 75 ? themeStyles.colors.greenThemeColor : isDarkTheme ? 
+              themeStyles.colors.grey : themeStyles.colors.text.secondary} 
           />
           <View style={[
             styles.stageLine, 
-            { backgroundColor: themeStyles.colors.background.elevated || themeStyles.colors.black_grey },
+            { backgroundColor: getProgressBackgroundColor() },
             progress >= 90 && { backgroundColor: themeStyles.colors.greenThemeColor }
           ]} />
           <MaterialIcons 
             name="check-circle" 
             size={20} 
-            color={progress >= 100 ? themeStyles.colors.greenThemeColor : themeStyles.colors.grey} 
+            color={progress >= 100 ? themeStyles.colors.greenThemeColor : isDarkTheme ? 
+              themeStyles.colors.grey : themeStyles.colors.text.secondary} 
           />
         </View>
       </Animated.View>

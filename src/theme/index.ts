@@ -1,5 +1,6 @@
 import { Dimensions } from 'react-native';
 import { ThemeType } from '../context/ThemeContext';
+import { getThemeStyles as originalGetThemeStyles } from '@/src/theme';
 
 // Window dimensions (from Dimensions.ts)
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
@@ -107,6 +108,8 @@ const COLORS = {
   greenThemeColor: '#004d40',
   thirdOnboardingColor: '#00796b',
 };
+
+// Enhanced light theme colors with better contrast
 
 // Typography - using moderateScale for responsive sizing
 const TYPOGRAPHY = {
@@ -283,13 +286,14 @@ export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
   
   // Define light theme variants of legacy colors
   const lightModeLegacyColors = {
-    grey: '#757575',            // Medium gray for light theme
-    darkGrey: '#f0f0f0',        // Light gray for light theme (card backgrounds)
-    black_grey: '#f8f8f8',      // Off-white for light theme (backgrounds)
-    greenThemeColor: COLORS.greenThemeColor,  // Keep brand color consistent
-    thirdOnboardingColor: COLORS.thirdOnboardingColor, // Keep brand color consistent
-    transParent: '#d0d0d0',     // Lighter transparent for light theme
+    grey: '#757575',                // Medium gray for light theme
+    darkGrey: '#f0f0f0',            // Light gray for light theme (card backgrounds)
+    black_grey: '#f8f8f8',          // Off-white for light theme (backgrounds)
+    transParent: '#d0d0d0',         // Lighter transparent for light theme
+    greenThemeColor: '#004d40',     // Keep brand color consistent
+    thirdOnboardingColor: '#00796b' // Keep brand color consistent
   };
+
   
   return {
     colors: {

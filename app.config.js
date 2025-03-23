@@ -48,7 +48,11 @@ module.exports = () => {
       supportsTablet: true,
       bundleIdentifier: getBundleIdentifier(),
       infoPlist: {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        // iOS permission strings - these will be used if plugin config doesn't override them
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photos to upload receipts and documents",
+        "NSCameraUsageDescription": "This app needs access to your camera to scan receipts and documents",
+        "NSMicrophoneUsageDescription": "This app needs access to your microphone when recording videos"
       },
       googleServicesFile: process.env.GOOGLE_SERVICE_INFO_PLIST || './GoogleService-InfoDev.plist'
     },
@@ -65,7 +69,10 @@ module.exports = () => {
       [
         "expo-image-picker",
         {
-          "photosPermission": "The app accesses your photos to let you share them with your friends."
+          // Custom permission messages via plugin config
+          "photosPermission": "The app needs access to your photos to upload receipts and documents",
+          "cameraPermission": "The app needs access to your camera to scan receipts and documents",
+          "microphonePermission": "The app needs access to your microphone when recording videos"
         }
       ],
       "expo-router",
