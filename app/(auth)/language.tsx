@@ -1,3 +1,4 @@
+// app/(auth)/language.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -6,21 +7,38 @@ import {
   Image,
   SafeAreaView,
   ScrollView,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useRouter } from "expo-router";
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles } from "@/src/theme";
+import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
 import FormButton from '@/src/components/forms/FormButton';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 
 export default function LanguageScreen() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const [currentLang, setCurrentLang] = useState(i18n.language || 'en');
+
+  // Get background color based on theme
+  const getBackgroundColor = () => isDarkTheme 
+    ? themeStyles.colors.black_grey 
+    : themeStyles.colors.background;
+
+  // Get text color based on theme
+  const getTextColor = () => isDarkTheme 
+    ? themeStyles.colors.white 
+    : themeStyles.colors.text.primary;
+
+  // Get secondary text color based on theme
+  const getSecondaryTextColor = () => isDarkTheme 
+    ? themeStyles.colors.grey 
+    : themeStyles.colors.text.secondary;
 
   // Initialize with current language on mount
   useEffect(() => {
@@ -40,10 +58,14 @@ export default function LanguageScreen() {
 
   const handleLanguageChange = async (language: string) => {
     try {
+      await Haptics.selectionAsync();
       setCurrentLang(language);
       
       // Save selected language
       await AsyncStorage.setItem('userLanguage', language);
+      
+      // Mark language selection as completed
+      await AsyncStorage.setItem('languageSelected', 'true');
       
       // Change language
       await i18n.changeLanguage(language);
@@ -59,7 +81,7 @@ export default function LanguageScreen() {
   return (
     <SafeAreaView style={[
       styles.safeArea,
-      { backgroundColor: themeStyles.colors.background }
+      { backgroundColor: getBackgroundColor() }
     ]}>
       <ScrollView
         contentContainerStyle={styles.container}
@@ -70,16 +92,27 @@ export default function LanguageScreen() {
             source={require('@/assets/icons/logo.jpg')}
             style={[
               styles.logo,
-              { borderRadius: themeStyles.borderRadius.circle(120) }
+              { borderRadius: themeStyles.borderRadius.circle(120) },
+              Platform.select({
+                ios: {
+                  shadowColor: themeStyles.colors.black,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: isDarkTheme ? 0.4 : 0.2,
+                  shadowRadius: 5,
+                },
+                android: {
+                  elevation: 5,
+                },
+              }),
             ]}
           />
           <Text style={[
             styles.title,
-            { color: themeStyles.colors.text.primary }
+            { color: getTextColor() }
           ]}>Trucking Logistics Pro</Text>
           <Text style={[
             styles.subtitle,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>
             {t('selectLanguage')}
           </Text>
@@ -89,22 +122,21 @@ export default function LanguageScreen() {
           <FormButton
             buttonTitle={t('english')}
             onPress={() => handleLanguageChange('en')}
-            backgroundColor={currentLang === 'en' ? themeStyles.colors.greenThemeColor : '#4A4A4A'}
-            textColor="white" // Always white text
-            
+            backgroundColor={currentLang === 'en' ? themeStyles.colors.greenThemeColor : isDarkTheme ? '#4A4A4A' : '#E0E0E0'}
+            textColor={currentLang === 'en' || isDarkTheme ? "white" : '#333333'}
           />
           <FormButton
             buttonTitle={t('spanish')}
             onPress={() => handleLanguageChange('es')}
-            backgroundColor={currentLang === 'es' ? themeStyles.colors.greenThemeColor : '#4A4A4A'}
-            textColor="white" // Always white text
+            backgroundColor={currentLang === 'es' ? themeStyles.colors.greenThemeColor : isDarkTheme ? '#4A4A4A' : '#E0E0E0'}
+            textColor={currentLang === 'es' || isDarkTheme ? "white" : '#333333'}
           />
         </View>
         
         <View style={styles.footerContainer}>
           <Text style={[
             styles.footerText,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>
             {t('chooseLater')}
           </Text>
@@ -120,43 +152,43 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 24,
+    paddingHorizontal: horizontalScale(24),
+    paddingTop: verticalScale(32),
+    paddingBottom: verticalScale(24),
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: verticalScale(32),
   },
   logo: {
-    height: 120,
-    width: 120,
+    height: moderateScale(120),
+    width: moderateScale(120),
     resizeMode: 'cover',
   },
   title: {
-    fontSize: 28,
+    fontSize: moderateScale(28),
     fontWeight: '700',
-    lineHeight: 34,
-    marginTop: 16,
+    lineHeight: moderateScale(34),
+    marginTop: verticalScale(16),
   },
   subtitle: {
-    fontSize: 16,
-    marginTop: 4,
+    fontSize: moderateScale(16),
+    marginTop: verticalScale(4),
     textAlign: 'center',
   },
   formContainer: {
     width: '100%',
-    marginTop: 16,
-    gap: 8,
+    marginTop: verticalScale(16),
+    gap: verticalScale(8),
   },
   footerContainer: {
-    marginTop: 24,
+    marginTop: verticalScale(24),
     flex: 1,
     justifyContent: 'flex-end',
-    paddingBottom: 24,
+    paddingBottom: verticalScale(24),
   },
   footerText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     textAlign: 'center',
   }
 });

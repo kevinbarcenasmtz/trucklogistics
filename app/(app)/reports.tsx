@@ -89,9 +89,9 @@ export default function ReportsScreen() {
           <Feather 
             name={getReceiptTypeIcon(item.type)} 
             size={moderateScale(20)} 
-            color={themeStyles.colors.white} 
+            color={themeStyles.colors.text.primary} 
           />
-          <Text style={[styles.receiptTypeText, { color: themeStyles.colors.white }]}>
+          <Text style={[styles.receiptTypeText, { color: themeStyles.colors.text.primary }]}>
             {t(item.type.toLowerCase(), item.type)}
           </Text>
         </View>
@@ -104,23 +104,23 @@ export default function ReportsScreen() {
       </View>
 
       <View style={styles.receiptDetails}>
-        <Text style={[styles.receiptAmount, { color: themeStyles.colors.white }]}>{item.amount}</Text>
-        <Text style={[styles.receiptVehicle, { color: themeStyles.colors.grey }]}>{item.vehicle}</Text>
-        {item.vendorName && <Text style={[styles.receiptVendor, { color: themeStyles.colors.grey }]}>{item.vendorName}</Text>}
+        <Text style={[styles.receiptAmount, { color: themeStyles.colors.text.primary }]}>{item.amount}</Text>
+        <Text style={[styles.receiptVehicle, { color: themeStyles.colors.text.secondary }]}>{item.vehicle}</Text>
+        {item.vendorName && <Text style={[styles.receiptVendor, { color: themeStyles.colors.text.secondary }]}>{item.vendorName}</Text>}
         
         {/* Preview of extracted text */}
         {item.extractedText && (
-          <Text style={[styles.extractedTextPreview, { color: themeStyles.colors.grey }]} numberOfLines={2}>
+          <Text style={[styles.extractedTextPreview, { color: themeStyles.colors.text.secondary }]} numberOfLines={2}>
             {item.extractedText.substring(0, 100)}{item.extractedText.length > 100 ? '...' : ''}
           </Text>
         )}
       </View>
 
       <View style={styles.receiptFooter}>
-        <Text style={[styles.receiptDate, { color: themeStyles.colors.grey }]}>
+        <Text style={[styles.receiptDate, { color: themeStyles.colors.text.secondary }]}>
           {formatDate(item.date)}
         </Text>
-        <Feather name="chevron-right" size={moderateScale(20)} color={themeStyles.colors.grey} />
+        <Feather name="chevron-right" size={moderateScale(20)} color={themeStyles.colors.text.secondary} />
       </View>
     </TouchableOpacity>
   );
@@ -136,7 +136,7 @@ export default function ReportsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: themeStyles.colors.white }]}>
+        <Text style={[styles.headerTitle, { color: themeStyles.colors.text.primary }]}>
           {t('receipts', 'Receipts')}
         </Text>
         <TouchableOpacity 
@@ -151,8 +151,8 @@ export default function ReportsScreen() {
         <TouchableOpacity 
           style={[styles.searchButton, { backgroundColor: themeStyles.colors.darkGrey }]}
         >
-          <Feather name="search" size={moderateScale(20)} color={themeStyles.colors.grey} />
-          <Text style={[styles.searchText, { color: themeStyles.colors.grey }]}>
+          <Feather name="search" size={moderateScale(20)} color={themeStyles.colors.text.secondary} />
+          <Text style={[styles.searchText, { color: themeStyles.colors.text.secondary }]}>
             {t('searchReceipts', 'Search receipts...')}
           </Text>
         </TouchableOpacity>
@@ -164,8 +164,8 @@ export default function ReportsScreen() {
         </View>
       ) : receipts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Feather name="file-text" size={moderateScale(60)} color={themeStyles.colors.grey} />
-          <Text style={[styles.emptyText, { color: themeStyles.colors.grey }]}>
+          <Feather name="file-text" size={moderateScale(60)} color={themeStyles.colors.text.secondary} />
+          <Text style={[styles.emptyText, { color: themeStyles.colors.text.secondary }]}>
             {t('noReceipts', 'No receipts found')}
           </Text>
           <TouchableOpacity 

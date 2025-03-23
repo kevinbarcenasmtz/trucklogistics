@@ -14,7 +14,7 @@ const ActivityItem = ({ icon, text }: { icon: any; text: string }) => {
   return (
     <View style={styles.activityItem}>
       <Feather name={icon} size={20} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.activityText, { color: themeStyles.colors.grey }]}>{text}</Text>
+      <Text style={[styles.activityText, { color: themeStyles.colors.text.secondary }]}>{text}</Text>
     </View>
   );
 };
@@ -40,7 +40,7 @@ const QuickAccessButton = ({
       onPress={onPress}
     >
       <Feather name={icon} size={30} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.quickButtonText, { color: themeStyles.colors.white }]}>{title}</Text>
+      <Text style={[styles.quickButtonText, { color: themeStyles.colors.text.primary }]}>{title}</Text>
     </TouchableOpacity>
   );
 };
@@ -60,8 +60,8 @@ const StatItem = ({
   return (
     <View style={styles.statItem}>
       <Feather name={icon} size={24} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.statValue, { color: themeStyles.colors.white }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: themeStyles.colors.grey }]}>{label}</Text>
+      <Text style={[styles.statValue, { color: themeStyles.colors.text.primary }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: themeStyles.colors.text.secondary }]}>{label}</Text>
     </View>
   );
 };
@@ -76,14 +76,14 @@ export default function HomeScreen() {
     <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={[styles.welcomeText, { color: themeStyles.colors.white }]}>{t('welcomeTitle')}</Text>
-          <Text style={[styles.subText, { color: themeStyles.colors.grey }]}>{t('welcomeSubtitle')}</Text>
+          <Text style={[styles.welcomeText, { color: themeStyles.colors.text.primary }]}>{t('welcomeTitle')}</Text>
+          <Text style={[styles.subText, { color: themeStyles.colors.text.secondary }]}>{t('welcomeSubtitle')}</Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
           <View style={styles.cardHeader}>
             <Feather name="activity" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.white }]}>{t('recentActivity')}</Text>
+            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>{t('recentActivity')}</Text>
           </View>
           <View style={styles.cardContent}>
             <ActivityItem icon="bookmark" text={t('lastReceipt')} />
@@ -95,7 +95,7 @@ export default function HomeScreen() {
         <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
           <View style={styles.cardHeader}>
             <Feather name="star" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.white }]}>{t('quickAccess')}</Text>
+            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>{t('quickAccess')}</Text>
           </View>
           <View style={styles.buttonGrid}>
             <QuickAccessButton
@@ -114,7 +114,7 @@ export default function HomeScreen() {
         <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
           <View style={styles.cardHeader}>
             <Feather name="bar-chart-2" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.white }]}>{t('statistics')}</Text>
+            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>{t('statistics')}</Text>
           </View>
           <View style={styles.statsGrid}>
             <StatItem icon="truck" value="15" label={t('activeTrucks')} />
@@ -128,6 +128,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  // Styles remain the same
   container: {
     flex: 1,
     paddingTop: verticalScale(14),

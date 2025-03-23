@@ -281,6 +281,16 @@ export interface ThemeStyles {
 export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
   const isDark = theme === 'dark';
   
+  // Define light theme variants of legacy colors
+  const lightModeLegacyColors = {
+    grey: '#757575',            // Medium gray for light theme
+    darkGrey: '#f0f0f0',        // Light gray for light theme (card backgrounds)
+    black_grey: '#f8f8f8',      // Off-white for light theme (backgrounds)
+    greenThemeColor: COLORS.greenThemeColor,  // Keep brand color consistent
+    thirdOnboardingColor: COLORS.thirdOnboardingColor, // Keep brand color consistent
+    transParent: '#d0d0d0',     // Lighter transparent for light theme
+  };
+  
   return {
     colors: {
       primary: isDark ? COLORS.primary.dark : COLORS.primary.light,
@@ -294,16 +304,17 @@ export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
       border: isDark ? COLORS.border.dark : COLORS.border.light,
       status: COLORS.status, // Same for both themes
       gray: COLORS.gray, // Same for both themes
-      // Legacy colors
-      greenThemeColor: COLORS.greenThemeColor,
-      thirdOnboardingColor: COLORS.thirdOnboardingColor,
-      grey: COLORS.grey,
-      darkGrey: COLORS.darkGrey,
-      black_grey: COLORS.black_grey,
-      transParent: COLORS.transParent,
-      offWhite: COLORS.offWhite,
-      white: COLORS.white,
-      black: COLORS.black,
+      
+      // Legacy colors - modify based on theme
+      greenThemeColor: COLORS.greenThemeColor, // Keep brand color consistent
+      thirdOnboardingColor: COLORS.thirdOnboardingColor, // Keep brand color consistent
+      grey: isDark ? COLORS.grey : lightModeLegacyColors.grey,
+      darkGrey: isDark ? COLORS.darkGrey : lightModeLegacyColors.darkGrey,
+      black_grey: isDark ? COLORS.black_grey : lightModeLegacyColors.black_grey,
+      transParent: isDark ? COLORS.transParent : lightModeLegacyColors.transParent,
+      offWhite: COLORS.offWhite, // Keep this consistent
+      white: COLORS.white, // Keep this consistent
+      black: COLORS.black, // Keep this consistent
     },
     typography: TYPOGRAPHY,
     spacing: SPACING,

@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   Switch,
   ActivityIndicator,
+  Alert,
+  Platform
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
@@ -26,17 +28,49 @@ export default function Settings() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { user, logout, userData } = useAuth();
-  const { theme } = useTheme();
+  // Get all theme-related values from context
+  const { theme, themePreference, isDarkTheme, setTheme, themeConstants } = useTheme();
   const themeStyles = getThemeStyles(theme);
   
   const [isLanguageLoading, setIsLanguageLoading] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const [form, setForm] = useState({
-    darkMode: false,
     emailNotifications: true,
     pushNotifications: false,
   });
+
+  // Handle theme change
+  const handleThemeChange = async () => {
+    try {
+      await Haptics.selectionAsync();
+      
+      // Cycle through theme options: system -> light -> dark -> system
+      const nextTheme = 
+        themePreference === themeConstants.THEME_SYSTEM ? themeConstants.THEME_LIGHT :
+        themePreference === themeConstants.THEME_LIGHT ? themeConstants.THEME_DARK :
+        themeConstants.THEME_SYSTEM;
+      
+      // Call setTheme from the context
+      await setTheme(nextTheme);
+    } catch (error) {
+      console.error('Error changing theme:', error);
+    }
+  };
+
+  // Get current theme label for display
+  const getThemeLabel = () => {
+    switch(themePreference) {
+      case themeConstants.THEME_SYSTEM:
+        return 'System';
+      case themeConstants.THEME_LIGHT:
+        return 'Light';
+      case themeConstants.THEME_DARK:
+        return 'Dark';
+      default:
+        return 'System';
+    }
+  };
 
   const handleLanguageChange = async () => {
     try {
@@ -48,6 +82,7 @@ export default function Settings() {
       // Save language preference
       try {
         await AsyncStorage.setItem('userLanguage', newLanguage);
+        await AsyncStorage.setItem('languageSelected', 'true');
       } catch (error) {
         console.error('Error saving language preference:', error);
       }
@@ -65,7 +100,7 @@ export default function Settings() {
       await logout();
     } catch (error) {
       console.error('Logout error:', error);
-      alert("Failed to log out. Please try again.");
+      Alert.alert("Error", "Failed to log out. Please try again.");
     } finally {
       setIsLoggingOut(false);
     }
@@ -91,7 +126,17 @@ export default function Settings() {
           styles.avatar,
           { 
             backgroundColor: themeStyles.colors.greenThemeColor,
-            ...themeStyles.shadow.md
+            ...Platform.select({
+              ios: {
+                shadowColor: themeStyles.colors.black,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.2,
+                shadowRadius: 3,
+              },
+              android: {
+                elevation: 4,
+              },
+            }),
           }
         ]}>
           <Text style={[
@@ -106,7 +151,17 @@ export default function Settings() {
         styles.avatar,
         { 
           backgroundColor: themeStyles.colors.greenThemeColor,
-          ...themeStyles.shadow.md
+          ...Platform.select({
+            ios: {
+              shadowColor: themeStyles.colors.black,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 3,
+            },
+            android: {
+              elevation: 4,
+            },
+          }),
         }
       ]}>
         <Text style={[
@@ -117,20 +172,45 @@ export default function Settings() {
     );
   };
 
+  // Get background color based on theme
+  const getBackgroundColor = () => isDarkTheme 
+    ? themeStyles.colors.black_grey 
+    : themeStyles.colors.background;
+
+  // Get card background color based on theme
+  const getCardBackgroundColor = () => isDarkTheme 
+    ? themeStyles.colors.darkGrey 
+    : themeStyles.colors.surface;
+
+  // Get primary text color based on theme
+  const getTextColor = () => isDarkTheme 
+    ? themeStyles.colors.white 
+    : themeStyles.colors.text.primary;
+
+  // Get secondary text color based on theme
+  const getSecondaryTextColor = () => isDarkTheme 
+    ? themeStyles.colors.grey 
+    : themeStyles.colors.text.secondary;
+
+  // Get border color based on theme
+  const getBorderColor = () => isDarkTheme 
+    ? themeStyles.colors.transParent 
+    : themeStyles.colors.border;
+
   return (
     <SafeAreaView style={{ 
       flex: 1, 
-      backgroundColor: themeStyles.colors.black_grey 
+      backgroundColor: getBackgroundColor()
     }}>
       <View style={styles.container}>
         <View style={styles.header}>
           <Text style={[
             styles.headerTitle,
-            { color: themeStyles.colors.white }
+            { color: getTextColor() }
           ]}>{t('settings')}</Text>
           <Text style={[
             styles.headerSubtitle,
-            { color: themeStyles.colors.grey }
+            { color: getSecondaryTextColor() }
           ]}>{t('manageAccount')}</Text>
         </View>
 
@@ -143,89 +223,121 @@ export default function Settings() {
             style={[
               styles.profile,
               { 
-                backgroundColor: themeStyles.colors.darkGrey,
-                ...themeStyles.shadow.sm
+                backgroundColor: getCardBackgroundColor(),
+                ...Platform.select({
+                  ios: {
+                    shadowColor: themeStyles.colors.black,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDarkTheme ? 0.3 : 0.1,
+                    shadowRadius: 3,
+                  },
+                  android: {
+                    elevation: 4,
+                  },
+                }),
               }
             ]}
           >
             {renderAvatar()}
             <Text style={[
               styles.profileName,
-              { color: themeStyles.colors.white }
+              { color: getTextColor() }
             ]}>{getFullName()}</Text>
             <Text style={[
               styles.profileEmail,
-              { color: themeStyles.colors.grey }
+              { color: getSecondaryTextColor() }
             ]}>{userData?.email || t('defaultEmail')}</Text>
 
-            <TouchableOpacity
-              onPress={() => router.push("/(app)/settings/edit")}>
-              <View style={[
-                styles.profileAction,
-                { backgroundColor: themeStyles.colors.greenThemeColor }
-              ]}>
-                <Text style={[
-                  styles.profileActionText,
-                  { color: themeStyles.colors.white }
-                ]}>{t('editProfile')}</Text>
-                <Feather color={themeStyles.colors.white} name="edit" size={16} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity onPress={handleLogout} disabled={isLoggingOut}>
-              <View style={[
-                styles.profileAction,
-                { backgroundColor: themeStyles.colors.greenThemeColor }
-              ]}>
-                <Text style={[
-                  styles.profileActionText,
-                  { color: themeStyles.colors.white }
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity
+                style={styles.actionButtonWrapper}
+                onPress={() => router.push("/(app)/settings/edit")}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.profileAction,
+                  { backgroundColor: themeStyles.colors.greenThemeColor }
                 ]}>
-                  {isLoggingOut ? t('loggingOut', 'Logging out...') : t('logOut')}
-                </Text>
-                {isLoggingOut ? (
-                  <ActivityIndicator size="small" color={themeStyles.colors.white} />
-                ) : (
-                  <Feather color={themeStyles.colors.white} name="log-out" size={16} />
-                )}
-              </View>
-            </TouchableOpacity>
+                  <Text style={[
+                    styles.profileActionText,
+                    { color: themeStyles.colors.white }
+                  ]}>{t('editProfile')}</Text>
+                  <Feather color={themeStyles.colors.white} name="edit" size={16} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.actionButtonWrapper}
+                onPress={handleLogout} 
+                disabled={isLoggingOut}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.profileAction,
+                  { backgroundColor: themeStyles.colors.greenThemeColor }
+                ]}>
+                  <Text style={[
+                    styles.profileActionText,
+                    { color: themeStyles.colors.white }
+                  ]}>
+                    {isLoggingOut ? t('loggingOut', 'Logging out...') : t('logOut')}
+                  </Text>
+                  {isLoggingOut ? (
+                    <ActivityIndicator size="small" color={themeStyles.colors.white} />
+                  ) : (
+                    <Feather color={themeStyles.colors.white} name="log-out" size={16} />
+                  )}
+                </View>
+              </TouchableOpacity>
+            </View>
           </Animated.View>
 
           <View style={styles.section}>
             <Text style={[
               styles.sectionTitle,
-              { color: themeStyles.colors.grey }
+              { color: getSecondaryTextColor() }
             ]}>{t('preferences')}</Text>
 
             <View style={[
               styles.sectionBody,
               { 
-                backgroundColor: themeStyles.colors.darkGrey,
+                backgroundColor: getCardBackgroundColor(),
+                ...Platform.select({
+                  ios: {
+                    shadowColor: themeStyles.colors.black,
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: isDarkTheme ? 0.2 : 0.1,
+                    shadowRadius: 2,
+                  },
+                  android: {
+                    elevation: 2,
+                  },
+                }),
               }
             ]}>
               <View style={[
                 styles.rowWrapper, 
                 styles.rowFirst,
-                { borderColor: themeStyles.colors.transParent }
+                { borderColor: getBorderColor() }
               ]}>
                 <TouchableOpacity 
                   onPress={handleLanguageChange}
                   style={styles.row}
+                  activeOpacity={0.6}
                 >
                   <View style={[
                     styles.rowIcon, 
                     { backgroundColor: '#fe9400' }
                   ]}>
                     <Feather 
-                      color={themeStyles.colors.darkGrey} 
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
                       name="globe" 
                       size={20} 
                     />
                   </View>
                   <Text style={[
                     styles.rowLabel,
-                    { color: themeStyles.colors.white }
+                    { color: getTextColor() }
                   ]}>{t('languagePreference')}</Text>
                   <View style={styles.rowSpacer} />
                   {isLanguageLoading ? (
@@ -237,12 +349,12 @@ export default function Settings() {
                     <>
                       <Text style={[
                         styles.rowValue,
-                        { color: themeStyles.colors.grey }
+                        { color: getSecondaryTextColor() }
                       ]}>
                         {i18n.language === 'en' ? t('english') : t('spanish')}
                       </Text>
                       <Feather 
-                        color={themeStyles.colors.grey} 
+                        color={getSecondaryTextColor()} 
                         name="chevron-right" 
                         size={20} 
                       />
@@ -253,43 +365,45 @@ export default function Settings() {
 
               <View style={[
                 styles.rowWrapper,
-                { borderColor: themeStyles.colors.transParent }
+                { borderColor: getBorderColor() }
               ]}>
-                <View style={styles.row}>
+                <TouchableOpacity 
+                  onPress={handleThemeChange}
+                  style={styles.row}
+                  activeOpacity={0.6}
+                >
                   <View style={[
                     styles.rowIcon, 
                     { backgroundColor: '#007AFF' }
                   ]}>
                     <Feather 
-                      color={themeStyles.colors.darkGrey} 
-                      name="moon" 
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
+                      name={isDarkTheme ? "moon" : "sun"} 
                       size={20} 
                     />
                   </View>
                   <Text style={[
                     styles.rowLabel,
-                    { color: themeStyles.colors.white }
+                    { color: getTextColor() }
                   ]}>{t('darkMode')}</Text>
                   <View style={styles.rowSpacer} />
-                  <AnimatedSwitch
-                    entering={FadeIn}
-                    onValueChange={darkMode => {
-                      Haptics.selectionAsync();
-                      setForm({ ...form, darkMode });
-                    }}
-                    value={form.darkMode}
-                    trackColor={{ 
-                      false: '#767577', 
-                      true: themeStyles.colors.greenThemeColor 
-                    }}
-                    thumbColor="#f4f3f4"
+                  <Text style={[
+                    styles.rowValue,
+                    { color: getSecondaryTextColor() }
+                  ]}>
+                    {getThemeLabel()}
+                  </Text>
+                  <Feather 
+                    color={getSecondaryTextColor()} 
+                    name="chevron-right" 
+                    size={20} 
                   />
-                </View>
+                </TouchableOpacity>
               </View>
 
               <View style={[
                 styles.rowWrapper,
-                { borderColor: themeStyles.colors.transParent }
+                { borderColor: getBorderColor() }
               ]}>
                 <View style={styles.row}>
                   <View style={[
@@ -297,19 +411,19 @@ export default function Settings() {
                     { backgroundColor: '#32c759' }
                   ]}>
                     <Feather 
-                      color={themeStyles.colors.darkGrey}
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
                       name="navigation" 
                       size={20} 
                     />
                   </View>
                   <Text style={[
                     styles.rowLabel,
-                    { color: themeStyles.colors.white }
+                    { color: getTextColor() }
                   ]}>{t('location')}</Text>
                   <View style={styles.rowSpacer} />
                   <Text style={[
                     styles.rowValue,
-                    { color: themeStyles.colors.grey }
+                    { color: getSecondaryTextColor() }
                   ]}>{getLocation()}</Text>
                 </View>
               </View>
@@ -319,17 +433,30 @@ export default function Settings() {
           <View style={styles.section}>
             <Text style={[
               styles.sectionTitle,
-              { color: themeStyles.colors.grey }
+              { color: getSecondaryTextColor() }
             ]}>{t('notifications')}</Text>
 
             <View style={[
               styles.sectionBody,
-              { backgroundColor: themeStyles.colors.darkGrey }
+              { 
+                backgroundColor: getCardBackgroundColor(),
+                ...Platform.select({
+                  ios: {
+                    shadowColor: themeStyles.colors.black,
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: isDarkTheme ? 0.2 : 0.1,
+                    shadowRadius: 2,
+                  },
+                  android: {
+                    elevation: 2,
+                  },
+                }),
+              }
             ]}>
               <View style={[
                 styles.rowWrapper, 
                 styles.rowFirst,
-                { borderColor: themeStyles.colors.transParent }
+                { borderColor: getBorderColor() }
               ]}>
                 <View style={styles.row}>
                   <View style={[
@@ -337,14 +464,14 @@ export default function Settings() {
                     { backgroundColor: '#38C959' }
                   ]}>
                     <Feather 
-                      color={themeStyles.colors.darkGrey} 
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
                       name="at-sign" 
                       size={20} 
                     />
                   </View>
                   <Text style={[
                     styles.rowLabel,
-                    { color: themeStyles.colors.white }
+                    { color: getTextColor() }
                   ]}>{t('emailNotifications')}</Text>
                   <View style={styles.rowSpacer} />
                   <AnimatedSwitch
@@ -355,17 +482,18 @@ export default function Settings() {
                     }}
                     value={form.emailNotifications}
                     trackColor={{ 
-                      false: '#767577', 
+                      false: isDarkTheme ? '#555555' : '#D0D0D0', 
                       true: themeStyles.colors.greenThemeColor 
                     }}
-                    thumbColor="#f4f3f4"
+                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
+                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
                   />
                 </View>
               </View>
 
               <View style={[
                 styles.rowWrapper,
-                { borderColor: themeStyles.colors.transParent }
+                { borderColor: getBorderColor() }
               ]}>
                 <View style={styles.row}>
                   <View style={[
@@ -373,14 +501,14 @@ export default function Settings() {
                     { backgroundColor: '#38C959' }
                   ]}>
                     <Feather 
-                      color={themeStyles.colors.darkGrey} 
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
                       name="bell" 
                       size={20} 
                     />
                   </View>
                   <Text style={[
                     styles.rowLabel,
-                    { color: themeStyles.colors.white }
+                    { color: getTextColor() }
                   ]}>{t('pushNotifications')}</Text>
                   <View style={styles.rowSpacer} />
                   <AnimatedSwitch
@@ -391,10 +519,11 @@ export default function Settings() {
                     }}
                     value={form.pushNotifications}
                     trackColor={{ 
-                      false: '#767577', 
+                      false: isDarkTheme ? '#555555' : '#D0D0D0', 
                       true: themeStyles.colors.greenThemeColor 
                     }}
-                    thumbColor="#f4f3f4"
+                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
+                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
                   />
                 </View>
               </View>
@@ -416,8 +545,8 @@ const styles = StyleSheet.create({
     marginBottom: verticalScale(16),
   },
   headerTitle: {
-    fontSize: moderateScale(34),
-    fontWeight: '800',
+    fontSize: moderateScale(28),
+    fontWeight: '700',
     letterSpacing: 0.5,
   },
   headerSubtitle: {
@@ -452,10 +581,17 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(4),
     fontSize: moderateScale(16),
   },
-  profileAction: {
+  actionButtonsContainer: {
+    flexDirection: 'row',
     marginTop: verticalScale(16),
+    gap: horizontalScale(8),
+  },
+  actionButtonWrapper: {
+    flex: 1,
+  },
+  profileAction: {
     paddingVertical: verticalScale(8),
-    paddingHorizontal: horizontalScale(16),
+    paddingHorizontal: horizontalScale(12),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -464,7 +600,7 @@ const styles = StyleSheet.create({
     gap: horizontalScale(8),
   },
   profileActionText: {
-    fontSize: moderateScale(16),
+    fontSize: moderateScale(14),
     fontWeight: '600',
   },
   section: {
@@ -515,13 +651,8 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(8),
     justifyContent: 'center',
     alignItems: 'center',
-    transform: [{ scale: 1.1 }],
   },
   rowSpacer: {
     flex: 1,
   },
-  settingLabel: {
-    fontSize: moderateScale(12),
-    marginTop: verticalScale(4),
-  }
 });

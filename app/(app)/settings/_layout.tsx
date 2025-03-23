@@ -4,14 +4,19 @@ import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles } from "@/src/theme";
 
 export default function SettingsLayout() {
-  const { theme } = useTheme();
+  const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
+
+  // Get background color based on theme
+  const getBackgroundColor = () => isDarkTheme 
+    ? themeStyles.colors.black_grey 
+    : themeStyles.colors.background;
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: themeStyles.colors.black_grey },
+        contentStyle: { backgroundColor: getBackgroundColor() },
       }}
     >
       <Stack.Screen 

@@ -14,6 +14,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+const AUTH_STATE_KEY = 'auth_state';
 
 // Initialize Google Sign-In (now imported from separate file)
 import '../config/googleSignIn';
@@ -48,7 +49,9 @@ type AuthContextType = {
   googleLogin: () => Promise<void>;
   isOnboardingCompleted: boolean | null;
   completeOnboarding: () => Promise<void>;
+  updateUserData: (data: UserData) => Promise<void>; // Add this function
 };
+
 
 // Error handling helper
 const handleAuthError = (error: any) => {
@@ -115,17 +118,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Check onboarding status
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      try {
-        const value = await AsyncStorage.getItem("onboardingCompleted");
-        setIsOnboardingCompleted(value === "true");
-      } catch (error) {
-        console.error("Error checking onboarding status:", error);
-        setIsOnboardingCompleted(false);
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userDoc = await firestore().collection('users').doc(firebaseUser.uid).get();
+          const userDocData = userDoc.data();
+          
+          if (userDocData) {
+            const userData = {
+              uid: firebaseUser.uid,
+              email: userDocData.email || '',
+              fname: userDocData.fname || '',
+              lname: userDocData.lname || '',
+              createdAt: userDocData.createdAt
+            };
+            
+            setUser(userData);
+            setUserData({
+              email: userDocData.email,
+              fname: userDocData.fname,
+              lname: userDocData.lname,
+              phone: userDocData.phone,
+              country: userDocData.country,
+              city: userDocData.city,
+              state: userDocData.state
+            });
+            
+            // Save auth state to AsyncStorage
+            await AsyncStorage.setItem(AUTH_STATE_KEY, 'true');
+          } else {
+            setUser(null);
+            setUserData(null);
+            await AsyncStorage.removeItem(AUTH_STATE_KEY);
+          }
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setUser(null);
+          setUserData(null);
+          await AsyncStorage.removeItem(AUTH_STATE_KEY);
+        }
+      } else {
+        setUser(null);
+        setUserData(null);
+        await AsyncStorage.removeItem(AUTH_STATE_KEY);
       }
-    };
-    
-    checkOnboardingStatus();
+      setLoading(false);
+    });
+  
+    return unsubscribe;
   }, []);
 
   // Listen to auth state changes
@@ -240,6 +280,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       await auth().signOut();
+      await AsyncStorage.removeItem(AUTH_STATE_KEY);
       setUser(null);
       setUserData(null);
       router.replace("/(auth)/login");
@@ -362,6 +403,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateUserData = async (data: UserData) => {
+    try {
+      setLoading(true);
+      
+      if (!user) {
+        throw new Error('No user is currently logged in');
+      }
+      
+      // Update the user data in Firestore
+      await firestore()
+        .collection('users')
+        .doc(user.uid)
+        .update({
+          ...data,
+          updatedAt: firestore.Timestamp.now(),
+        });
+      
+      // Update local state
+      setUserData(data);
+      
+      // Update user state with name changes if applicable
+      if (data.fname !== user.fname || data.lname !== user.lname) {
+        setUser({
+          ...user,
+          fname: data.fname || user.fname,
+          lname: data.lname || user.lname,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error updating user data:', error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Create context value
   const value: AuthContextType = {
     user,
@@ -374,6 +451,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     googleLogin,
     isOnboardingCompleted,
     completeOnboarding,
+    updateUserData, // Add this line
   };
 
   return (

@@ -1,5 +1,5 @@
 globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
-
+// app/index.tsx
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ActivityIndicator } from "react-native";
 import { Redirect } from "expo-router";
@@ -15,23 +15,27 @@ export default function Index(): JSX.Element {
   
   const [isOnboardingCompleted, setIsOnboardingCompleted] = useState<boolean | null>(null);
   const [isLanguageSelected, setIsLanguageSelected] = useState<boolean | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkAppStatus = async () => {
       try {
-        // Check both onboarding and language selection status
-        const [onboardingValue, languageValue] = await Promise.all([
+        // Check onboarding, language and authentication status
+        const [onboardingValue, languageValue, authValue] = await Promise.all([
           AsyncStorage.getItem("onboardingCompleted"),
-          AsyncStorage.getItem("languageSelected")
+          AsyncStorage.getItem("languageSelected"),
+          AsyncStorage.getItem("auth_state")
         ]);
         
         setIsOnboardingCompleted(onboardingValue === "true");
         setIsLanguageSelected(languageValue === "true");
+        setIsAuthenticated(authValue === "true");
       } catch (error) {
         console.error("Error checking app status:", error);
         setIsOnboardingCompleted(false);
         setIsLanguageSelected(false);
+        setIsAuthenticated(false);
       } finally {
         setLoading(false);
       }
@@ -52,6 +56,23 @@ export default function Index(): JSX.Element {
     );
   }
 
+  // If user exists from auth context, go straight to home screen
+  if (user) {
+    return <Redirect href="/(app)/home" />;
+  }
+  
+  // If authenticated from AsyncStorage but no user yet, wait for auth context to load the user
+  if (isAuthenticated) {
+    return (
+      <View style={[
+        styles.container,
+        { backgroundColor: themeStyles.colors.background }
+      ]}>
+        <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
+      </View>
+    );
+  }
+  
   // Routing logic following the flow:
   // language screen → onboarding → login/signup → home app
   
@@ -65,13 +86,8 @@ export default function Index(): JSX.Element {
     return <Redirect href="/(auth)/onboarding" />;
   }
   
-  // Step 3: Check if user is authenticated
-  if (!user) {
-    return <Redirect href="/(auth)/login" />;
-  }
-  
-  // Step 4: User is authenticated and has completed all steps, go to home
-  return <Redirect href="/(app)/home" />;
+  // Step 3: User is not authenticated, go to login
+  return <Redirect href="/(auth)/login" />;
 }
 
 const styles = StyleSheet.create({

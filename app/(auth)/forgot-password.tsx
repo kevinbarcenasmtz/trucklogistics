@@ -1,3 +1,4 @@
+// app/(auth)/forgot-password.tsx
 import React, { useState } from 'react';
 import { 
   View, 
@@ -5,23 +6,40 @@ import {
   StyleSheet, 
   SafeAreaView, 
   TouchableOpacity,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useRouter } from "expo-router";
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles } from "@/src/theme";
+import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
+import { Feather } from '@expo/vector-icons';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { theme } = useTheme();
+  const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const { resetPassword, loading } = useAuth();
+
+  // Get text color based on theme
+  const getTextColor = () => isDarkTheme 
+    ? themeStyles.colors.white 
+    : themeStyles.colors.text.primary;
+
+  // Get secondary text color based on theme
+  const getSecondaryTextColor = () => isDarkTheme 
+    ? themeStyles.colors.grey 
+    : themeStyles.colors.text.secondary;
+
+  // Get background color based on theme
+  const getBackgroundColor = () => isDarkTheme 
+    ? themeStyles.colors.black_grey 
+    : themeStyles.colors.background;
 
   const handleReset = async () => {
     if (!email) {
@@ -46,28 +64,30 @@ export default function ForgotPasswordScreen() {
   return (
     <SafeAreaView style={[
       styles.safeArea,
-      { backgroundColor: themeStyles.colors.background }
+      { backgroundColor: getBackgroundColor() }
     ]}>
       <View style={styles.container}>
         <TouchableOpacity 
           onPress={() => router.back()} 
           style={styles.backButton}
+          activeOpacity={0.7}
         >
-          <Text style={[
-            styles.backText,
-            { color: themeStyles.colors.text.primary }
-          ]}>{t('back', 'Back')}</Text>
+          <Feather 
+            name="arrow-left" 
+            size={24} 
+            color={getTextColor()} 
+          />
         </TouchableOpacity>
         
         <View style={styles.contentContainer}>
           <Text style={[
             styles.title,
-            { color: themeStyles.colors.text.primary }
+            { color: getTextColor() }
           ]}>{t('forgotPasswordTitle', 'Forgot Password')}</Text>
           
           <Text style={[
             styles.subtitle,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>
             {t('forgotPasswordSubtitle', 'Enter your email address and we will send you instructions to reset your password.')}
           </Text>
@@ -88,6 +108,7 @@ export default function ForgotPasswordScreen() {
             onPress={handleReset}
             disabled={loading}
             backgroundColor={themeStyles.colors.greenThemeColor}
+            textColor={themeStyles.colors.white}
           />
         </View>
       </View>
@@ -101,37 +122,37 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    padding: 16,
+    padding: horizontalScale(16),
   },
   backButton: {
-    marginTop: 16,
+    marginTop: verticalScale(16),
+    width: moderateScale(40),
+    height: moderateScale(40),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
   },
   contentContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  image: {
-    width: 200,
-    height: 200,
-    marginBottom: 30,
+    paddingHorizontal: horizontalScale(16),
   },
   title: {
-    fontSize: 26,
+    fontSize: moderateScale(26),
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: verticalScale(10),
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     textAlign: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 20,
+    marginBottom: verticalScale(30),
+    paddingHorizontal: horizontalScale(20),
   },
   inputContainer: {
     width: '100%',
-    marginBottom: 20,
+    marginBottom: verticalScale(20),
   }
 });

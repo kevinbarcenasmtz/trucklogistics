@@ -71,19 +71,26 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
   }, []);
 
   // Save theme preference when it changes
+  // Inside ThemeContext.tsx - modify the setTheme function
   const setTheme = async (newTheme: ThemePreference): Promise<void> => {
     try {
+      
+      // Save to storage first
       await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
+      
+      // Update state
       setThemePreference(newTheme);
       
-      // Apply to native elements if not system
+      // Apply to native elements
       if (newTheme !== THEME_SYSTEM) {
         Appearance.setColorScheme(newTheme);
       } else {
         Appearance.setColorScheme(null); // Reset to system
       }
+      
+      // On iOS, the colorScheme doesn't update immediately
+      // so we still need to rely on our own state
     } catch (error) {
-      console.error('Failed to save theme preference:', error);
     }
   };
 

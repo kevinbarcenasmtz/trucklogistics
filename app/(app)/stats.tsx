@@ -8,6 +8,7 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Platform,
 } from "react-native";
 import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
@@ -20,7 +21,7 @@ interface StatData {
   title: string;
   value: string;
   change: string;
-  icon: any;
+  icon: keyof typeof Feather.glyphMap;
   isPositive: boolean;
 }
 
@@ -33,7 +34,7 @@ interface PerformanceData {
 export default function StatsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   
   const [selectedPeriod, setSelectedPeriod] = useState('week');
@@ -111,7 +112,9 @@ export default function StatsScreen() {
             styles.statCard, 
             { 
               opacity: 0.5,
-              backgroundColor: themeStyles.colors.darkGrey 
+              backgroundColor: isDarkTheme 
+                ? themeStyles.colors.darkGrey 
+                : themeStyles.colors.surface
             }
           ]} 
         />
@@ -135,15 +138,42 @@ export default function StatsScreen() {
   const renderStatCard = ({ title, value, change, icon, isPositive }: StatData) => (
     <Animated.View 
       entering={FadeIn.duration(400)}
-      style={[styles.statCard, { backgroundColor: themeStyles.colors.darkGrey }]}
+      style={[
+        styles.statCard, 
+        { 
+          backgroundColor: isDarkTheme 
+            ? themeStyles.colors.darkGrey 
+            : themeStyles.colors.surface,
+          ...Platform.select({
+            ios: {
+              shadowColor: themeStyles.colors.black,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDarkTheme ? 0.3 : 0.1,
+              shadowRadius: 3,
+            },
+            android: {
+              elevation: 4,
+            },
+          }),
+        }
+      ]}
     >
-      <View style={[styles.statIconContainer, { backgroundColor: themeStyles.colors.greenThemeColor }]}>
+      <View style={[
+        styles.statIconContainer, 
+        { backgroundColor: themeStyles.colors.greenThemeColor }
+      ]}>
         <Feather name={icon} size={moderateScale(20)} color={themeStyles.colors.white} />
       </View>
-      <Text style={[styles.statTitle, { color: themeStyles.colors.grey }]}>
-        {title.split(' ').map(word => `${word}\n`)}
+      <Text style={[
+        styles.statTitle, 
+        { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
+      ]}>
+        {title}
       </Text>
-      <Text style={[styles.statValue, { color: themeStyles.colors.white }]}>
+      <Text style={[
+        styles.statValue, 
+        { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+      ]}>
         {value}
       </Text>
       <View style={styles.statChangeContainer}>
@@ -154,7 +184,7 @@ export default function StatsScreen() {
         />
         <Text style={[
           styles.statChange,
-          {color: isPositive ? themeStyles.colors.status.success : themeStyles.colors.status.error}
+          { color: isPositive ? themeStyles.colors.status.success : themeStyles.colors.status.error }
         ]}>
           {change}
         </Text>
@@ -168,14 +198,23 @@ export default function StatsScreen() {
       style={styles.performanceItem}
     >
       <View style={styles.performanceHeader}>
-        <Text style={[styles.performanceLabel, { color: themeStyles.colors.white }]}>
+        <Text style={[
+          styles.performanceLabel, 
+          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+        ]}>
           {label}
         </Text>
-        <Text style={[styles.performanceValue, { color: themeStyles.colors.grey }]}>
+        <Text style={[
+          styles.performanceValue, 
+          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
+        ]}>
           {value}
         </Text>
       </View>
-      <View style={[styles.progressBarBackground, { backgroundColor: themeStyles.colors.darkGrey }]}>
+      <View style={[
+        styles.progressBarBackground, 
+        { backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.background }
+      ]}>
         <View style={[
           styles.progressBarFill,
           {
@@ -188,73 +227,56 @@ export default function StatsScreen() {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
+    <SafeAreaView style={[
+      styles.container, 
+      { backgroundColor: isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background }
+    ]}>
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: themeStyles.colors.white }]}>
+        <Text style={[
+          styles.headerTitle, 
+          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+        ]}>
           {t('statistics')}
         </Text>
-        <Text style={[styles.headerSubtitle, { color: themeStyles.colors.grey }]}>
+        <Text style={[
+          styles.headerSubtitle, 
+          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
+        ]}>
           {t('fleetOverview')}
         </Text>
       </View>
 
       <View style={styles.periodSelector}>
-        <TouchableOpacity 
-          style={[
-            styles.periodTab, 
-            selectedPeriod === 'week' && [
-              styles.periodTabActive, 
-              { backgroundColor: themeStyles.colors.greenThemeColor }
-            ]
-          ]}
-          onPress={() => setSelectedPeriod('week')}
-        >
-          <Text style={[
-            styles.periodText, 
-            { color: themeStyles.colors.grey },
-            selectedPeriod === 'week' && { color: themeStyles.colors.white }
-          ]}>
-            {t('week')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[
-            styles.periodTab, 
-            { backgroundColor: themeStyles.colors.darkGrey },
-            selectedPeriod === 'month' && [
-              styles.periodTabActive, 
-              { backgroundColor: themeStyles.colors.greenThemeColor }
-            ]
-          ]}
-          onPress={() => setSelectedPeriod('month')}
-        >
-          <Text style={[
-            styles.periodText, 
-            { color: themeStyles.colors.grey },
-            selectedPeriod === 'month' && { color: themeStyles.colors.white }
-          ]}>
-            {t('month')}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[
-            styles.periodTab, 
-            { backgroundColor: themeStyles.colors.darkGrey },
-            selectedPeriod === 'year' && [
-              styles.periodTabActive, 
-              { backgroundColor: themeStyles.colors.greenThemeColor }
-            ]
-          ]}
-          onPress={() => setSelectedPeriod('year')}
-        >
-          <Text style={[
-            styles.periodText, 
-            { color: themeStyles.colors.grey },
-            selectedPeriod === 'year' && { color: themeStyles.colors.white }
-          ]}>
-            {t('year')}
-          </Text>
-        </TouchableOpacity>
+        {['week', 'month', 'year'].map((period) => (
+          <TouchableOpacity 
+            key={period}
+            style={[
+              styles.periodTab, 
+              { 
+                backgroundColor: isDarkTheme 
+                  ? themeStyles.colors.darkGrey
+                  : themeStyles.colors.surface
+              },
+              selectedPeriod === period && [
+                styles.periodTabActive, 
+                { backgroundColor: themeStyles.colors.greenThemeColor }
+              ]
+            ]}
+            onPress={() => setSelectedPeriod(period)}
+          >
+            <Text style={[
+              styles.periodText, 
+              { 
+                color: isDarkTheme 
+                  ? themeStyles.colors.grey 
+                  : themeStyles.colors.text.secondary
+              },
+              selectedPeriod === period && { color: themeStyles.colors.white }
+            ]}>
+              {t(period)}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       <ScrollView 
@@ -280,6 +302,7 @@ export default function StatsScreen() {
                     pathname: "/reports",
                     params: { type: stat.title }
                   })}
+                  activeOpacity={0.7}
                 >
                   {renderStatCard(stat)}
                 </TouchableOpacity>
@@ -288,9 +311,16 @@ export default function StatsScreen() {
 
             <View style={[
               styles.performanceContainer, 
-              { borderTopColor: themeStyles.colors.darkGrey }
+              { 
+                borderTopColor: isDarkTheme 
+                  ? themeStyles.colors.darkGrey 
+                  : themeStyles.colors.border
+              }
             ]}>
-              <Text style={[styles.sectionTitle, { color: themeStyles.colors.white }]}>
+              <Text style={[
+                styles.sectionTitle, 
+                { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+              ]}>
                 {t('performanceMetrics')}
               </Text>
               {performanceData.map((item, index) => (
@@ -314,7 +344,7 @@ const styles = StyleSheet.create({
     padding: moderateScale(24),
   },
   headerTitle: {
-    fontSize: moderateScale(34),
+    fontSize: moderateScale(28),
     fontWeight: '700',
     marginBottom: verticalScale(4),
   },
@@ -354,7 +384,6 @@ const styles = StyleSheet.create({
     padding: moderateScale(16),
     paddingVertical: moderateScale(20),
     marginBottom: verticalScale(12),
-    ...getThemeStyles('light').shadow.md, // Using light theme shadow for visibility
   },
   statIconContainer: {
     width: moderateScale(40),
@@ -366,10 +395,10 @@ const styles = StyleSheet.create({
   },
   statTitle: {
     fontSize: moderateScale(14),
-    lineHeight: moderateScale(16),
+    lineHeight: moderateScale(18),
   },
   statValue: {
-    fontSize: moderateScale(28),
+    fontSize: moderateScale(24),
     fontWeight: '700',
     marginVertical: verticalScale(8),
   },

@@ -1,3 +1,4 @@
+// app/(auth)/signup.tsx
 import React, { useState } from 'react';
 import { 
   View, 
@@ -6,22 +7,24 @@ import {
   StyleSheet, 
   ScrollView, 
   SafeAreaView,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useRouter } from "expo-router";
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles } from "@/src/theme";
+import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import SocialButton from '@/src/components/forms/SocialButton';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
+import * as Haptics from 'expo-haptics';
 
 export default function SignupScreen() {
   const router = useRouter();
   const { register, loading, googleLogin } = useAuth();
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +32,26 @@ export default function SignupScreen() {
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Get background color based on theme
+  const getBackgroundColor = () => isDarkTheme 
+    ? themeStyles.colors.black_grey 
+    : themeStyles.colors.background;
+
+  // Get text color based on theme
+  const getTextColor = () => isDarkTheme 
+    ? themeStyles.colors.white 
+    : themeStyles.colors.text.primary;
+
+  // Get secondary text color based on theme
+  const getSecondaryTextColor = () => isDarkTheme 
+    ? themeStyles.colors.grey 
+    : themeStyles.colors.text.secondary;
+
+  // Get button background color based on theme
+  const getButtonBgColor = () => isDarkTheme 
+    ? themeStyles.colors.darkGrey 
+    : themeStyles.colors.primary;
 
   const handleSignup = async () => {
     if (!email || !password || !confirmPassword || !fname || !lname) {
@@ -47,6 +70,7 @@ export default function SignupScreen() {
     }
   
     try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await register(email, password, fname, lname);
       router.replace("/(app)/home");
     } catch (error: any) {
@@ -56,6 +80,7 @@ export default function SignupScreen() {
 
   const handleGoogleSignup = async () => {
     try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsGoogleLoading(true);
       await googleLogin();
       router.replace("/(app)/home");
@@ -71,7 +96,7 @@ export default function SignupScreen() {
   return (
     <SafeAreaView style={[
       styles.safeArea,
-      { backgroundColor: themeStyles.colors.background }
+      { backgroundColor: getBackgroundColor() }
     ]}>
       <ScrollView 
         contentContainerStyle={styles.container}
@@ -80,11 +105,11 @@ export default function SignupScreen() {
         <View style={styles.headerContainer}>
           <Text style={[
             styles.title,
-            { color: themeStyles.colors.text.primary }
+            { color: getTextColor() }
           ]}>{t('createAccount', 'Create Account')}</Text>
           <Text style={[
             styles.subtitle,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>{t('joinTruckingPro', 'Join Trucking Logistics Pro')}</Text>
         </View>
 
@@ -131,14 +156,15 @@ export default function SignupScreen() {
             buttonTitle={loading ? t('signingUp', 'Signing Up...') : t('signUp', 'Sign Up')}
             onPress={handleSignup}
             disabled={loading}     
-            backgroundColor={themeStyles.colors.darkGrey}
+            backgroundColor={getButtonBgColor()}
+            textColor={themeStyles.colors.white}
           />
         </View>
 
         <View style={styles.termsContainer}>
           <Text style={[
             styles.termsText,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>
             {t('termsText', 'By signing up, you agree to our')}{' '}
             <Text style={[
@@ -165,15 +191,16 @@ export default function SignupScreen() {
         <TouchableOpacity
           style={styles.signInButton}
           onPress={() => router.push("/(auth)/login")}
+          activeOpacity={0.6}
         >
           <Text style={[
             styles.signInText,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>
             {t('haveAccount', 'Already have an account?')}{' '}
             <Text style={[
               styles.signInLink,
-              { color: themeStyles.colors.text.primary }
+              { color: getTextColor() }
             ]}>{t('signInLink', 'Sign In')}</Text>
           </Text>
         </TouchableOpacity>
@@ -188,45 +215,45 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 24,
+    paddingHorizontal: horizontalScale(24),
+    paddingTop: verticalScale(48),
+    paddingBottom: verticalScale(24),
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: verticalScale(32),
   },
   title: {
-    fontSize: 28,
+    fontSize: moderateScale(28),
     fontWeight: '700',
-    lineHeight: 34,
-    marginBottom: 4,
+    lineHeight: moderateScale(34),
+    marginBottom: verticalScale(4),
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
   },
   formContainer: {
     width: '100%',
-    marginBottom: 24,
+    marginBottom: verticalScale(24),
   },
   termsContainer: {
-    marginVertical: 4,
-    paddingHorizontal: 8,
-    paddingBottom: 4,
+    marginVertical: verticalScale(4),
+    paddingHorizontal: horizontalScale(8),
+    paddingBottom: verticalScale(4),
   },
   termsText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: moderateScale(20),
   },
   termsLink: {
     fontWeight: '500',
   },
   signInButton: {
-    marginTop: 24,
+    marginTop: verticalScale(24),
   },
   signInText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     textAlign: 'center',
   },
   signInLink: {

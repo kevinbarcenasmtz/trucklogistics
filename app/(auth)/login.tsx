@@ -1,3 +1,4 @@
+// app/(auth)/login.tsx
 import React, { useState } from 'react';
 import { 
   View, 
@@ -7,26 +8,48 @@ import {
   StyleSheet, 
   ScrollView, 
   SafeAreaView,
-  Alert
+  Alert,
+  Platform
 } from 'react-native';
 import { useRouter } from "expo-router";
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles } from "@/src/theme";
+import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import SocialButton from '@/src/components/forms/SocialButton';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
+import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login, loading, googleLogin } = useAuth();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { t } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Get background color based on theme
+  const getBackgroundColor = () => isDarkTheme 
+    ? themeStyles.colors.black_grey 
+    : themeStyles.colors.background;
+
+  // Get text color based on theme
+  const getTextColor = () => isDarkTheme 
+    ? themeStyles.colors.white 
+    : themeStyles.colors.text.primary;
+
+  // Get secondary text color based on theme
+  const getSecondaryTextColor = () => isDarkTheme 
+    ? themeStyles.colors.grey 
+    : themeStyles.colors.text.secondary;
+
+  // Get button background color based on theme
+  const getButtonBgColor = () => isDarkTheme 
+    ? themeStyles.colors.darkGrey 
+    : themeStyles.colors.primary;
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -35,6 +58,7 @@ export default function LoginScreen() {
     }
 
     try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await login(email, password);
       router.replace("/(app)/home");
     } catch (error: any) {
@@ -44,6 +68,7 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsGoogleLoading(true);
       await googleLogin();
       router.replace("/(app)/home");
@@ -59,7 +84,7 @@ export default function LoginScreen() {
   return (
     <SafeAreaView style={[
       styles.safeArea,
-      { backgroundColor: themeStyles.colors.background }
+      { backgroundColor: getBackgroundColor() }
     ]}>
       <ScrollView 
         contentContainerStyle={styles.container}
@@ -70,16 +95,27 @@ export default function LoginScreen() {
             source={require('@/assets/icons/logo.jpg')} 
             style={[
               styles.logo,
-              { borderRadius: themeStyles.borderRadius.circle(120) }
+              { borderRadius: themeStyles.borderRadius.circle(120) },
+              Platform.select({
+                ios: {
+                  shadowColor: themeStyles.colors.black,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: isDarkTheme ? 0.4 : 0.2,
+                  shadowRadius: 5,
+                },
+                android: {
+                  elevation: 5,
+                },
+              }),
             ]} 
           />
           <Text style={[
             styles.title,
-            { color: themeStyles.colors.text.primary }
+            { color: getTextColor() }
           ]}>Trucking Logistics Pro</Text>
           <Text style={[
             styles.subtitle,
-            { color: themeStyles.colors.text.primary }
+            { color: getTextColor() }
           ]}>{t('welcomeBack', 'Welcome Back')}</Text>
         </View>
 
@@ -104,10 +140,11 @@ export default function LoginScreen() {
           <TouchableOpacity 
             style={styles.forgotButton} 
             onPress={() => router.push("/(auth)/forgot-password")}
+            activeOpacity={0.6}
           >
             <Text style={[
               styles.forgotButtonText,
-              { color: themeStyles.colors.text.secondary }
+              { color: getSecondaryTextColor() }
             ]}>{t('forgotPassword', 'Forgot Password?')}</Text>
           </TouchableOpacity>
 
@@ -115,15 +152,15 @@ export default function LoginScreen() {
             buttonTitle={t('signIn', 'Sign In')}
             onPress={handleLogin}
             disabled={loading}
-            backgroundColor={themeStyles.colors.darkGrey}
-            
+            backgroundColor={getButtonBgColor()}
+            textColor={themeStyles.colors.white}
           />
         </View>
 
         <View style={styles.formContainer}>
           <Text style={[
             styles.orText,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>- {t('or', 'Or')} -</Text>
           <SocialButton
             buttonTitle={t('signInWithGoogle', 'Sign In with Google')}
@@ -138,15 +175,16 @@ export default function LoginScreen() {
         <TouchableOpacity
           style={styles.createAccountButton}
           onPress={() => router.push("/(auth)/signup")}
+          activeOpacity={0.6}
         >
           <Text style={[
             styles.createAccountText,
-            { color: themeStyles.colors.text.secondary }
+            { color: getSecondaryTextColor() }
           ]}>
             {t('noAccount', "Don't have an account?")} {' '}
             <Text style={[
               styles.signUpText,
-              { color: themeStyles.colors.text.primary }
+              { color: getTextColor() }
             ]}>{t('signUpLink', 'Sign Up')}</Text>
           </Text>
         </TouchableOpacity>
@@ -161,59 +199,59 @@ const styles = StyleSheet.create({
   },
   container: {
     flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 48,
-    paddingBottom: 24,
+    paddingHorizontal: horizontalScale(24),
+    paddingTop: verticalScale(48),
+    paddingBottom: verticalScale(24),
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: verticalScale(32),
   },
   logo: {
-    height: 120,
-    width: 120,
+    height: moderateScale(120),
+    width: moderateScale(120),
     resizeMode: 'cover',
   },
   title: {
-    fontSize: 28,
+    fontSize: moderateScale(28),
     fontWeight: '700',
-    lineHeight: 34,
-    marginTop: 16,
+    lineHeight: moderateScale(34),
+    marginTop: verticalScale(16),
   },
   subtitle: {
-    fontSize: 16,
-    marginTop: 8,
-    marginHorizontal: 24,
+    fontSize: moderateScale(16),
+    marginTop: verticalScale(8),
+    marginHorizontal: horizontalScale(24),
     textAlign: 'center',
     opacity: 0.9,
     letterSpacing: 0.3,
   },
   formContainer: {
     width: '100%',
-    marginBottom: 4,
+    marginBottom: verticalScale(4),
   },
   forgotButton: {
-    marginVertical: 8,
-    paddingHorizontal: 4,
+    marginVertical: verticalScale(8),
+    paddingHorizontal: horizontalScale(4),
     opacity: 0.8,
   },
   forgotButtonText: {
-    fontSize: 16,
+    fontSize: moderateScale(16),
     fontWeight: '600',
     textAlign: 'center',
   },
   orText: {
-    paddingHorizontal: 8,
-    fontSize: 14,
+    paddingHorizontal: horizontalScale(8),
+    fontSize: moderateScale(14),
     fontWeight: '600',
     textAlign: 'center',
-    marginVertical: 8,
+    marginVertical: verticalScale(8),
   },
   createAccountButton: {
-    marginTop: 24,
+    marginTop: verticalScale(24),
   },
   createAccountText: {
-    fontSize: 14,
+    fontSize: moderateScale(14),
     textAlign: 'center',
   },
   signUpText: {
