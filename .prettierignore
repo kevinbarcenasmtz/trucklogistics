@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.expo/
+.expo-shared/
+
+# Build outputs
+dist/
+build/
+web-build/
+ios/
+android/
+
+# TypeScript build info
+*.tsbuildinfo
+.tsbuild/
+
+# Generated files
+metro.config.js
+babel.config.js
+*.generated.*
+*.d.ts
+
+# Package files
+package-lock.json
+yarn.lock
+
+# Environment files
+.env*
+
+# Logs
+*.log
+
+# Coverage
+coverage/
+
+# Cache
+.cache/
