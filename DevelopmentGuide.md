@@ -18,6 +18,7 @@ cd trucklogistics
 
 # Create an iOS development build
 eas build --platform ios --profile development
+
 ```
 
 This command creates a development build that can be installed on your iPhone. It will generate a QR code and a URL for installation.
