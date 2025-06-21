@@ -83,7 +83,6 @@ buck-out/
 /ios/Pods/
 /ios
 /android
-/assets
 
 # Expo
 .expo/
@@ -91,9 +90,7 @@ web-build/
 dist/
 
 #google 
-GoogleService-Info.plist
-GoogleService-InfoDev.plist
-GoogleService-InfoPreview.plist
+
 
 # Local env files
 .env
