@@ -90,7 +90,10 @@ web-build/
 dist/
 
 #google 
-
+GoogleService-Info.plist
+GoogleService-InfoDev.plist
+GoogleService-InfoPreview.plist
+google-services.json
 
 # Local env files
 .env
