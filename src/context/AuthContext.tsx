@@ -14,10 +14,10 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-const AUTH_STATE_KEY = 'auth_state';
 
 // Initialize Google Sign-In (now imported from separate file)
 import '../config/googleSignIn';
+const AUTH_STATE_KEY = 'auth_state';
 
 // User type definitions
 type User = {

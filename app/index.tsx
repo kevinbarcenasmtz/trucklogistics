@@ -17,18 +17,18 @@ export default function Index() {
   const { state } = useAppStateMachine();
   const themeStyles = getThemeStyles(theme);
 
-  // React.useEffect(() => {
-  //   if (__DEV__) {
-  //     AsyncStorage.multiRemove([
-  //       'onboarding_progress',
-  //       'onboardingCompleted', 
-  //       'languageSelected',
-  //       'userLanguage'
-  //     ]).then(() => {
-  //       console.log('🔧 DEV: Cleared onboarding data for testing');
-  //     });
-  //   }
-  // }, []);
+  React.useEffect(() => {
+    if (__DEV__) {
+      AsyncStorage.multiRemove([
+        'onboarding_progress',
+        'onboardingCompleted', 
+        'languageSelected',
+        'userLanguage'
+      ]).then(() => {
+        console.log('🔧 DEV: Cleared onboarding data for testing');
+      });
+    }
+  }, []);
   
 
   const getBackgroundColor = () => isDarkTheme 

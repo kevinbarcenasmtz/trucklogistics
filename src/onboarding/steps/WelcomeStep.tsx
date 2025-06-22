@@ -1,30 +1,101 @@
 // src/onboarding/steps/WelcomeStep.tsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedGestureHandler, 
-  useAnimatedStyle,
-  withSpring,
-  runOnJS
-} from 'react-native-reanimated';
+import React from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
+import Onboarding from 'react-native-onboarding-swiper';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
 import { OnboardingStepProps } from '../types';
-import { Feather } from '@expo/vector-icons';
-import FormButton from '@/src/components/forms/FormButton';
+import * as Haptics from 'expo-haptics';
 
-const { width: screenWidth } = Dimensions.get('window');
-
-interface OnboardingSlide {
-  key: string;
-  title: string;
-  subtitle: string;
-  image: any;
-  backgroundColor?: string;
+interface DotsProps {
+  selected: boolean;
 }
+
+const Dots: React.FC<DotsProps> = ({ selected }) => {
+  const { isDarkTheme } = useTheme();
+  return (
+    <View
+      style={[
+        styles.dot,
+        {
+          backgroundColor: selected 
+            ? '#004d40' // Your green theme color
+            : isDarkTheme 
+              ? "rgba(255, 255, 255, 0.3)" 
+              : "rgba(0, 0, 0, 0.2)"
+        },
+        selected && styles.selectedDot,
+      ]}
+    />
+  );
+};
+
+const Skip = ({ ...props }) => {
+  const { t } = useTranslation();
+  const { isDarkTheme } = useTheme();
+  
+  return (
+    <TouchableOpacity 
+      style={styles.button} 
+      {...props}
+      activeOpacity={0.7}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        props.onPress?.();
+      }}
+    >
+      <Text style={[
+        styles.buttonText,
+        { color: isDarkTheme ? '#FFFFFF' : '#111827' }
+      ]}>{t('skip', 'Skip')}</Text>
+    </TouchableOpacity>
+  );
+};
+
+const Next = ({ ...props }) => {
+  const { t } = useTranslation();
+  const { isDarkTheme } = useTheme();
+  
+  return (
+    <TouchableOpacity 
+      style={styles.button} 
+      {...props}
+      activeOpacity={0.7}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+        props.onPress?.();
+      }}
+    >
+      <Text style={[
+        styles.buttonText,
+        { color: isDarkTheme ? '#FFFFFF' : '#111827' }
+      ]}>{t('next', 'Next')}</Text>
+    </TouchableOpacity>
+  );
+};
+
+const Done = ({ ...props }) => {
+  const { t } = useTranslation();
+  
+  return (
+    <TouchableOpacity 
+      style={[styles.button, styles.doneButton]} 
+      {...props}
+      activeOpacity={0.7}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+        props.onPress?.();
+      }}
+    >
+      <Text style={[
+        styles.buttonText,
+        styles.doneButtonText,
+        { color: '#FFFFFF' }
+      ]}>{t('getStarted', 'Get Started')}</Text>
+    </TouchableOpacity>
+  );
+};
 
 export const WelcomeStep: React.FC<OnboardingStepProps> = ({
   onComplete,
@@ -34,308 +105,199 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({
   const { t } = useTranslation();
   const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
-  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const translateX = useSharedValue(0);
 
-  // Define your original slides
-  const slides: OnboardingSlide[] = [
+  const getBackgroundColor = (isSpecial = false) => {
+    if (isSpecial) {
+      return '#004d40'; // Green background for last slide
+    }
+    return isDarkTheme 
+      ? themeStyles.colors.black_grey 
+      : themeStyles.colors.background;
+  };
+
+  const getTextColor = (isSpecial = false) => {
+    if (isSpecial) {
+      return '#FFFFFF'; // White text on green background
+    }
+    return isDarkTheme 
+      ? themeStyles.colors.white 
+      : themeStyles.colors.text.primary;
+  };
+
+  const getSubtitleColor = (isSpecial = false) => {
+    if (isSpecial) {
+      return 'rgba(255, 255, 255, 0.9)'; // Semi-transparent white
+    }
+    return isDarkTheme 
+      ? themeStyles.colors.grey 
+      : themeStyles.colors.text.secondary;
+  };
+
+  const pages = [
     {
-      key: 'intro',
+      backgroundColor: getBackgroundColor(),
+      image: (
+        <Image
+          source={require("@/assets/icons/trucking_logistics.png")}
+          style={[
+            styles.image,
+            Platform.select({
+              ios: {
+                shadowColor: themeStyles.colors.black,
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: isDarkTheme ? 0.4 : 0.2,
+                shadowRadius: 5,
+              },
+              android: {
+                elevation: 5,
+              },
+            }),
+          ]}
+        />
+      ),
       title: t('onboardingTitle1', 'Welcome to Trucking Logistics Pro'),
       subtitle: t('onboardingSubtitle1', 'Simplify your logistics with advanced tools for seamless trucking operations.'),
-      image: require('@/assets/icons/trucking_logistics.png'),
+      titleStyles: [
+        styles.title,
+        { color: getTextColor() }
+      ],
+      subTitleStyles: [
+        styles.subtitle,
+        { color: getSubtitleColor() }
+      ],
     },
     {
-      key: 'features',
+      backgroundColor: getBackgroundColor(),
+      image: (
+        <Image
+          source={require("@/assets/icons/pngwing.com(1).png")}
+          style={[
+            styles.image,
+            Platform.select({
+              ios: {
+                shadowColor: themeStyles.colors.black,
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: isDarkTheme ? 0.4 : 0.2,
+                shadowRadius: 5,
+              },
+              android: {
+                elevation: 5,
+              },
+            }),
+          ]}
+        />
+      ),
       title: t('onboardingTitle2', 'Generate Insightful Reports'),
       subtitle: t('onboardingSubtitle2', 'Track and analyze your performance with professional-grade reporting tools.'),
-      image: require('@/assets/icons/pngwing.com(1).png'),
+      titleStyles: [
+        styles.title,
+        { color: getTextColor() }
+      ],
+      subTitleStyles: [
+        styles.subtitle,
+        { color: getSubtitleColor() }
+      ],
     },
     {
-      key: 'permissions',
+      backgroundColor: getBackgroundColor(true),
+      image: (
+        <Image
+          source={require("@/assets/icons/pngwing.com(2).png")}
+          style={[
+            styles.image,
+            Platform.select({
+              ios: {
+                shadowColor: themeStyles.colors.black,
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.4,
+                shadowRadius: 5,
+              },
+              android: {
+                elevation: 5,
+              },
+            }),
+          ]}
+        />
+      ),
       title: t('onboardingTitle3', 'Stay on Track'),
       subtitle: t('onboardingSubtitle3', 'Real-time navigation and scheduling for efficient deliveries.'),
-      image: require('@/assets/icons/pngwing.com(2).png'),
-      backgroundColor: '#004d40',
+      titleStyles: [
+        styles.title,
+        { color: getTextColor(true) }
+      ],
+      subTitleStyles: [
+        styles.subtitle,
+        { color: getSubtitleColor(true) }
+      ],
     },
   ];
 
-  const currentSlide = slides[currentSlideIndex];
-  const isLastSlide = currentSlideIndex === slides.length - 1;
-  const isFirstSlide = currentSlideIndex === 0;
-
-  // Reset animation when slide changes
-  useEffect(() => {
-    translateX.value = withSpring(0);
-  }, [currentSlideIndex, translateX]);
-
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
-
-  const getSecondaryTextColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.text.secondary;
-
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
-
-  const goToNextSlide = () => {
-    if (currentSlideIndex < slides.length - 1) {
-      setCurrentSlideIndex(currentSlideIndex + 1);
-    }
-  };
-
-  const goToPreviousSlide = () => {
-    if (currentSlideIndex > 0) {
-      setCurrentSlideIndex(currentSlideIndex - 1);
-    }
-  };
-
-  const handleFinish = async () => {
-    setIsLoading(true);
-    // Small delay for better UX
-    setTimeout(() => {
-      setIsLoading(false);
-      onComplete();
-    }, 500);
-  };
-
-  const gestureHandler = useAnimatedGestureHandler({
-    onStart: () => {
-      // Only allow gesture if content is ready
-    },
-    onActive: (event) => {
-      // Only move within reasonable bounds
-      const clampedTranslation = Math.max(
-        Math.min(event.translationX, screenWidth / 2), 
-        -screenWidth / 2
-      );
-      translateX.value = clampedTranslation;
-    },
-    onEnd: (event) => {
-      const velocity = event.velocityX;
-      const shouldGoNext = (event.translationX < -screenWidth / 4 || velocity < -500) && !isLastSlide;
-      const shouldGoPrevious = (event.translationX > screenWidth / 4 || velocity > 500) && !isFirstSlide;
-      
-      if (shouldGoNext) {
-        // Animate out and then trigger state change
-        translateX.value = withSpring(-screenWidth, {
-          damping: 20,
-          stiffness: 300,
-        }, (finished) => {
-          if (finished) {
-            runOnJS(goToNextSlide)();
-          }
-        });
-      } else if (shouldGoPrevious) {
-        // Animate out and then trigger state change
-        translateX.value = withSpring(screenWidth, {
-          damping: 20,
-          stiffness: 300,
-        }, (finished) => {
-          if (finished) {
-            runOnJS(goToPreviousSlide)();
-          }
-        });
-      } else {
-        // Snap back to original position
-        translateX.value = withSpring(0);
-      }
-    },
-  });
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateX: translateX.value }],
-    };
-  });
-
-  const renderProgressDots = () => (
-    <View style={styles.dotsContainer}>
-      {slides.map((_, index) => (
-        <View
-          key={index}
-          style={[
-            styles.dot,
-            {
-              backgroundColor: index <= currentSlideIndex 
-                ? '#004d40'
-                : isDarkTheme 
-                  ? 'rgba(255, 255, 255, 0.3)' 
-                  : 'rgba(0, 0, 0, 0.2)',
-            },
-            index === currentSlideIndex && styles.activeDot,
-          ]}
-        />
-      ))}
-    </View>
-  );
-
-  const handleNext = () => {
-    if (isLastSlide) {
-      handleFinish();
-    } else {
-      goToNextSlide();
-    }
-  };
-
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={[
-        styles.container,
-        { backgroundColor: currentSlide.backgroundColor || getBackgroundColor() }
-      ]}>
-        {/* Header with back button */}
-        <View style={styles.header}>
-          {(canGoBack && isFirstSlide) || (!isFirstSlide) ? (
-            <TouchableOpacity 
-              style={styles.backButton}
-              onPress={isFirstSlide ? onBack : goToPreviousSlide}
-              disabled={isLoading}
-            >
-              <Feather 
-                name="arrow-left" 
-                size={24} 
-                color={currentSlide.backgroundColor ? '#FFFFFF' : getTextColor()} 
-              />
-            </TouchableOpacity>
-          ) : null}
-          <View style={styles.headerSpacer} />
-        </View>
-
-        {/* Swipeable Content */}
-        <PanGestureHandler onGestureEvent={gestureHandler} enabled={!isLoading}>
-          <Animated.View style={[styles.content, animatedStyle]}>
-            <Image
-              key={currentSlide.key}
-              source={currentSlide.image}
-              style={styles.image}
-              resizeMode="contain"
-            />
-            
-            <View style={styles.textContainer}>
-              <Text style={[
-                styles.title,
-                { 
-                  color: currentSlide.backgroundColor 
-                    ? '#FFFFFF' 
-                    : getTextColor() 
-                }
-              ]}>
-                {currentSlide.title}
-              </Text>
-              
-              <Text style={[
-                styles.subtitle,
-                { 
-                  color: currentSlide.backgroundColor 
-                    ? 'rgba(255, 255, 255, 0.9)' 
-                    : getSecondaryTextColor() 
-                }
-              ]}>
-                {currentSlide.subtitle}
-              </Text>
-            </View>
-          </Animated.View>
-        </PanGestureHandler>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          {renderProgressDots()}
-          
-          <FormButton
-            buttonTitle={
-              isLoading 
-                ? t('loading', 'Loading...') 
-                : isLastSlide 
-                  ? t('getStarted', 'Get Started') 
-                  : t('next', 'Next')
-            }
-            onPress={handleNext}
-            disabled={isLoading}
-            backgroundColor="#004d40"
-            textColor="#FFFFFF"
-            style={styles.nextButton}
-          />
-        </View>
-      </View>
-    </GestureHandlerRootView>
+    <Onboarding
+      pages={pages}
+      onDone={onComplete}
+      onSkip={onComplete}
+      DotComponent={Dots}
+      NextButtonComponent={Next}
+      SkipButtonComponent={Skip}
+      DoneButtonComponent={Done}
+      showNext={true}
+      showSkip={true}
+      showDone={true}
+      containerStyles={{ paddingBottom: 0 }}
+      bottomBarHighlight={false}
+      transitionAnimationDuration={300}
+      allowFontScaling={false}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  button: {
+    marginHorizontal: horizontalScale(16),
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: horizontalScale(20),
+    borderRadius: moderateScale(8),
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: horizontalScale(16),
-    paddingTop: verticalScale(60),
-    paddingBottom: verticalScale(16),
-    zIndex: 10,
+  doneButton: {
+    backgroundColor: '#004d40',
   },
-  backButton: {
-    padding: moderateScale(8),
-    borderRadius: moderateScale(20),
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  headerSpacer: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: horizontalScale(24),
-  },
-  image: {
-    width: horizontalScale(280),
-    height: verticalScale(280),
-    marginBottom: verticalScale(32),
-  },
-  textContainer: {
-    alignItems: 'center',
-    marginBottom: verticalScale(48),
-  },
-  title: {
-    fontSize: moderateScale(28),
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: verticalScale(16),
-    lineHeight: moderateScale(36),
-  },
-  subtitle: {
+  buttonText: {
     fontSize: moderateScale(16),
-    textAlign: 'center',
-    lineHeight: moderateScale(24),
-    paddingHorizontal: horizontalScale(16),
+    fontWeight: '600',
+    letterSpacing: 0.1,
   },
-  footer: {
-    paddingHorizontal: horizontalScale(24),
-    paddingBottom: verticalScale(48),
-    zIndex: 10,
-  },
-  dotsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: verticalScale(32),
-    gap: horizontalScale(8),
+  doneButtonText: {
+    color: '#FFFFFF',
   },
   dot: {
     width: moderateScale(8),
     height: moderateScale(8),
     borderRadius: moderateScale(4),
+    marginHorizontal: horizontalScale(4),
+    marginBottom: verticalScale(16),
   },
-  activeDot: {
+  selectedDot: {
     transform: [{ scale: 1.2 }],
   },
-  nextButton: {
-    marginVertical: 0,
+  image: {
+    width: horizontalScale(300),
+    height: verticalScale(300),
+    resizeMode: "contain",
+  },
+  title: {
+    fontSize: moderateScale(28),
+    fontWeight: '700',
+    lineHeight: moderateScale(36),
+    textAlign: "center",
+    marginBottom: verticalScale(16),
+    paddingHorizontal: horizontalScale(24),
+  },
+  subtitle: {
+    fontSize: moderateScale(16),
+    textAlign: "center",
+    lineHeight: moderateScale(24),
+    paddingHorizontal: horizontalScale(32),
+    marginBottom: verticalScale(24),
   },
 });
