@@ -1,21 +1,21 @@
-// src/theme/ThemeToggle.tsx 
-import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
-import { useTheme, ThemePreference } from '../context/ThemeContext';
+// src/theme/ThemeToggle.tsx
 import { Ionicons } from '@expo/vector-icons';
-import { getThemeStyles } from '../theme';
 import * as Haptics from 'expo-haptics';
+import React from 'react';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { ThemePreference, useTheme } from '../context/ThemeContext';
+import { getThemeStyles } from '../theme';
 
 export default function ThemeToggle(): JSX.Element {
-  const { 
+  const {
     theme,
-    themePreference, 
-    setTheme, 
+    themePreference,
+    setTheme,
     isDarkTheme,
     isChangingTheme, // ✅ NEW: Get loading state
-    themeConstants: { THEME_SYSTEM, THEME_LIGHT, THEME_DARK } 
+    themeConstants: { THEME_SYSTEM, THEME_LIGHT, THEME_DARK },
   } = useTheme();
-  
+
   // Get theme styles
   const themeStyles = getThemeStyles(theme);
 
@@ -70,27 +70,23 @@ export default function ThemeToggle(): JSX.Element {
 
     const nextTheme = getNextTheme();
     const success = await setTheme(nextTheme);
-    
+
     if (!success) {
-      Alert.alert(
-        'Theme Error', 
-        'Failed to change theme. Please try again.',
-        [{ text: 'OK' }]
-      );
+      Alert.alert('Theme Error', 'Failed to change theme. Please try again.', [{ text: 'OK' }]);
     }
   };
 
   // Use theme-consistent icon size from typography
   const iconSize = themeStyles.typography.fontSize.md;
-  
+
   return (
     <TouchableOpacity
       style={[
         styles.container,
-        { 
+        {
           padding: themeStyles.spacing.sm,
           opacity: isChangingTheme ? 0.6 : 1, // ✅ Visual feedback during change
-        }
+        },
       ]}
       onPress={handleThemeChange}
       disabled={isChangingTheme} // ✅ Prevent double-taps
@@ -99,10 +95,7 @@ export default function ThemeToggle(): JSX.Element {
     >
       {isChangingTheme ? (
         // ✅ Show loading indicator during theme change
-        <ActivityIndicator 
-          size="small" 
-          color={themeStyles.colors.text.primary} 
-        />
+        <ActivityIndicator size="small" color={themeStyles.colors.text.primary} />
       ) : (
         <Ionicons
           name={getThemeIcon() as keyof typeof Ionicons.glyphMap}
@@ -110,15 +103,17 @@ export default function ThemeToggle(): JSX.Element {
           color={themeStyles.colors.text.primary}
         />
       )}
-      
-      <Text style={[
-        styles.label,
-        { 
-          marginLeft: themeStyles.spacing.sm,
-          fontSize: themeStyles.typography.fontSize.sm,
-          color: themeStyles.colors.text.primary
-        }
-      ]}>
+
+      <Text
+        style={[
+          styles.label,
+          {
+            marginLeft: themeStyles.spacing.sm,
+            fontSize: themeStyles.typography.fontSize.sm,
+            color: themeStyles.colors.text.primary,
+          },
+        ]}
+      >
         {isChangingTheme ? 'Changing...' : getThemeLabel()} {/* ✅ Loading text */}
       </Text>
     </TouchableOpacity>

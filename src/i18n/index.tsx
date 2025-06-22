@@ -1,7 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getLocales } from 'expo-localization';
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import { getLocales } from 'expo-localization';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Import translations
 import enTranslation from './locales/en.json';
@@ -10,11 +10,11 @@ import esTranslation from './locales/es.json';
 // Set up resources
 const resources = {
   en: {
-    translation: enTranslation
+    translation: enTranslation,
   },
   es: {
-    translation: esTranslation
-  }
+    translation: esTranslation,
+  },
 };
 
 // Get device language

@@ -5,8 +5,8 @@ This guide provides a straightforward workflow for developing the TruckLogistics
 ## Project Structure
 
 TruckLogistics/
-├── trucklogistics/         # Expo frontend app
-└── trucklogistics-ocr/     # Node.js OCR backend service
+├── trucklogistics/ # Expo frontend app
+└── trucklogistics-ocr/ # Node.js OCR backend service
 
 ## Simple iPhone Development Workflow
 
@@ -33,9 +33,9 @@ After the build completes:
 
 If the QR code doesn't appear, you can also access it through:
 
-* The build URL provided in the terminal
-* The Expo website under your project's builds section
-* The Expo Orbit mobile app (available on the App Store)
+- The build URL provided in the terminal
+- The Expo website under your project's builds section
+- The Expo Orbit mobile app (available on the App Store)
 
 ### Step 3: Start the Development Server
 
@@ -68,7 +68,7 @@ npm start
 
 ```javascript
 // Update your API endpoint configuration
-const API_URL = __DEV__ 
+const API_URL = __DEV__
   ? 'http://192.168.1.x:3000' // Replace with your computer's IP address
   : 'https://your-production-server.com';
 ```
@@ -128,6 +128,6 @@ eas build --platform ios --profile production
 
 ## Resources
 
-* [Expo Development Builds Documentation](https://docs.expo.dev/develop/development-builds/introduction/)
-* [Expo Application Services (EAS) Build](https://docs.expo.dev/build/introduction/)
-* [Developing for iOS](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Development Builds Documentation](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Expo Application Services (EAS) Build](https://docs.expo.dev/build/introduction/)
+- [Developing for iOS](https://docs.expo.dev/workflow/ios-simulator/)

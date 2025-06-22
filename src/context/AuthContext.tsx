@@ -1,19 +1,13 @@
 // src/context/AuthContext.tsx
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { Alert } from 'react-native';
-import { useRouter } from "expo-router";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  GoogleSignin,
-  statusCodes,
-  SignInSuccessResponse
-} from '@react-native-google-signin/google-signin';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { useRouter } from 'expo-router';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { Alert } from 'react-native';
 
 // React Native Firebase imports
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
-import { FirebaseAuthTypes } from '@react-native-firebase/auth';
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
 // Initialize Google Sign-In (now imported from separate file)
 import '../config/googleSignIn';
@@ -45,20 +39,19 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, fname: string, lname: string) => Promise<void>;
   logout: () => Promise<void>;
-  resetPassword: (email: string) => Promise<void>; 
+  resetPassword: (email: string) => Promise<void>;
   googleLogin: () => Promise<void>;
   isOnboardingCompleted: boolean | null;
   completeOnboarding: () => Promise<void>;
   updateUserData: (data: UserData) => Promise<void>; // Add this function
 };
 
-
 // Error handling helper
 const handleAuthError = (error: any) => {
   console.log('Auth error:', {
     code: error.code,
     message: error.message,
-    fullError: JSON.stringify(error, null, 2)
+    fullError: JSON.stringify(error, null, 2),
   });
 
   let errorMessage = 'An error occurred during sign in';
@@ -118,21 +111,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Check onboarding status
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = auth().onAuthStateChanged(async firebaseUser => {
       if (firebaseUser) {
         try {
           const userDoc = await firestore().collection('users').doc(firebaseUser.uid).get();
           const userDocData = userDoc.data();
-          
+
           if (userDocData) {
             const userData = {
               uid: firebaseUser.uid,
               email: userDocData.email || '',
               fname: userDocData.fname || '',
               lname: userDocData.lname || '',
-              createdAt: userDocData.createdAt
+              createdAt: userDocData.createdAt,
             };
-            
+
             setUser(userData);
             setUserData({
               email: userDocData.email,
@@ -141,9 +134,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               phone: userDocData.phone,
               country: userDocData.country,
               city: userDocData.city,
-              state: userDocData.state
+              state: userDocData.state,
             });
-            
+
             // Save auth state to AsyncStorage
             await AsyncStorage.setItem(AUTH_STATE_KEY, 'true');
           } else {
@@ -152,7 +145,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             await AsyncStorage.removeItem(AUTH_STATE_KEY);
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error('Error fetching user data:', error);
           setUser(null);
           setUserData(null);
           await AsyncStorage.removeItem(AUTH_STATE_KEY);
@@ -164,27 +157,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       setLoading(false);
     });
-  
+
     return unsubscribe;
   }, []);
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+    const unsubscribe = auth().onAuthStateChanged(async firebaseUser => {
       if (firebaseUser) {
         try {
           const userDoc = await firestore().collection('users').doc(firebaseUser.uid).get();
           const userDocData = userDoc.data();
-          
+
           if (userDocData) {
             setUser({
               uid: firebaseUser.uid,
               email: userDocData.email || '',
               fname: userDocData.fname || '',
               lname: userDocData.lname || '',
-              createdAt: userDocData.createdAt
+              createdAt: userDocData.createdAt,
             });
-    
+
             setUserData({
               email: userDocData.email,
               fname: userDocData.fname,
@@ -192,14 +185,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               phone: userDocData.phone,
               country: userDocData.country,
               city: userDocData.city,
-              state: userDocData.state
+              state: userDocData.state,
             });
           } else {
             setUser(null);
             setUserData(null);
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.error('Error fetching user data:', error);
           setUser(null);
           setUserData(null);
         }
@@ -209,7 +202,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       setLoading(false);
     });
-  
+
     return unsubscribe;
   }, []);
 
@@ -256,7 +249,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       validateEmail(email);
       validatePassword(password);
-      
+
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const newUser = {
         uid: userCredential.user.uid,
@@ -265,7 +258,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         lname,
         createdAt: firestore.Timestamp.now(),
       };
-      
+
       await firestore().collection('users').doc(userCredential.user.uid).set(newUser);
     } catch (error: any) {
       handleAuthError(error);
@@ -274,7 +267,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(false);
     }
   };
-  
+
   // Logout
   const logout = async () => {
     try {
@@ -283,7 +276,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await AsyncStorage.removeItem(AUTH_STATE_KEY);
       setUser(null);
       setUserData(null);
-      router.replace("/(auth)/login");
+      router.replace('/(auth)/login');
     } catch (error: any) {
       handleAuthError(error);
       throw error;
@@ -294,43 +287,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Google Sign-In
 
-  
   const googleLogin = async () => {
     try {
       setLoading(true);
-  
+
       // Ensure Google Play Services are available (on Android)
-      await GoogleSignin.hasPlayServices({ 
-        showPlayServicesUpdateDialog: true 
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
       });
-  
+
       // Sign out from any existing Google session
       await GoogleSignin.signOut();
-  
+
       // Perform Google Sign-In
       const signInResponse = await GoogleSignin.signIn();
-  
+
       // Type guard to ensure successful response
       if (signInResponse.type === 'success') {
         const { idToken, user } = signInResponse.data;
-  
+
         if (!idToken) {
           throw new Error('Failed to get ID token from Google Sign In');
         }
-  
+
         // Create Firebase credential
         const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-  
+
         // Sign in to Firebase
         const userCredential = await auth().signInWithCredential(googleCredential);
-  
+
         // Check/create Firestore user document
         if (userCredential.user) {
-          const userDoc = await firestore()
-            .collection('users')
-            .doc(userCredential.user.uid)
-            .get();
-  
+          const userDoc = await firestore().collection('users').doc(userCredential.user.uid).get();
+
           if (!userDoc.exists) {
             const newUser = {
               uid: userCredential.user.uid,
@@ -339,11 +328,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               email: user.email || '',
               createdAt: firestore.Timestamp.now(),
             };
-  
-            await firestore()
-              .collection('users')
-              .doc(userCredential.user.uid)
-              .set(newUser);
+
+            await firestore().collection('users').doc(userCredential.user.uid).set(newUser);
           }
         }
       } else {
@@ -369,7 +355,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Handle other types of errors
         handleAuthError(error);
       }
-      
+
       throw error;
     } finally {
       setLoading(false);
@@ -396,18 +382,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       // Set both storage keys for consistency
       await AsyncStorage.multiSet([
-        ["onboardingCompleted", "true"],
-        ["onboarding_progress", JSON.stringify({ completed: true })]
+        ['onboardingCompleted', 'true'],
+        ['onboarding_progress', JSON.stringify({ completed: true })],
       ]);
-      
+
       setIsOnboardingCompleted(true);
-      
+
       // Navigate after state update
       setTimeout(() => {
-        router.replace("/(auth)/login");
+        router.replace('/(auth)/login');
       }, 100);
     } catch (error) {
-      console.error("Error setting onboarding status:", error);
+      console.error('Error setting onboarding status:', error);
       Alert.alert('Error', 'Could not complete onboarding');
     }
   };
@@ -415,11 +401,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const updateUserData = async (data: UserData) => {
     try {
       setLoading(true);
-      
+
       if (!user) {
         throw new Error('No user is currently logged in');
       }
-      
+
       // Update the user data in Firestore
       await firestore()
         .collection('users')
@@ -428,10 +414,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           ...data,
           updatedAt: firestore.Timestamp.now(),
         });
-      
+
       // Update local state
       setUserData(data);
-      
+
       // Update user state with name changes if applicable
       if (data.fname !== user.fname || data.lname !== user.lname) {
         setUser({
@@ -463,11 +449,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updateUserData, // Add this line
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 // Hook for using auth

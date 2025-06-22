@@ -1,25 +1,25 @@
 // app/(auth)/login.tsx
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  Image, 
-  StyleSheet, 
-  ScrollView, 
-  SafeAreaView,
-  Alert,
-  Platform
-} from 'react-native';
-import { useRouter } from "expo-router";
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import SocialButton from '@/src/components/forms/SocialButton';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
+import { useTheme } from '@/src/context/ThemeContext';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  Image,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,37 +32,33 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
 
   // Get background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const getBackgroundColor = () =>
+    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
 
   // Get text color based on theme
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
+  const getTextColor = () =>
+    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
 
   // Get secondary text color based on theme
-  const getSecondaryTextColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.text.secondary;
+  const getSecondaryTextColor = () =>
+    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
 
   // Get button background color based on theme
-  const getButtonBgColor = () => isDarkTheme 
-    ? themeStyles.colors.darkGrey 
-    : themeStyles.colors.primary;
+  const getButtonBgColor = () =>
+    isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.primary;
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please fill in all fields");
+      Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await login(email, password);
-      router.replace("/(app)/home");
+      router.replace('/(app)/home');
     } catch (error: any) {
-      Alert.alert("Login Failed", error.message);
+      Alert.alert('Login Failed', error.message);
     }
   };
 
@@ -71,10 +67,10 @@ export default function LoginScreen() {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsGoogleLoading(true);
       await googleLogin();
-      router.replace("/(app)/home");
+      router.replace('/(app)/home');
     } catch (error: any) {
       if (error.message) {
-        Alert.alert("Google Sign-In Failed", error.message);
+        Alert.alert('Google Sign-In Failed', error.message);
       }
     } finally {
       setIsGoogleLoading(false);
@@ -82,17 +78,11 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[
-      styles.safeArea,
-      { backgroundColor: getBackgroundColor() }
-    ]}>
-      <ScrollView 
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: getBackgroundColor() }]}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.headerContainer}>
-          <Image 
-            source={require('@/assets/icons/logo.jpg')} 
+          <Image
+            source={require('@/assets/icons/logo.jpg')}
             style={[
               styles.logo,
               { borderRadius: themeStyles.borderRadius.circle(120) },
@@ -107,16 +97,12 @@ export default function LoginScreen() {
                   elevation: 5,
                 },
               }),
-            ]} 
+            ]}
           />
-          <Text style={[
-            styles.title,
-            { color: getTextColor() }
-          ]}>Trucking Logistics Pro</Text>
-          <Text style={[
-            styles.subtitle,
-            { color: getTextColor() }
-          ]}>{t('welcomeBack', 'Welcome Back')}</Text>
+          <Text style={[styles.title, { color: getTextColor() }]}>Trucking Logistics Pro</Text>
+          <Text style={[styles.subtitle, { color: getTextColor() }]}>
+            {t('welcomeBack', 'Welcome Back')}
+          </Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -136,19 +122,18 @@ export default function LoginScreen() {
             iconType="lock"
             secureTextEntry
           />
-          
-          <TouchableOpacity 
-            style={styles.forgotButton} 
-            onPress={() => router.push("/(auth)/forgot-password")}
+
+          <TouchableOpacity
+            style={styles.forgotButton}
+            onPress={() => router.push('/(auth)/forgot-password')}
             activeOpacity={0.6}
           >
-            <Text style={[
-              styles.forgotButtonText,
-              { color: getSecondaryTextColor() }
-            ]}>{t('forgotPassword', 'Forgot Password?')}</Text>
+            <Text style={[styles.forgotButtonText, { color: getSecondaryTextColor() }]}>
+              {t('forgotPassword', 'Forgot Password?')}
+            </Text>
           </TouchableOpacity>
 
-          <FormButton 
+          <FormButton
             buttonTitle={t('signIn', 'Sign In')}
             onPress={handleLogin}
             disabled={loading}
@@ -158,10 +143,9 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.formContainer}>
-          <Text style={[
-            styles.orText,
-            { color: getSecondaryTextColor() }
-          ]}>- {t('or', 'Or')} -</Text>
+          <Text style={[styles.orText, { color: getSecondaryTextColor() }]}>
+            - {t('or', 'Or')} -
+          </Text>
           <SocialButton
             buttonTitle={t('signInWithGoogle', 'Sign In with Google')}
             btnType="google"
@@ -169,23 +153,19 @@ export default function LoginScreen() {
             backgroundColor={themeStyles.colors.greenThemeColor}
             onPress={handleGoogleLogin}
             disabled={isGoogleLoading}
-          />        
+          />
         </View>
 
         <TouchableOpacity
           style={styles.createAccountButton}
-          onPress={() => router.push("/(auth)/signup")}
+          onPress={() => router.push('/(auth)/signup')}
           activeOpacity={0.6}
         >
-          <Text style={[
-            styles.createAccountText,
-            { color: getSecondaryTextColor() }
-          ]}>
-            {t('noAccount', "Don't have an account?")} {' '}
-            <Text style={[
-              styles.signUpText,
-              { color: getTextColor() }
-            ]}>{t('signUpLink', 'Sign Up')}</Text>
+          <Text style={[styles.createAccountText, { color: getSecondaryTextColor() }]}>
+            {t('noAccount', "Don't have an account?")}{' '}
+            <Text style={[styles.signUpText, { color: getTextColor() }]}>
+              {t('signUpLink', 'Sign Up')}
+            </Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>

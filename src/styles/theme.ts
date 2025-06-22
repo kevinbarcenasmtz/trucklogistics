@@ -1,5 +1,4 @@
 import { ThemeType } from '../context/ThemeContext';
-import { ViewStyle } from 'react-native';
 
 // Shadow type
 interface ShadowProps {
@@ -124,7 +123,7 @@ const colors: ThemeColors = {
   // Primary brand colors
   primary: {
     light: '#2563EB', // Blue 600
-    dark: '#3B82F6',  // Blue 500
+    dark: '#3B82F6', // Blue 500
   },
   // Background colors
   background: {
@@ -158,8 +157,8 @@ const colors: ThemeColors = {
   status: {
     success: '#10B981', // Emerald 500
     warning: '#F59E0B', // Amber 500
-    error: '#EF4444',   // Red 500
-    info: '#3B82F6',    // Blue 500
+    error: '#EF4444', // Red 500
+    info: '#3B82F6', // Blue 500
   },
 };
 
@@ -252,7 +251,7 @@ const shadowDark: Shadow = {
 // Create themed style objects
 export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
   const isDark = theme === 'dark';
-  
+
   return {
     colors: {
       primary: isDark ? colors.primary.dark : colors.primary.light,

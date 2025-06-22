@@ -1,9 +1,8 @@
 // src/onboarding/components/OnboardingStep.tsx
+import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
 import { OnboardingStepConfig, OnboardingStepProps } from '../types';
 import { OnboardingLayout } from './OnboardingLayout';
-import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 
 interface Props {
   stepConfig: OnboardingStepConfig;
@@ -25,7 +24,7 @@ export const OnboardingStep: React.FC<Props> = ({
   ...stepProps
 }) => {
   const StepComponent = stepConfig.component;
-  
+
   return (
     <ErrorBoundary>
       <OnboardingLayout
@@ -33,11 +32,7 @@ export const OnboardingStep: React.FC<Props> = ({
         totalSteps={totalSteps}
         showProgress={stepConfig.id !== 'welcome'} // Hide progress for welcome step
       >
-        <StepComponent
-          {...stepProps}
-          stepIndex={stepIndex}
-          totalSteps={totalSteps}
-        />
+        <StepComponent {...stepProps} stepIndex={stepIndex} totalSteps={totalSteps} />
       </OnboardingLayout>
     </ErrorBoundary>
   );

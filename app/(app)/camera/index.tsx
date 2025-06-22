@@ -1,14 +1,14 @@
 // app/(app)/camera/index.tsx
-import React, { useState } from "react";
-import { View, Text, Image, TouchableOpacity, StyleSheet, Alert } from "react-native";
-import { useRouter } from "expo-router";
-import * as ImagePicker from 'expo-image-picker';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
-import { MaterialIcons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import * as Haptics from 'expo-haptics';
 import { ActionButton } from '@/src/components/camera/CameraUIComponents';
+import { useTheme } from '@/src/context/ThemeContext';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function CameraScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -16,7 +16,7 @@ export default function CameraScreen() {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const { t } = useTranslation();
-  
+
   // Use useCameraPermissions hook for camera permissions
   const [cameraPermissionStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
 
@@ -29,7 +29,7 @@ export default function CameraScreen() {
       } catch (err) {
         console.warn('Haptic feedback not supported:', err);
       }
-      
+
       // Launch image library with the updated MediaType string value instead of enum
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: 'images', // Use string value instead of deprecated enum
@@ -37,14 +37,14 @@ export default function CameraScreen() {
         aspect: [4, 5],
         quality: 1,
       });
-      
+
       if (!result.canceled) {
         setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error("Image selection error:", error);
+      console.error('Image selection error:', error);
       Alert.alert(
-        t('error', 'Error'), 
+        t('error', 'Error'),
         t('imageSelectionError', 'Failed to select image. Please try again.')
       );
     }
@@ -59,20 +59,23 @@ export default function CameraScreen() {
       } catch (err) {
         console.warn('Haptic feedback not supported:', err);
       }
-      
+
       // Check if we need to request camera permissions
       if (!cameraPermissionStatus?.granted) {
         const permissionResult = await requestCameraPermission();
         if (!permissionResult.granted) {
           Alert.alert(
             t('permissionRequired', 'Permission Required'),
-            t('cameraPermissionMessage', 'This app needs camera access to scan receipts and documents')
+            t(
+              'cameraPermissionMessage',
+              'This app needs camera access to scan receipts and documents'
+            )
           );
           return;
         }
       }
 
-      // Launch camera 
+      // Launch camera
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 5],
@@ -83,7 +86,7 @@ export default function CameraScreen() {
         setSelectedImage(result.assets[0].uri);
       }
     } catch (error) {
-      console.error("Camera error:", error);
+      console.error('Camera error:', error);
       Alert.alert(
         t('error', 'Error'),
         t('cameraError', 'Failed to open camera. Please try again.')
@@ -99,10 +102,10 @@ export default function CameraScreen() {
       } catch (err) {
         console.warn('Haptic feedback not supported:', err);
       }
-      
-      router.push({ 
-        pathname: "/camera/imagedetails", 
-        params: { uri: selectedImage }
+
+      router.push({
+        pathname: '/camera/imagedetails',
+        params: { uri: selectedImage },
       });
     }
   };
@@ -114,7 +117,7 @@ export default function CameraScreen() {
     } catch (err) {
       console.warn('Haptic feedback not supported:', err);
     }
-    
+
     setSelectedImage(null);
   };
 
@@ -123,21 +126,14 @@ export default function CameraScreen() {
       {selectedImage ? (
         // Show selected image and process button
         <>
-          <Image
-            source={{ uri: selectedImage }}
-            style={styles.imagePreview}
-            resizeMode="contain"
-          />
-          <TouchableOpacity 
-            onPress={handleRetake} 
-            style={[
-              styles.retakeButton,
-              { backgroundColor: themeStyles.colors.greenThemeColor }
-            ]}
+          <Image source={{ uri: selectedImage }} style={styles.imagePreview} resizeMode="contain" />
+          <TouchableOpacity
+            onPress={handleRetake}
+            style={[styles.retakeButton, { backgroundColor: themeStyles.colors.greenThemeColor }]}
           >
             <MaterialIcons name="refresh" size={24} color={themeStyles.colors.white} />
           </TouchableOpacity>
-          
+
           <View style={styles.buttonContainer}>
             <ActionButton
               title={t('processImage', 'Process Image')}
@@ -152,29 +148,25 @@ export default function CameraScreen() {
         // Show camera and gallery options
         <View style={styles.bottomButtonsContainer}>
           <View style={styles.instructionContainer}>
-            <MaterialIcons 
-              name="receipt" 
-              size={40} 
-              color={themeStyles.colors.greenThemeColor} 
-            />
-            <Text style={[
-              styles.instructionText,
-              { color: themeStyles.colors.white }
-            ]}>
-              {t('selectOrTakePhoto', 'Take a photo of your receipt or select from your photo library')}
+            <MaterialIcons name="receipt" size={40} color={themeStyles.colors.greenThemeColor} />
+            <Text style={[styles.instructionText, { color: themeStyles.colors.white }]}>
+              {t(
+                'selectOrTakePhoto',
+                'Take a photo of your receipt or select from your photo library'
+              )}
             </Text>
           </View>
 
           <View style={styles.buttonRow}>
-            <ActionButton 
+            <ActionButton
               title={t('openCamera', 'Open Camera')}
               icon="camera-alt"
               onPress={handleOpenCamera}
               backgroundColor={themeStyles.colors.greenThemeColor}
               style={styles.actionButton}
             />
-            
-            <ActionButton 
+
+            <ActionButton
               title={t('gallery', 'Gallery')}
               icon="photo-library"
               onPress={handleSelectImage}

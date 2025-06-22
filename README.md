@@ -1,24 +1,23 @@
-
 # TruckLogistics
 
 Mobile application for logistics management built with React Native and Expo.
 
 ## Project Information
 
-* **Project Name:** trucklogistics
-* **Expo Account:** kevin14767
-* **Android Package:** com.kevin14767.trucklogistics
-* **iOS Bundle ID:** com.kevin14767.trucklogistics
+- **Project Name:** trucklogistics
+- **Expo Account:** kevin14767
+- **Android Package:** com.kevin14767.trucklogistics
+- **iOS Bundle ID:** com.kevin14767.trucklogistics
 
 ## Development Setup
 
 ### Prerequisites
 
-* Node.js (v16+)
-* npm or yarn
-* Expo CLI (`npm install -g expo-cli`)
-* iOS: XCode & CocoaPods (for iOS development)
-* Android: Android Studio & SDK (for Android development)
+- Node.js (v16+)
+- npm or yarn
+- Expo CLI (`npm install -g expo-cli`)
+- iOS: XCode & CocoaPods (for iOS development)
+- Android: Android Studio & SDK (for Android development)
 
 ### Installation
 
@@ -66,6 +65,6 @@ eas build --platform android --profile production
 
 This project uses GitHub Actions for CI/CD pipelines:
 
-* Automated testing on pull requests
-* Build verification
-* Preview builds for feature branches
+- Automated testing on pull requests
+- Build verification
+- Preview builds for feature branches

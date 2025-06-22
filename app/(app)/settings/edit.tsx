@@ -1,17 +1,25 @@
 // app/(app)/settings/edit.tsx
-import React, { useState, useEffect } from "react";
-import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, Alert,
-  ScrollView, SafeAreaView, ActivityIndicator, Platform
-} from "react-native";
-import { Feather, FontAwesome } from '@expo/vector-icons';
+import FormButton from '@/src/components/forms/FormButton';
+import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import FormButton from "@/src/components/forms/FormButton";
-import { useRouter } from "expo-router";
-import { useAuth } from "@/src/context/AuthContext";
-import { useTranslation } from 'react-i18next';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { Feather, FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 interface UserData {
   fname: string;
@@ -29,7 +37,7 @@ export default function EditScreen() {
   const { t } = useTranslation();
   const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,15 +65,15 @@ export default function EditScreen() {
 
   const handleUpdate = async () => {
     if (!user || !userData) return;
-    
+
     await Haptics.selectionAsync();
     setIsSaving(true);
-  
+
     try {
       // Here we'd call the updateUserData function if it existed
       // For now let's just show a success alert and go back
       await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
-      
+
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert('Success', t('profileUpdated', 'Your profile has been updated successfully.'));
       router.back();
@@ -82,7 +90,32 @@ export default function EditScreen() {
     if (userData?.fname && userData?.lname) {
       const initials = `${userData.fname[0]}${userData.lname[0]}`.toUpperCase();
       return (
-        <View style={[
+        <View
+          style={[
+            styles.avatar,
+            {
+              backgroundColor: themeStyles.colors.greenThemeColor,
+              ...Platform.select({
+                ios: {
+                  shadowColor: themeStyles.colors.black,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                },
+                android: {
+                  elevation: 5,
+                },
+              }),
+            },
+          ]}
+        >
+          <Text style={[styles.avatarText, { color: themeStyles.colors.white }]}>{initials}</Text>
+        </View>
+      );
+    }
+    return (
+      <View
+        style={[
           styles.avatar,
           {
             backgroundColor: themeStyles.colors.greenThemeColor,
@@ -97,72 +130,36 @@ export default function EditScreen() {
                 elevation: 5,
               },
             }),
-          }
-        ]}>
-          <Text style={[
-            styles.avatarText,
-            { color: themeStyles.colors.white }
-          ]}>{initials}</Text>
-        </View>
-      );
-    }
-    return (
-      <View style={[
-        styles.avatar,
-        {
-          backgroundColor: themeStyles.colors.greenThemeColor,
-          ...Platform.select({
-            ios: {
-              shadowColor: themeStyles.colors.black,
-              shadowOffset: { width: 0, height: 3 },
-              shadowOpacity: 0.3,
-              shadowRadius: 4,
-            },
-            android: {
-              elevation: 5,
-            },
-          }),
-        }
-      ]}>
-        <Text style={[
-          styles.avatarText,
-          { color: themeStyles.colors.white }
-        ]}>JD</Text>
+          },
+        ]}
+      >
+        <Text style={[styles.avatarText, { color: themeStyles.colors.white }]}>JD</Text>
       </View>
     );
   };
 
   // Get background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const getBackgroundColor = () =>
+    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
 
   // Get input background color based on theme
-  const getInputBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.darkGrey 
-    : themeStyles.colors.surface;
+  const getInputBackgroundColor = () =>
+    isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface;
 
   // Get text color based on theme
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
+  const getTextColor = () =>
+    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
 
   // Get secondary text color based on theme
-  const getSecondaryTextColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.text.secondary;
+  const getSecondaryTextColor = () =>
+    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
 
   // Get icon color based on theme
-  const getIconColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.primary;
+  const getIconColor = () => (isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.primary);
 
   if (isLoading) {
     return (
-      <SafeAreaView style={[
-        styles.container,
-        { backgroundColor: getBackgroundColor() }
-      ]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
         </View>
@@ -172,86 +169,69 @@ export default function EditScreen() {
 
   // Define input field configurations
   const inputFields = [
-    { 
-      key: 'fname', 
-      icon: "user-o" as const,
+    {
+      key: 'fname',
+      icon: 'user-o' as const,
       iconComponent: FontAwesome,
       placeholder: t('firstName'),
-      autoCapitalize: "words" as const,
+      autoCapitalize: 'words' as const,
     },
-    { 
-      key: 'lname', 
-      icon: "user-o" as const,
+    {
+      key: 'lname',
+      icon: 'user-o' as const,
       iconComponent: FontAwesome,
       placeholder: t('lastName'),
-      autoCapitalize: "words" as const,
+      autoCapitalize: 'words' as const,
     },
-    { 
-      key: 'phone', 
-      icon: "phone" as const,
+    {
+      key: 'phone',
+      icon: 'phone' as const,
       iconComponent: FontAwesome,
       placeholder: t('phone'),
-      keyboardType: "phone-pad" as const,
+      keyboardType: 'phone-pad' as const,
     },
-    { 
-      key: 'email', 
-      icon: "envelope-o" as const,
+    {
+      key: 'email',
+      icon: 'envelope-o' as const,
       iconComponent: FontAwesome,
       placeholder: t('email'),
-      keyboardType: "email-address" as const,
-      autoCapitalize: "none" as const,
+      keyboardType: 'email-address' as const,
+      autoCapitalize: 'none' as const,
     },
-    { 
-      key: 'country', 
-      icon: "globe" as const,
+    {
+      key: 'country',
+      icon: 'globe' as const,
       iconComponent: FontAwesome,
       placeholder: t('country'),
-      autoCapitalize: "words" as const,
+      autoCapitalize: 'words' as const,
     },
-    { 
-      key: 'city', 
-      icon: "map-pin" as const,
+    {
+      key: 'city',
+      icon: 'map-pin' as const,
       iconComponent: Feather,
       placeholder: t('city'),
-      autoCapitalize: "words" as const,
+      autoCapitalize: 'words' as const,
     },
-    { 
-      key: 'state', 
-      icon: "map" as const,
+    {
+      key: 'state',
+      icon: 'map' as const,
       iconComponent: Feather,
       placeholder: t('state'),
-      autoCapitalize: "words" as const,
+      autoCapitalize: 'words' as const,
     },
   ];
 
   return (
-    <SafeAreaView style={[
-      styles.container,
-      { backgroundColor: getBackgroundColor() }
-    ]}>
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => router.back()}
-        activeOpacity={0.7}
-      >
-        <Feather 
-          name="arrow-left" 
-          size={25} 
-          color={getTextColor()} 
-        />
+    <SafeAreaView style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
+        <Feather name="arrow-left" size={25} color={getTextColor()} />
       </TouchableOpacity>
-      
-      <ScrollView 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View style={styles.contentContainer}>
           <View style={styles.profileSection}>
             <View style={styles.imageContainer}>{renderAvatar()}</View>
-            <Text style={[
-              styles.userName,
-              { color: getTextColor() }
-            ]}>
+            <Text style={[styles.userName, { color: getTextColor() }]}>
               {userData ? `${userData.fname || ''} ${userData.lname || ''}` : ''}
             </Text>
           </View>
@@ -259,11 +239,11 @@ export default function EditScreen() {
           {inputFields.map((field, index) => {
             const IconComponent = field.iconComponent;
             return (
-              <View 
+              <View
                 key={field.key}
                 style={[
                   styles.action,
-                  { 
+                  {
                     backgroundColor: getInputBackgroundColor(),
                     ...Platform.select({
                       ios: {
@@ -276,30 +256,23 @@ export default function EditScreen() {
                         elevation: 2,
                       },
                     }),
-                  }
+                  },
                 ]}
               >
-                <IconComponent 
-                  name={field.icon}
-                  size={20} 
-                  color={getIconColor()} 
-                />
+                <IconComponent name={field.icon} size={20} color={getIconColor()} />
                 <TextInput
                   placeholder={field.placeholder}
                   placeholderTextColor={getSecondaryTextColor()}
                   value={userData?.[field.key as keyof UserData] || ''}
-                  onChangeText={(txt) => {
+                  onChangeText={txt => {
                     if (userData) {
-                      setUserData({ 
-                        ...userData, 
-                        [field.key]: txt 
+                      setUserData({
+                        ...userData,
+                        [field.key]: txt,
                       });
                     }
                   }}
-                  style={[
-                    styles.textInput,
-                    { color: getTextColor() }
-                  ]}
+                  style={[styles.textInput, { color: getTextColor() }]}
                   autoCapitalize={field.autoCapitalize}
                   keyboardType={field.keyboardType}
                 />
@@ -307,7 +280,7 @@ export default function EditScreen() {
             );
           })}
 
-          <FormButton 
+          <FormButton
             buttonTitle={isSaving ? t('updating', 'Updating...') : t('update')}
             onPress={handleUpdate}
             disabled={isSaving}
@@ -341,33 +314,33 @@ const styles = StyleSheet.create({
     marginLeft: horizontalScale(8),
   },
   profileSection: {
-    alignItems: "center",
+    alignItems: 'center',
     marginBottom: verticalScale(24),
   },
   imageContainer: {
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatar: {
     height: moderateScale(120),
     width: moderateScale(120),
     borderRadius: moderateScale(60),
-    justifyContent: "center",
-    alignItems: "center",
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
     fontSize: moderateScale(28),
-    fontWeight: "700",
+    fontWeight: '700',
   },
   userName: {
     marginTop: verticalScale(16),
     fontSize: moderateScale(18),
-    fontWeight: "700",
+    fontWeight: '700',
     marginBottom: verticalScale(24),
   },
   action: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     marginVertical: verticalScale(8),
     borderRadius: moderateScale(8),
     padding: moderateScale(16),
@@ -376,5 +349,5 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingLeft: horizontalScale(16),
     fontSize: moderateScale(16),
-  }
+  },
 });

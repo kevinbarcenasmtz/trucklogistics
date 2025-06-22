@@ -1,8 +1,8 @@
 // src/components/TabBarIcon.tsx
-import React from 'react';
-import { View, Image, Text, StyleSheet } from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, moderateScale, verticalScale, horizontalScale } from '@/src/theme';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import React from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 
 interface TabBarIconProps {
   focused: boolean;
@@ -15,38 +15,31 @@ export const TabBarIcon = ({
   focused,
   name,
   iconSource,
-  size = moderateScale(26) // Increased base size
+  size = moderateScale(26), // Increased base size
 }: TabBarIconProps) => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   return (
-    <View style={[
-      styles.tabIconContainer,
-      focused && styles.tabIconContainerActive
-    ]}>
+    <View style={[styles.tabIconContainer, focused && styles.tabIconContainerActive]}>
       <Image
         source={iconSource}
         style={[
           styles.tabIcon,
-          { 
-            width: size, 
+          {
+            width: size,
             height: size,
-            tintColor: focused ? 
-              themeStyles.colors.primary : 
-              themeStyles.colors.gray.medium,
-            opacity: focused ? 1 : 0.8
+            tintColor: focused ? themeStyles.colors.primary : themeStyles.colors.gray.medium,
+            opacity: focused ? 1 : 0.8,
           },
         ]}
       />
       <Text
         style={[
-          styles.tabLabel, 
-          { 
-            color: focused ? 
-              themeStyles.colors.primary : 
-              themeStyles.colors.gray.light
-          }
+          styles.tabLabel,
+          {
+            color: focused ? themeStyles.colors.primary : themeStyles.colors.gray.light,
+          },
         ]}
         numberOfLines={1}
         ellipsizeMode="tail"

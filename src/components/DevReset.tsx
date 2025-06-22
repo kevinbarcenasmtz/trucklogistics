@@ -1,7 +1,7 @@
 // src/components/DevReset.tsx
-import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export const DevReset: React.FC = () => {
   // Only show in development
@@ -11,9 +11,9 @@ export const DevReset: React.FC = () => {
     try {
       await AsyncStorage.multiRemove([
         'onboarding_progress',
-        'onboardingCompleted', 
+        'onboardingCompleted',
         'languageSelected',
-        'userLanguage'
+        'userLanguage',
       ]);
       Alert.alert('✅ Success', 'Onboarding reset!\n\nRestart the app to see onboarding flow.');
     } catch (error) {
@@ -34,11 +34,14 @@ export const DevReset: React.FC = () => {
     try {
       const keys = await AsyncStorage.getAllKeys();
       const items = await AsyncStorage.multiGet(keys);
-      const data = items.reduce((acc, [key, value]) => {
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string | null>);
-      
+      const data = items.reduce(
+        (acc, [key, value]) => {
+          acc[key] = value;
+          return acc;
+        },
+        {} as Record<string, string | null>
+      );
+
       Alert.alert('📱 Current Storage', JSON.stringify(data, null, 2));
     } catch (error) {
       Alert.alert('❌ Error', 'Failed to get storage: ' + error);
@@ -48,15 +51,15 @@ export const DevReset: React.FC = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>DEV</Text>
-      
+
       <TouchableOpacity style={[styles.button, styles.resetButton]} onPress={resetOnboarding}>
         <Text style={styles.buttonText}>Reset{'\n'}Onboarding</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={[styles.button, styles.clearButton]} onPress={resetEverything}>
         <Text style={styles.buttonText}>Clear{'\n'}All</Text>
       </TouchableOpacity>
-      
+
       <TouchableOpacity style={[styles.button, styles.infoButton]} onPress={showStorage}>
         <Text style={styles.buttonText}>Show{'\n'}Data</Text>
       </TouchableOpacity>

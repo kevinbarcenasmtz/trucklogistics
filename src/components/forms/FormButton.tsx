@@ -1,8 +1,8 @@
 // src/components/forms/FormButton.tsx (Updated)
-import React from 'react';
-import { Text, TouchableOpacity, StyleSheet, TouchableOpacityProps } from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, verticalScale } from '@/src/theme';
+import React from 'react';
+import { StyleSheet, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 
 interface FormButtonProps extends TouchableOpacityProps {
   buttonTitle: string;
@@ -20,7 +20,7 @@ const FormButton: React.FC<FormButtonProps> = ({
   ...rest
 }) => {
   const themeStyles = getThemeStyles(useTheme().theme);
-  
+
   return (
     <TouchableOpacity
       style={[
@@ -31,19 +31,21 @@ const FormButton: React.FC<FormButtonProps> = ({
           borderRadius: themeStyles.borderRadius.md,
           marginVertical: themeStyles.spacing.md,
         },
-        style // Apply custom styles last
+        style, // Apply custom styles last
       ]}
       disabled={disabled}
       activeOpacity={0.7}
       {...rest}
     >
-      <Text style={[
-        styles.buttonText,
-        {
-          fontSize: themeStyles.typography.fontSize.md,
-          color: textColor, // Always use the provided textColor
-        }
-      ]}>
+      <Text
+        style={[
+          styles.buttonText,
+          {
+            fontSize: themeStyles.typography.fontSize.md,
+            color: textColor, // Always use the provided textColor
+          },
+        ]}
+      >
         {buttonTitle}
       </Text>
     </TouchableOpacity>

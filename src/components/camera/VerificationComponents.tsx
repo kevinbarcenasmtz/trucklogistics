@@ -1,23 +1,20 @@
 // src/components/camera/VerificationComponents.tsx
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  Image, 
-  StyleSheet, 
-  TouchableOpacity, 
-  TextInput,
-  Modal,
-  Animated,
-  Dimensions,
-  ActivityIndicator
-} from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { MaterialIcons, Feather } from '@expo/vector-icons';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Receipt } from '@/src/types/ReceiptInterfaces';
-import { SectionContainer } from './CameraUIComponents';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,24 +24,24 @@ export const InfoCard = () => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <View style={[
-      styles.infoCard,
-      { 
-        backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-        ...themeStyles.shadow.sm
-      }
-    ]}>
-      <MaterialIcons 
-        name="info-outline" 
-        size={20} 
-        color={themeStyles.colors.greenThemeColor} 
-      />
-      <Text style={[
-        styles.infoText,
-        { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
-      ]}>
+    <View
+      style={[
+        styles.infoCard,
+        {
+          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
+          ...themeStyles.shadow.sm,
+        },
+      ]}
+    >
+      <MaterialIcons name="info-outline" size={20} color={themeStyles.colors.greenThemeColor} />
+      <Text
+        style={[
+          styles.infoText,
+          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
+        ]}
+      >
         {t('verifyInstructions', 'Review and correct any information below before continuing.')}
       </Text>
     </View>
@@ -52,48 +49,36 @@ export const InfoCard = () => {
 };
 
 // Receipt Image Preview Component
-export const ReceiptImagePreview = ({ 
-  imageUri, 
-  onPress 
-}: { 
-  imageUri: string, 
-  onPress: () => void 
+export const ReceiptImagePreview = ({
+  imageUri,
+  onPress,
+}: {
+  imageUri: string;
+  onPress: () => void;
 }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   return (
-    <TouchableOpacity 
-      onPress={onPress} 
-      style={[
-        styles.imageContainer,
-        { ...themeStyles.shadow.sm }
-      ]}
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.imageContainer, { ...themeStyles.shadow.sm }]}
       activeOpacity={0.8}
     >
-      <Image 
-        source={{ uri: imageUri }} 
-        style={styles.imagePreview} 
-        resizeMode="cover" 
-      />
+      <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
       <View style={styles.imageOverlay}>
-        <MaterialIcons 
-          name="zoom-in" 
-          size={20} 
-          color={themeStyles.colors.white} 
-        />
-        <Text style={[
-          styles.imageOverlayText,
-          { color: themeStyles.colors.white }
-        ]}>{t('tapToEnlarge', 'Tap to enlarge')}</Text>
+        <MaterialIcons name="zoom-in" size={20} color={themeStyles.colors.white} />
+        <Text style={[styles.imageOverlayText, { color: themeStyles.colors.white }]}>
+          {t('tapToEnlarge', 'Tap to enlarge')}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 };
 
 // Edit Field Component
-export const EditField = ({ 
+export const EditField = ({
   field,
   value,
   onChange,
@@ -102,76 +87,87 @@ export const EditField = ({
   icon,
   label,
   placeholder,
-  keyboardType = 'default'
-}: { 
-  field: string,
-  value: string,
-  onChange: (value: string) => void,
-  isActive: boolean,
-  onActivate: () => void,
-  icon: string,
-  label: string,
-  placeholder: string,
-  keyboardType?: 'default' | 'decimal-pad' | 'email-address' | 'numeric' | 'phone-pad'
+  keyboardType = 'default',
+}: {
+  field: string;
+  value: string;
+  onChange: (value: string) => void;
+  isActive: boolean;
+  onActivate: () => void;
+  icon: string;
+  label: string;
+  placeholder: string;
+  keyboardType?: 'default' | 'decimal-pad' | 'email-address' | 'numeric' | 'phone-pad';
 }) => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <View style={[
-      styles.formField,
-      { 
-        backgroundColor: isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background,
-        ...themeStyles.shadow.sm
-      },
-      isActive && { 
-        borderColor: themeStyles.colors.greenThemeColor,
-        borderWidth: 1,
-        backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface
-      }
-    ]}>
+    <View
+      style={[
+        styles.formField,
+        {
+          backgroundColor: isDarkTheme
+            ? themeStyles.colors.black_grey
+            : themeStyles.colors.background,
+          ...themeStyles.shadow.sm,
+        },
+        isActive && {
+          borderColor: themeStyles.colors.greenThemeColor,
+          borderWidth: 1,
+          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
+        },
+      ]}
+    >
       <View style={styles.fieldIconContainer}>
-        <MaterialIcons 
-          name={icon} 
-          size={20} 
-          color={isActive ? 
-            themeStyles.colors.greenThemeColor : 
-            isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary
-          } 
+        <MaterialIcons
+          name={icon}
+          size={20}
+          color={
+            isActive
+              ? themeStyles.colors.greenThemeColor
+              : isDarkTheme
+                ? themeStyles.colors.grey
+                : themeStyles.colors.text.secondary
+          }
         />
       </View>
       <View style={styles.fieldContent}>
-        <Text style={[
-          styles.fieldLabel,
-          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
-        ]}>
+        <Text
+          style={[
+            styles.fieldLabel,
+            { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
+          ]}
+        >
           {label}
         </Text>
         <TextInput
           style={[
             styles.fieldInput,
-            { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+            { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
           ]}
           value={value || ''}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor={isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.disabled}
+          placeholderTextColor={
+            isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.disabled
+          }
           onFocus={onActivate}
           keyboardType={keyboardType}
         />
       </View>
-      <TouchableOpacity 
-        style={styles.editButton}
-        onPress={onActivate}
-      >
-        <Feather 
-          name="edit-2" 
-          size={16} 
-          color={isActive ? 
-            themeStyles.colors.greenThemeColor : 
-            isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary
-          } 
+      <TouchableOpacity style={styles.editButton} onPress={onActivate}>
+        <Feather
+          name="edit-2"
+          size={16}
+          color={
+            isActive
+              ? themeStyles.colors.greenThemeColor
+              : isDarkTheme
+                ? themeStyles.colors.grey
+                : themeStyles.colors.text.secondary
+          }
         />
       </TouchableOpacity>
     </View>
@@ -181,71 +177,73 @@ export const EditField = ({
 // Form Container Component
 export const FormContainer = ({
   children,
-  title
+  title,
 }: {
-  children: React.ReactNode,
-  title: string
+  children: React.ReactNode;
+  title: string;
 }) => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <View style={[
-      styles.formContainer,
-      { 
-        backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-        ...themeStyles.shadow.sm 
-      }
-    ]}>
-      <Text style={[
-        styles.formTitle,
-        { 
-          color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary,
-          borderBottomColor: isDarkTheme ? 
-            themeStyles.colors.black_grey : 
-            themeStyles.colors.border
-        }
-      ]}>{title}</Text>
-      
-      <View style={styles.formFieldsContainer}>
-        {children}
-      </View>
+    <View
+      style={[
+        styles.formContainer,
+        {
+          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
+          ...themeStyles.shadow.sm,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.formTitle,
+          {
+            color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary,
+            borderBottomColor: isDarkTheme
+              ? themeStyles.colors.black_grey
+              : themeStyles.colors.border,
+          },
+        ]}
+      >
+        {title}
+      </Text>
+
+      <View style={styles.formFieldsContainer}>{children}</View>
     </View>
   );
 };
 
 // View Raw OCR Button Component
-export const ViewRawTextButton = ({
-  onPress
-}: {
-  onPress: () => void
-}) => {
+export const ViewRawTextButton = ({ onPress }: { onPress: () => void }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
         styles.extractedTextButton,
-        { 
+        {
           backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-          ...themeStyles.shadow.sm
-        }
+          ...themeStyles.shadow.sm,
+        },
       ]}
       onPress={onPress}
     >
-      <Feather 
-        name="file-text" 
-        size={16} 
-        color={isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary} 
+      <Feather
+        name="file-text"
+        size={16}
+        color={isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary}
       />
-      <Text style={[
-        styles.extractedTextButtonText,
-        { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
-      ]}>
+      <Text
+        style={[
+          styles.extractedTextButtonText,
+          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
+        ]}
+      >
         {t('viewRawText', 'View Raw OCR Text')}
       </Text>
     </TouchableOpacity>
@@ -256,54 +254,36 @@ export const ViewRawTextButton = ({
 export const ImagePreviewModal = ({
   visible,
   imageUri,
-  onClose
+  onClose,
 }: {
-  visible: boolean,
-  imageUri: string,
-  onClose: () => void
+  visible: boolean;
+  imageUri: string;
+  onClose: () => void;
 }) => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   return (
-    <Modal 
-      visible={visible} 
-      transparent={true}
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <TouchableOpacity 
-          style={[
-            styles.closeButton,
-            { backgroundColor: themeStyles.colors.darkGrey }
-          ]} 
+        <TouchableOpacity
+          style={[styles.closeButton, { backgroundColor: themeStyles.colors.darkGrey }]}
           onPress={onClose}
           activeOpacity={0.7}
         >
           <MaterialIcons name="close" size={24} color={themeStyles.colors.white} />
         </TouchableOpacity>
-        
-        <Image 
-          source={{ uri: imageUri }} 
-          style={styles.fullScreenImage} 
-          resizeMode="contain" 
-        />
-        
+
+        <Image source={{ uri: imageUri }} style={styles.fullScreenImage} resizeMode="contain" />
+
         <View style={styles.modalControls}>
-          <TouchableOpacity 
-            style={[
-              styles.modalButton,
-              { backgroundColor: themeStyles.colors.darkGrey }
-            ]}
+          <TouchableOpacity
+            style={[styles.modalButton, { backgroundColor: themeStyles.colors.darkGrey }]}
           >
             <Feather name="download" size={24} color={themeStyles.colors.white} />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[
-              styles.modalButton,
-              { backgroundColor: themeStyles.colors.darkGrey }
-            ]}
+          <TouchableOpacity
+            style={[styles.modalButton, { backgroundColor: themeStyles.colors.darkGrey }]}
           >
             <Feather name="share" size={24} color={themeStyles.colors.white} />
           </TouchableOpacity>
@@ -314,36 +294,34 @@ export const ImagePreviewModal = ({
 };
 
 // Save Button Component
-export const SaveButton = ({
-  onPress,
-  isSaving
-}: {
-  onPress: () => void,
-  isSaving: boolean
-}) => {
+export const SaveButton = ({ onPress, isSaving }: { onPress: () => void; isSaving: boolean }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <View style={[
-      styles.footer,
-      { 
-        backgroundColor: isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background,
-        borderTopColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.border,
-        ...themeStyles.shadow.lg
-      }
-    ]}>
-      <TouchableOpacity 
+    <View
+      style={[
+        styles.footer,
+        {
+          backgroundColor: isDarkTheme
+            ? themeStyles.colors.black_grey
+            : themeStyles.colors.background,
+          borderTopColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.border,
+          ...themeStyles.shadow.lg,
+        },
+      ]}
+    >
+      <TouchableOpacity
         style={[
-          styles.footerButton, 
-          { 
+          styles.footerButton,
+          {
             backgroundColor: themeStyles.colors.greenThemeColor,
-            ...themeStyles.shadow.md
+            ...themeStyles.shadow.md,
           },
-          isSaving && { opacity: 0.6 }
-        ]} 
+          isSaving && { opacity: 0.6 },
+        ]}
         onPress={onPress}
         disabled={isSaving}
         activeOpacity={0.7}
@@ -352,10 +330,7 @@ export const SaveButton = ({
           <ActivityIndicator size="small" color={themeStyles.colors.white} />
         ) : (
           <>
-            <Text style={[
-              styles.footerButtonText,
-              { color: themeStyles.colors.white }
-            ]}>
+            <Text style={[styles.footerButtonText, { color: themeStyles.colors.white }]}>
               {t('saveAndContinue', 'Save and Continue')}
             </Text>
             <MaterialIcons name="check-circle" size={20} color={themeStyles.colors.white} />
@@ -369,25 +344,39 @@ export const SaveButton = ({
 // Helper functions for field data
 export const getFieldIcon = (field: string) => {
   switch (field) {
-    case 'date': return 'calendar-today';
-    case 'type': return 'category';
-    case 'amount': return 'attach-money';
-    case 'vehicle': return 'local-shipping';
-    case 'vendorName': return 'store';
-    case 'location': return 'place';
-    default: return 'edit';
+    case 'date':
+      return 'calendar-today';
+    case 'type':
+      return 'category';
+    case 'amount':
+      return 'attach-money';
+    case 'vehicle':
+      return 'local-shipping';
+    case 'vendorName':
+      return 'store';
+    case 'location':
+      return 'place';
+    default:
+      return 'edit';
   }
 };
 
 export const getFieldPlaceholder = (field: string, t: any) => {
   switch (field) {
-    case 'date': return 'YYYY-MM-DD';
-    case 'amount': return '$0.00';
-    case 'type': return 'Fuel, Maintenance, or Other';
-    case 'vehicle': return 'Vehicle ID or description';
-    case 'vendorName': return 'Business name';
-    case 'location': return 'Address';
-    default: return `Enter ${t(field.toLowerCase(), field)}`;
+    case 'date':
+      return 'YYYY-MM-DD';
+    case 'amount':
+      return '$0.00';
+    case 'type':
+      return 'Fuel, Maintenance, or Other';
+    case 'vehicle':
+      return 'Vehicle ID or description';
+    case 'vendorName':
+      return 'Business name';
+    case 'location':
+      return 'Address';
+    default:
+      return `Enter ${t(field.toLowerCase(), field)}`;
   }
 };
 

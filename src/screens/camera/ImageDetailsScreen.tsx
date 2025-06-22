@@ -1,29 +1,22 @@
 // src/screens/camera/ImageDetailsScreen.tsx
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  View, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
-  Animated, 
-  Text
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { Feather } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
-import OCRProcessor from './OCRprocessor';
-import { AIClassificationService } from '@/src/services/AIClassificationService';
-import { AIClassifiedReceipt, Receipt } from '@/src/types/ReceiptInterfaces';
-import * as Haptics from 'expo-haptics';
-import { ScreenHeader, ActionButton } from '@/src/components/camera/CameraUIComponents';
+import { ActionButton, ScreenHeader } from '@/src/components/camera/CameraUIComponents';
 import {
+  AnalyzingIndicator,
+  ClassificationDisplay,
   ImagePreview,
   RecognizedTextDisplay,
-  ClassificationDisplay,
-  AnalyzingIndicator
 } from '@/src/components/camera/ImageDetailComponents';
+import { useTheme } from '@/src/context/ThemeContext';
+import { AIClassificationService } from '@/src/services/AIClassificationService';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { AIClassifiedReceipt, Receipt } from '@/src/types/ReceiptInterfaces';
+import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import OCRProcessor from './OCRprocessor';
 
 export default function ImageDetailsScreen() {
   const { uri } = useLocalSearchParams();
@@ -35,13 +28,13 @@ export default function ImageDetailsScreen() {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
   const [ocrError, setOcrError] = useState<string | null>(null);
-  
+
   // Handle OCR recognition completion
   const handleTextRecognized = async (text: string) => {
     setOcrError(null);
@@ -59,12 +52,12 @@ export default function ImageDetailsScreen() {
         toValue: 0,
         duration: 400,
         useNativeDriver: true,
-      })
+      }),
     ]).start();
-    
+
     // Provide haptic feedback for completion
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+
     // Automatically start AI classification
     await classifyText(text);
   };
@@ -74,7 +67,7 @@ export default function ImageDetailsScreen() {
     setIsClassifying(true);
     try {
       const classified = await AIClassificationService.classifyReceipt(text);
-      
+
       // Ensure all required fields exist
       const validatedClassification: AIClassifiedReceipt = {
         date: classified?.date || new Date().toISOString().split('T')[0],
@@ -83,11 +76,11 @@ export default function ImageDetailsScreen() {
         vehicle: classified?.vehicle || 'Unknown Vehicle',
         vendorName: classified?.vendorName || 'Unknown Vendor',
         location: classified?.location || '',
-        confidence: classified?.confidence || 0.5
+        confidence: classified?.confidence || 0.5,
       };
-      
+
       setClassifiedData(validatedClassification);
-      
+
       // Haptic feedback for classification completion
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
@@ -107,23 +100,25 @@ export default function ImageDetailsScreen() {
   const handleOcrError = (errorMessage: string) => {
     setOcrError(errorMessage);
     setShowOCR(false);
-    
+
     // Show error to user
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } catch (error) {
       console.warn('Haptic feedback not supported', error);
-    }        
+    }
   };
-  
+
   // Then in the JSX:
-  {showOCR && (
-    <OCRProcessor 
-      imageUri={uri as string} 
-      onTextRecognized={handleTextRecognized}
-      onError={handleOcrError}
-    />
-  )}
+  {
+    showOCR && (
+      <OCRProcessor
+        imageUri={uri as string}
+        onTextRecognized={handleTextRecognized}
+        onError={handleOcrError}
+      />
+    );
+  }
 
   // Navigate to verification screen
   const handleContinue = () => {
@@ -131,9 +126,9 @@ export default function ImageDetailsScreen() {
       alert(t('extractTextFirst', 'Please extract the text first'));
       return;
     }
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // Create default values for missing fields
     const defaultReceipt: Partial<Receipt> = {
       id: Date.now().toString(),
@@ -144,21 +139,19 @@ export default function ImageDetailsScreen() {
       status: 'Pending',
       extractedText: recognizedText,
       imageUri: uri as string,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
-    
+
     // Merge with classified data (if available)
-    const receiptData = classifiedData 
-      ? { ...defaultReceipt, ...classifiedData }
-      : defaultReceipt;
-    
+    const receiptData = classifiedData ? { ...defaultReceipt, ...classifiedData } : defaultReceipt;
+
     // Navigate to verification screen with receipt data and image URI
     router.push({
       pathname: '/camera/verification',
-      params: { 
+      params: {
         receipt: JSON.stringify(receiptData),
-        uri: uri as string 
-      }
+        uri: uri as string,
+      },
     });
   };
 
@@ -177,17 +170,17 @@ export default function ImageDetailsScreen() {
   const formatCurrency = (amount: string | undefined) => {
     // Handle undefined or empty string
     if (!amount) return '$0.00';
-    
+
     try {
       // If it already has a currency symbol, return as is
       if (amount.includes('$') || amount.includes('€') || amount.includes('£')) {
         return amount;
       }
-      
+
       // Otherwise, format as USD
       const amountNum = parseFloat(amount.replace(/,/g, ''));
       if (isNaN(amountNum)) return '$0.00';
-      
+
       return `$${amountNum.toFixed(2)}`;
     } catch (error) {
       console.error('Error formatting currency:', error);
@@ -205,79 +198,66 @@ export default function ImageDetailsScreen() {
   // Safe way to get properties with default values
   const safeGetProperty = <T,>(obj: any, property: string, defaultValue: T): T => {
     if (!obj) return defaultValue;
-    return (obj[property] !== undefined && obj[property] !== null) ? obj[property] : defaultValue;
+    return obj[property] !== undefined && obj[property] !== null ? obj[property] : defaultValue;
   };
 
   return (
-    <View style={[
-      styles.container,
-      { backgroundColor: themeStyles.colors.black_grey }
-    ]}>
-      <ScreenHeader 
-        title={t('receiptScanner', 'Receipt Scanner')}
-        onBack={() => router.back()}
-      />
-      
-      <ScrollView 
-        style={styles.scrollView} 
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
+      <ScreenHeader title={t('receiptScanner', 'Receipt Scanner')} onBack={() => router.back()} />
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.contentContainer}>
           {/* Image Container */}
           {!recognizedText ? (
-            <ImagePreview 
-              uri={uri as string} 
-              onScanPress={startOCR} 
-            />
+            <ImagePreview uri={uri as string} onScanPress={startOCR} />
           ) : (
-            <View style={[
-              styles.imageContainer,
-              { 
-                backgroundColor: themeStyles.colors.darkGrey,
-                ...themeStyles.shadow.md
-              }
-            ]}>
+            <View
+              style={[
+                styles.imageContainer,
+                {
+                  backgroundColor: themeStyles.colors.darkGrey,
+                  ...themeStyles.shadow.md,
+                },
+              ]}
+            >
               <TouchableOpacity onPress={startOCR}>
                 <View style={styles.rescanContainer}>
-                  <Text style={[
-                    styles.rescanText, 
-                    { color: themeStyles.colors.white }
-                  ]}>
+                  <Text style={[styles.rescanText, { color: themeStyles.colors.white }]}>
                     {t('scanned', 'Scanned')}
                   </Text>
-                  <Feather 
-                    name="refresh-cw" 
-                    size={16} 
-                    color={themeStyles.colors.white} 
+                  <Feather
+                    name="refresh-cw"
+                    size={16}
+                    color={themeStyles.colors.white}
                     style={{ marginLeft: horizontalScale(4) }}
                   />
                 </View>
               </TouchableOpacity>
             </View>
           )}
-          
+
           {/* Text Recognition Results */}
           {recognizedText && (
-            <RecognizedTextDisplay 
+            <RecognizedTextDisplay
               text={recognizedText}
               fadeAnim={fadeAnim}
               slideAnim={slideAnim}
             />
           )}
-          
+
           {/* Classification Results */}
           {classifiedData && (
-            <ClassificationDisplay 
+            <ClassificationDisplay
               data={classifiedData}
               formatCurrency={formatCurrency}
               getConfidenceColor={getConfidenceColor}
               safeGetProperty={safeGetProperty}
             />
           )}
-          
+
           {/* Classification Loading */}
           {isClassifying && <AnalyzingIndicator />}
-          
+
           {/* Continue Button */}
           {recognizedText && !isClassifying && (
             <View style={styles.buttonWrapper}>
@@ -292,14 +272,9 @@ export default function ImageDetailsScreen() {
           )}
         </View>
       </ScrollView>
-      
+
       {/* OCR Processing Component */}
-      {showOCR && (
-        <OCRProcessor 
-          imageUri={uri as string} 
-          onTextRecognized={handleTextRecognized} 
-        />
-      )}
+      {showOCR && <OCRProcessor imageUri={uri as string} onTextRecognized={handleTextRecognized} />}
     </View>
   );
 }
@@ -339,5 +314,5 @@ const styles = StyleSheet.create({
   },
   continueButton: {
     borderWidth: 0,
-  }
+  },
 });

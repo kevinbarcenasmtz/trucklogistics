@@ -1,24 +1,23 @@
 // app/(auth)/signup.tsx
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  StyleSheet, 
-  ScrollView, 
-  SafeAreaView,
-  Alert,
-  Platform
-} from 'react-native';
-import { useRouter } from "expo-router";
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import SocialButton from '@/src/components/forms/SocialButton';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
+import { useTheme } from '@/src/context/ThemeContext';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -34,47 +33,43 @@ export default function SignupScreen() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Get background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const getBackgroundColor = () =>
+    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
 
   // Get text color based on theme
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
+  const getTextColor = () =>
+    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
 
   // Get secondary text color based on theme
-  const getSecondaryTextColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.text.secondary;
+  const getSecondaryTextColor = () =>
+    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
 
   // Get button background color based on theme
-  const getButtonBgColor = () => isDarkTheme 
-    ? themeStyles.colors.darkGrey 
-    : themeStyles.colors.primary;
+  const getButtonBgColor = () =>
+    isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.primary;
 
   const handleSignup = async () => {
     if (!email || !password || !confirmPassword || !fname || !lname) {
-      Alert.alert("Error", t('fillAllFields', "Please fill in all fields"));
+      Alert.alert('Error', t('fillAllFields', 'Please fill in all fields'));
       return;
     }
-  
+
     if (password !== confirmPassword) {
-      Alert.alert("Error", t('passwordsDoNotMatch', "Passwords do not match"));
+      Alert.alert('Error', t('passwordsDoNotMatch', 'Passwords do not match'));
       return;
     }
-  
+
     if (password.length < 6) {
-      Alert.alert("Error", t('passwordTooShort', "Password should be at least 6 characters"));
+      Alert.alert('Error', t('passwordTooShort', 'Password should be at least 6 characters'));
       return;
     }
-  
+
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       await register(email, password, fname, lname);
-      router.replace("/(app)/home");
+      router.replace('/(app)/home');
     } catch (error: any) {
-      Alert.alert("Registration Failed", error.message);
+      Alert.alert('Registration Failed', error.message);
     }
   };
 
@@ -83,10 +78,10 @@ export default function SignupScreen() {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setIsGoogleLoading(true);
       await googleLogin();
-      router.replace("/(app)/home");
+      router.replace('/(app)/home');
     } catch (error: any) {
       if (error.message) {
-        Alert.alert("Google Sign-In Failed", error.message);
+        Alert.alert('Google Sign-In Failed', error.message);
       }
     } finally {
       setIsGoogleLoading(false);
@@ -94,23 +89,15 @@ export default function SignupScreen() {
   };
 
   return (
-    <SafeAreaView style={[
-      styles.safeArea,
-      { backgroundColor: getBackgroundColor() }
-    ]}>
-      <ScrollView 
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: getBackgroundColor() }]}>
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.headerContainer}>
-          <Text style={[
-            styles.title,
-            { color: getTextColor() }
-          ]}>{t('createAccount', 'Create Account')}</Text>
-          <Text style={[
-            styles.subtitle,
-            { color: getSecondaryTextColor() }
-          ]}>{t('joinTruckingPro', 'Join Trucking Logistics Pro')}</Text>
+          <Text style={[styles.title, { color: getTextColor() }]}>
+            {t('createAccount', 'Create Account')}
+          </Text>
+          <Text style={[styles.subtitle, { color: getSecondaryTextColor() }]}>
+            {t('joinTruckingPro', 'Join Trucking Logistics Pro')}
+          </Text>
         </View>
 
         <View style={styles.formContainer}>
@@ -152,30 +139,25 @@ export default function SignupScreen() {
             secureTextEntry
           />
 
-          <FormButton 
+          <FormButton
             buttonTitle={loading ? t('signingUp', 'Signing Up...') : t('signUp', 'Sign Up')}
             onPress={handleSignup}
-            disabled={loading}     
+            disabled={loading}
             backgroundColor={getButtonBgColor()}
             textColor={themeStyles.colors.white}
           />
         </View>
 
         <View style={styles.termsContainer}>
-          <Text style={[
-            styles.termsText,
-            { color: getSecondaryTextColor() }
-          ]}>
+          <Text style={[styles.termsText, { color: getSecondaryTextColor() }]}>
             {t('termsText', 'By signing up, you agree to our')}{' '}
-            <Text style={[
-              styles.termsLink,
-              { color: themeStyles.colors.greenThemeColor }
-            ]}>{t('termsService', 'Terms of Service')}</Text>
-            {' '}{t('and', 'and')}{' '}
-            <Text style={[
-              styles.termsLink,
-              { color: themeStyles.colors.greenThemeColor }
-            ]}>{t('privacyPolicy', 'Privacy Policy')}</Text>
+            <Text style={[styles.termsLink, { color: themeStyles.colors.greenThemeColor }]}>
+              {t('termsService', 'Terms of Service')}
+            </Text>{' '}
+            {t('and', 'and')}{' '}
+            <Text style={[styles.termsLink, { color: themeStyles.colors.greenThemeColor }]}>
+              {t('privacyPolicy', 'Privacy Policy')}
+            </Text>
           </Text>
         </View>
 
@@ -190,18 +172,14 @@ export default function SignupScreen() {
 
         <TouchableOpacity
           style={styles.signInButton}
-          onPress={() => router.push("/(auth)/login")}
+          onPress={() => router.push('/(auth)/login')}
           activeOpacity={0.6}
         >
-          <Text style={[
-            styles.signInText,
-            { color: getSecondaryTextColor() }
-          ]}>
+          <Text style={[styles.signInText, { color: getSecondaryTextColor() }]}>
             {t('haveAccount', 'Already have an account?')}{' '}
-            <Text style={[
-              styles.signInLink,
-              { color: getTextColor() }
-            ]}>{t('signInLink', 'Sign In')}</Text>
+            <Text style={[styles.signInLink, { color: getTextColor() }]}>
+              {t('signInLink', 'Sign In')}
+            </Text>
           </Text>
         </TouchableOpacity>
       </ScrollView>

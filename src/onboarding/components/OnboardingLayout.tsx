@@ -1,9 +1,9 @@
 // src/onboarding/components/OnboardingLayout.tsx - CLEANED UP VERSION
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useOnboardingTheme'; // ✅ NEW IMPORT
-import { verticalScale, horizontalScale, moderateScale } from '@/src/theme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import React from 'react';
+import { SafeAreaView, StyleSheet, View } from 'react-native';
 
 interface OnboardingLayoutProps {
   children: React.ReactNode;
@@ -16,7 +16,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   children,
   stepIndex,
   totalSteps,
-  showProgress = true
+  showProgress = true,
 }) => {
   const { isDarkTheme } = useTheme();
   const { backgroundColor, themeStyles } = useAppTheme(); // ✅ REPLACES 6 LINES
@@ -32,10 +32,13 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
             style={[
               styles.progressDot,
               {
-                backgroundColor: index <= stepIndex 
-                  ? themeStyles.colors.greenThemeColor 
-                  : isDarkTheme ? themeStyles.colors.grey : '#E0E0E0'
-              }
+                backgroundColor:
+                  index <= stepIndex
+                    ? themeStyles.colors.greenThemeColor
+                    : isDarkTheme
+                      ? themeStyles.colors.grey
+                      : '#E0E0E0',
+              },
             ]}
           />
         ))}
@@ -44,14 +47,9 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   };
 
   return (
-    <SafeAreaView style={[
-      styles.container,
-      { backgroundColor }
-    ]}>
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
       {renderProgressDots()}
-      <View style={styles.content}>
-        {children}
-      </View>
+      <View style={styles.content}>{children}</View>
     </SafeAreaView>
   );
 };

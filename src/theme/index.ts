@@ -9,11 +9,9 @@ const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 const guidelineBaseWidth = 375;
 const guidelineBaseHeight = 812;
 
-const horizontalScale = (size: number): number => 
-  (windowWidth / guidelineBaseWidth) * size;
+const horizontalScale = (size: number): number => (windowWidth / guidelineBaseWidth) * size;
 
-const verticalScale = (size: number): number => 
-  (windowHeight / guidelineBaseHeight) * size;
+const verticalScale = (size: number): number => (windowHeight / guidelineBaseHeight) * size;
 
 const moderateScale = (size: number, factor = 0.5): number =>
   size + (horizontalScale(size) - size) * factor;
@@ -36,30 +34,30 @@ const COLORS = {
   white: '#FFFFFF',
   black: '#000000',
   offWhite: '#f3f3ec', // From Colors.ts
-  
+
   // Brand colors
   primary: {
     light: '#2563EB', // Blue 600
-    dark: '#3B82F6',  // Blue 500
-    main: '#004d40',  // From Colors.ts greenThemeColor
+    dark: '#3B82F6', // Blue 500
+    main: '#004d40', // From Colors.ts greenThemeColor
     light2: '#00796b', // From Colors.ts thirdOnboardingColor
   },
-  
+
   // Background colors
   background: {
     light: '#FFFFFF',
     dark: '#121212',
-    main: '#1c1c1e',     // From Colors.ts black_grey
-    card: '#29292b',     // From Colors.ts darkGrey
+    main: '#1c1c1e', // From Colors.ts black_grey
+    card: '#29292b', // From Colors.ts darkGrey
     elevated: '#38393d', // From Colors.ts
   },
-  
+
   // Surface colors
   surface: {
     light: '#F3F4F6',
     dark: '#1E1E1E',
   },
-  
+
   // Text colors
   text: {
     light: {
@@ -76,21 +74,21 @@ const COLORS = {
     primary: '#FFFFFF',
     secondary: '#b0b0b0',
   },
-  
+
   // Border colors
   border: {
     light: '#E5E7EB',
     dark: '#374151',
   },
-  
+
   // Status colors - integrated with Colors.ts values
   status: {
     success: '#4CAF50', // From Colors.ts
     warning: '#FFC107', // From Colors.ts
-    error: '#FF3B30',   // From Colors.ts
-    info: '#2196F3',    // From Colors.ts
+    error: '#FF3B30', // From Colors.ts
+    info: '#2196F3', // From Colors.ts
   },
-  
+
   // Grayscale (from Colors.ts)
   gray: {
     light: '#b0b0b0',
@@ -99,7 +97,7 @@ const COLORS = {
     darker: '#1c1c1e',
     transparent: '#b6b9bf',
   },
-  
+
   // Legacy colors for backward compatibility
   grey: '#b0b0b0',
   darkGrey: '#29292b',
@@ -281,15 +279,15 @@ export interface ThemeStyles {
 // ✅ CLEANED UP: Generate theme styles based on theme type
 export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
   const isDark = theme === 'dark';
-  
+
   // Define light theme variants of legacy colors
   const lightModeLegacyColors = {
-    grey: '#757575',                // Medium gray for light theme
-    darkGrey: '#f0f0f0',            // Light gray for light theme (card backgrounds)
-    black_grey: '#f8f8f8',          // Off-white for light theme (backgrounds)
-    transParent: '#d0d0d0',         // Lighter transparent for light theme
-    greenThemeColor: '#004d40',     // Keep brand color consistent
-    thirdOnboardingColor: '#00796b' // Keep brand color consistent
+    grey: '#757575', // Medium gray for light theme
+    darkGrey: '#f0f0f0', // Light gray for light theme (card backgrounds)
+    black_grey: '#f8f8f8', // Off-white for light theme (backgrounds)
+    transParent: '#d0d0d0', // Lighter transparent for light theme
+    greenThemeColor: '#004d40', // Keep brand color consistent
+    thirdOnboardingColor: '#00796b', // Keep brand color consistent
   };
 
   return {
@@ -305,7 +303,7 @@ export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
       border: isDark ? COLORS.border.dark : COLORS.border.light,
       status: COLORS.status, // Same for both themes
       gray: COLORS.gray, // Same for both themes
-      
+
       // Legacy colors - modify based on theme
       greenThemeColor: COLORS.greenThemeColor, // Keep brand color consistent
       thirdOnboardingColor: COLORS.thirdOnboardingColor, // Keep brand color consistent
@@ -338,18 +336,18 @@ export function useThemedStyles<T>(styleFn: StyleFunction<T>): (theme: ThemeType
 
 // Export constants for direct use
 export {
-  COLORS,
-  TYPOGRAPHY,
-  SPACING,
-  BORDER_RADIUS,
-  SHADOW_LIGHT,
-  SHADOW_DARK,
   APPLICATION_STYLES,
+  BORDER_RADIUS,
+  COLORS,
   horizontalScale,
-  verticalScale,
   moderateScale,
-  windowWidth,
+  SHADOW_DARK,
+  SHADOW_LIGHT,
+  SPACING,
+  TYPOGRAPHY,
+  verticalScale,
   windowHeight,
+  windowWidth,
 };
 
 // Default export of all theme elements

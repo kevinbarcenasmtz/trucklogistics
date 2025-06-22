@@ -1,11 +1,11 @@
 // app/_layout.tsx - CLEANED UP VERSION
-import React, { useEffect } from 'react';
-import { Stack } from "expo-router";
-import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { AuthProvider } from '@/src/context/AuthContext';
-import { StatusBar } from "expo-status-bar";
-import { View, Platform } from "react-native";
+import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { Stack } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
+import React, { useEffect } from 'react';
+import { Platform, View } from 'react-native';
 import 'react-native-gesture-handler';
 
 // Import i18n config to initialize it
@@ -18,14 +18,14 @@ function ThemedStack(): JSX.Element {
   const { backgroundColor, textColor } = useAppTheme();
 
   return (
-    <View 
-      style={{ 
-        flex: 1, 
-        backgroundColor
+    <View
+      style={{
+        flex: 1,
+        backgroundColor,
       }}
     >
-      <StatusBar 
-        style={isDarkTheme ? "light" : "dark"} 
+      <StatusBar
+        style={isDarkTheme ? 'light' : 'dark'}
         backgroundColor={Platform.OS === 'android' ? backgroundColor : 'transparent'}
         translucent={Platform.OS === 'android'}
       />

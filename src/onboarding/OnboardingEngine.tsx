@@ -1,19 +1,19 @@
 // src/onboarding/OnboardingEngine.tsx
-import React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { useAppStateMachine } from '../state/appStateMachine';
-import { getAvailableSteps } from './stepRegistry';
-import { OnboardingStep } from './components/OnboardingStep';
+import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles } from '@/src/theme';
-import { useAuth } from '@/src/context/AuthContext';
+import React from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { useAppStateMachine } from '../state/appStateMachine';
+import { OnboardingStep } from './components/OnboardingStep';
+import { getAvailableSteps } from './stepRegistry';
 
 export const OnboardingEngine: React.FC = () => {
-    const { state, completeOnboardingStep, goBackToStep, completeOnboarding } = useAppStateMachine();
+  const { state, completeOnboardingStep, goBackToStep, completeOnboarding } = useAppStateMachine();
   const { completeOnboarding: authCompleteOnboarding } = useAuth();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   if (state.type !== 'onboarding') {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: themeStyles.colors.background }]}>
@@ -24,11 +24,9 @@ export const OnboardingEngine: React.FC = () => {
 
   const { context, progress } = state;
   const availableSteps = getAvailableSteps(context);
-  
+
   // Find current step
-  const currentStep = availableSteps.find(step => 
-    !progress.completedSteps.includes(step.id)
-  );
+  const currentStep = availableSteps.find(step => !progress.completedSteps.includes(step.id));
 
   if (!currentStep) {
     // Call state machine completion WITH callback to AuthContext

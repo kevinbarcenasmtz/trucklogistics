@@ -1,13 +1,13 @@
 // src/onboarding/utils/storage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { OnboardingProgress, OnboardingContext, Language } from '../types';
+import { Language, OnboardingProgress } from '../types';
 
 const STORAGE_KEYS = {
   ONBOARDING_PROGRESS: 'onboarding_progress',
   USER_LANGUAGE: 'userLanguage',
   LANGUAGE_SELECTED: 'languageSelected',
   ONBOARDING_COMPLETED: 'onboardingCompleted',
-  AUTH_STATE: 'auth_state'
+  AUTH_STATE: 'auth_state',
 } as const;
 
 export const saveOnboardingProgress = async (progress: OnboardingProgress): Promise<void> => {
@@ -32,7 +32,7 @@ export const saveLanguagePreference = async (language: Language): Promise<void> 
   try {
     await Promise.all([
       AsyncStorage.setItem(STORAGE_KEYS.USER_LANGUAGE, language),
-      AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE_SELECTED, 'true')
+      AsyncStorage.setItem(STORAGE_KEYS.LANGUAGE_SELECTED, 'true'),
     ]);
   } catch (error) {
     console.error('Failed to save language preference:', error);
@@ -71,7 +71,7 @@ export const clearOnboardingData = async (): Promise<void> => {
   try {
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.ONBOARDING_PROGRESS,
-      STORAGE_KEYS.ONBOARDING_COMPLETED
+      STORAGE_KEYS.ONBOARDING_COMPLETED,
     ]);
   } catch (error) {
     console.error('Failed to clear onboarding data:', error);

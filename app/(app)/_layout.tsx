@@ -1,10 +1,10 @@
 // app/(app)/_layout.tsx
-import { Tabs } from 'expo-router';
-import { Image, View, Pressable, StyleSheet, Platform } from 'react-native';
-import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
 import TabBarIcon from '@/src/components/tabbaricon';
-import { verticalScale, moderateScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { moderateScale, verticalScale } from '@/src/theme';
+import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../src/context/ThemeContext';
 
 export default function TabLayout() {
@@ -12,13 +12,11 @@ export default function TabLayout() {
   const { isDarkTheme } = useTheme();
   const { themeStyles } = useAppTheme();
   // Define the tab bar background color based on theme
-  const tabBarBackgroundColor = isDarkTheme 
-    ? themeStyles.colors.black_grey 
+  const tabBarBackgroundColor = isDarkTheme
+    ? themeStyles.colors.black_grey
     : themeStyles.colors.white;
-  
-  const tabBarBorderColor = isDarkTheme
-    ? themeStyles.colors.darkGrey
-    : themeStyles.colors.border;
+
+  const tabBarBorderColor = isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.border;
 
   return (
     <Tabs
@@ -49,8 +47,8 @@ export default function TabLayout() {
         },
         tabBarShowLabel: false,
         tabBarActiveTintColor: themeStyles.colors.greenThemeColor,
-        tabBarInactiveTintColor: isDarkTheme 
-          ? themeStyles.colors.grey 
+        tabBarInactiveTintColor: isDarkTheme
+          ? themeStyles.colors.grey
           : themeStyles.colors.text.secondary,
       }}
     >
@@ -89,41 +87,41 @@ export default function TabLayout() {
               style={{
                 width: moderateScale(32),
                 height: moderateScale(32),
-                tintColor: isDarkTheme 
-                  ? themeStyles.colors.white 
-                  : themeStyles.colors.text.primary
+                tintColor: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary,
               }}
             />
           ),
-          tabBarButton: (props) => (
+          tabBarButton: props => (
             <Pressable
               style={({ pressed }) => [
                 styles.cameraButton,
                 {
                   top: verticalScale(-30),
                 },
-                pressed && styles.cameraButtonPressed
+                pressed && styles.cameraButtonPressed,
               ]}
               onPress={props.onPress}
               accessibilityLabel={t('camera')}
             >
-              <View style={[
-                styles.cameraButtonInner,
-                {
-                  backgroundColor: themeStyles.colors.greenThemeColor,
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: themeStyles.colors.black,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.3,
-                      shadowRadius: 5,
-                    },
-                    android: {
-                      elevation: 8,
-                    },
-                  })
-                }
-              ]}>
+              <View
+                style={[
+                  styles.cameraButtonInner,
+                  {
+                    backgroundColor: themeStyles.colors.greenThemeColor,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: themeStyles.colors.black,
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.3,
+                        shadowRadius: 5,
+                      },
+                      android: {
+                        elevation: 8,
+                      },
+                    }),
+                  },
+                ]}
+              >
                 {props.children}
               </View>
             </Pressable>
@@ -177,5 +175,5 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(32),
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
 });

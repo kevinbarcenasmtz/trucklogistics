@@ -1,7 +1,7 @@
-// src/components/ErrorBoundary.tsx 
+// src/components/ErrorBoundary.tsx
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import React, { Component, ReactNode } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { moderateScale, verticalScale, horizontalScale } from '@/src/theme';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface Props {
   children: ReactNode;
@@ -29,16 +29,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return this.props.fallback || (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>Something went wrong</Text>
-          <TouchableOpacity 
-            style={styles.retryButton}
-            onPress={() => this.setState({ hasError: false })}
-          >
-            <Text style={styles.retryText}>Try Again</Text>
-          </TouchableOpacity>
-        </View>
+      return (
+        this.props.fallback || (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>Something went wrong</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={() => this.setState({ hasError: false })}
+            >
+              <Text style={styles.retryText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        )
       );
     }
 

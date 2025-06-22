@@ -69,19 +69,24 @@ npx eas update --branch production --message "Rolling back to stable version" --
 
 ## Best Practices
 
-1. **Always specify the environment**: 
+1. **Always specify the environment**:
+
    - Use `--environment` flag to ensure the correct environment variables are included
 
 2. **Descriptive messages**:
+
    - Include meaningful commit messages that describe what changed
 
 3. **Use branches for feature testing**:
+
    - For testing specific features, create custom branches:
+
    ```bash
    eas update --branch feature-x --message "Testing new feature X" --environment preview
    ```
 
 4. **Testing before production**:
+
    - Always test updates on the preview channel before pushing to production
 
 5. **Verify environment variables**:

@@ -1,29 +1,29 @@
 // src/state/appStateMachine.ts (Updated)
-import { useReducer, useEffect } from 'react';
-import { Platform } from 'react-native';
-import { OnboardingContext, OnboardingProgress } from '../onboarding/types';
-import { getAvailableSteps, isOnboardingComplete } from '../onboarding/stepRegistry';
-import { 
-  saveOnboardingProgress, 
-  getOnboardingProgress, 
-  getLanguagePreference,
-  isAuthenticatedFromStorage,
-  markOnboardingComplete 
-} from '../onboarding/utils/storage';
 import { useRouter } from 'expo-router';
+import { useEffect, useReducer } from 'react';
+import { Platform } from 'react-native';
+import { getAvailableSteps, isOnboardingComplete } from '../onboarding/stepRegistry';
+import { OnboardingContext, OnboardingProgress } from '../onboarding/types';
+import {
+  getLanguagePreference,
+  getOnboardingProgress,
+  isAuthenticatedFromStorage,
+  markOnboardingComplete,
+  saveOnboardingProgress,
+} from '../onboarding/utils/storage';
 
-type AppState = 
+type AppState =
   | { type: 'initializing' }
   | { type: 'onboarding'; context: OnboardingContext; progress: OnboardingProgress }
   | { type: 'authenticated'; user: any }
   | { type: 'unauthenticated' }
   | { type: 'error'; error: string };
 
-  type AppAction =
+type AppAction =
   | { type: 'INITIALIZE_COMPLETE'; payload: AppState }
   | { type: 'ONBOARDING_STEP_COMPLETE'; stepId: string; data?: any }
   | { type: 'ONBOARDING_GO_BACK'; toStepId: string }
-  | { type: 'ONBOARDING_COMPLETE'; callback?: () => void } 
+  | { type: 'ONBOARDING_COMPLETE'; callback?: () => void }
   | { type: 'AUTH_SUCCESS'; user: any }
   | { type: 'ERROR'; error: string };
 
@@ -31,77 +31,75 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
   switch (action.type) {
     case 'INITIALIZE_COMPLETE':
       return action.payload;
-      
-    case 'ONBOARDING_STEP_COMPLETE': {
 
-        
+    case 'ONBOARDING_STEP_COMPLETE': {
       if (state.type !== 'onboarding') return state;
-      
+
       const updatedProgress: OnboardingProgress = {
         ...state.progress,
         completedSteps: [...state.progress.completedSteps, action.stepId],
         currentStepIndex: state.progress.currentStepIndex + 1,
         lastActiveAt: new Date().toISOString(),
-        data: { ...state.progress.data, ...action.data }
+        data: { ...state.progress.data, ...action.data },
       };
-      
+
       // Update context with new data
       const updatedContext: OnboardingContext = {
         ...state.context,
         ...(action.data?.language && { selectedLanguage: action.data.language }),
-        ...(action.data?.deviceInfo && { 
-          deviceInfo: { ...state.context.deviceInfo, ...action.data.deviceInfo }
-        })
+        ...(action.data?.deviceInfo && {
+          deviceInfo: { ...state.context.deviceInfo, ...action.data.deviceInfo },
+        }),
       };
-      
+
       // Save progress to storage
       saveOnboardingProgress(updatedProgress);
-      
+
       return {
         type: 'onboarding',
         context: updatedContext,
-        progress: updatedProgress
+        progress: updatedProgress,
       };
     }
-    
+
     case 'ONBOARDING_GO_BACK': {
       if (state.type !== 'onboarding') return state;
-      
+
       const availableSteps = getAvailableSteps(state.context);
       const targetStepIndex = availableSteps.findIndex(step => step.id === action.toStepId);
-      
+
       if (targetStepIndex === -1) return state;
-      
+
       const updatedProgress: OnboardingProgress = {
         ...state.progress,
         completedSteps: state.progress.completedSteps.slice(0, targetStepIndex),
         currentStepIndex: targetStepIndex,
-        lastActiveAt: new Date().toISOString()
+        lastActiveAt: new Date().toISOString(),
       };
-      
+
       saveOnboardingProgress(updatedProgress);
-      
+
       return {
         ...state,
-        progress: updatedProgress
+        progress: updatedProgress,
       };
     }
-    
+
     case 'ONBOARDING_COMPLETE':
       markOnboardingComplete();
-       // Trigger a callback to notify AuthContext
-    if (action.callback) {
+      // Trigger a callback to notify AuthContext
+      if (action.callback) {
         action.callback();
       }
-      
+
       return { type: 'unauthenticated' };
-      
+
     case 'AUTH_SUCCESS':
       return { type: 'authenticated', user: action.user };
-      
+
     case 'ERROR':
       return { type: 'error', error: action.error };
-      
+
     default:
       return state;
   }
@@ -119,7 +117,7 @@ const initializeApp = async (): Promise<AppState> => {
     // Get stored data
     const [storedProgress, selectedLanguage] = await Promise.all([
       getOnboardingProgress(),
-      getLanguagePreference()
+      getLanguagePreference(),
     ]);
 
     // Build onboarding context (no permissions for now)
@@ -129,8 +127,8 @@ const initializeApp = async (): Promise<AppState> => {
       deviceInfo: {
         platform: Platform.OS as 'ios' | 'android',
         hasNotificationPermission: false,
-        hasLocationPermission: false
-      }
+        hasLocationPermission: false,
+      },
     };
 
     // Create or use existing progress
@@ -139,7 +137,7 @@ const initializeApp = async (): Promise<AppState> => {
       currentStepIndex: 0,
       startedAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      data: {}
+      data: {},
     };
 
     // Check if onboarding is complete
@@ -150,9 +148,8 @@ const initializeApp = async (): Promise<AppState> => {
     return {
       type: 'onboarding',
       context,
-      progress
+      progress,
     };
-    
   } catch (error) {
     console.error('App initialization error:', error);
     return { type: 'error', error: 'Failed to initialize app' };
@@ -162,7 +159,7 @@ const initializeApp = async (): Promise<AppState> => {
 export const useAppStateMachine = () => {
   const [state, dispatch] = useReducer(appReducer, { type: 'initializing' });
   const router = useRouter();
-  
+
   useEffect(() => {
     initializeApp().then(initialState => {
       dispatch({ type: 'INITIALIZE_COMPLETE', payload: initialState });
@@ -190,6 +187,6 @@ export const useAppStateMachine = () => {
     completeOnboardingStep,
     goBackToStep,
     completeOnboarding,
-    authenticateUser
+    authenticateUser,
   };
 };

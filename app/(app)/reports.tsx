@@ -1,30 +1,30 @@
 // app/(app)/reports.tsx
-import React, { useState, useEffect, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-  Alert
-} from "react-native";
-import { Feather } from '@expo/vector-icons';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { useRouter } from "expo-router";
-import { useTranslation } from 'react-i18next';
 import { DocumentStorage } from '@/src/services/DocumentStorage';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Receipt } from '@/src/types/ReceiptInterfaces';
+import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function ReportsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -41,10 +41,7 @@ export default function ReportsScreen() {
       setReceipts(docs);
     } catch (error) {
       console.error('Error loading receipts:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('errorLoadingReceipts', 'Failed to load receipts')
-      );
+      Alert.alert(t('error', 'Error'), t('errorLoadingReceipts', 'Failed to load receipts'));
     } finally {
       setIsLoading(false);
     }
@@ -80,38 +77,57 @@ export default function ReportsScreen() {
 
   // Render a receipt card
   const renderReceiptCard = ({ item }: { item: Receipt }) => (
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[styles.receiptCard, { backgroundColor: themeStyles.colors.darkGrey }]}
       onPress={() => handleReceiptPress(item)}
     >
       <View style={styles.receiptHeader}>
         <View style={styles.receiptType}>
-          <Feather 
-            name={getReceiptTypeIcon(item.type)} 
-            size={moderateScale(20)} 
-            color={themeStyles.colors.text.primary} 
+          <Feather
+            name={getReceiptTypeIcon(item.type)}
+            size={moderateScale(20)}
+            color={themeStyles.colors.text.primary}
           />
           <Text style={[styles.receiptTypeText, { color: themeStyles.colors.text.primary }]}>
             {t(item.type.toLowerCase(), item.type)}
           </Text>
         </View>
-        <Text style={[
-          styles.receiptStatus,
-          { color: item.status === 'Approved' ? themeStyles.colors.status.success : themeStyles.colors.status.warning }
-        ]}>
+        <Text
+          style={[
+            styles.receiptStatus,
+            {
+              color:
+                item.status === 'Approved'
+                  ? themeStyles.colors.status.success
+                  : themeStyles.colors.status.warning,
+            },
+          ]}
+        >
           {t(item.status.toLowerCase(), item.status)}
         </Text>
       </View>
 
       <View style={styles.receiptDetails}>
-        <Text style={[styles.receiptAmount, { color: themeStyles.colors.text.primary }]}>{item.amount}</Text>
-        <Text style={[styles.receiptVehicle, { color: themeStyles.colors.text.secondary }]}>{item.vehicle}</Text>
-        {item.vendorName && <Text style={[styles.receiptVendor, { color: themeStyles.colors.text.secondary }]}>{item.vendorName}</Text>}
-        
+        <Text style={[styles.receiptAmount, { color: themeStyles.colors.text.primary }]}>
+          {item.amount}
+        </Text>
+        <Text style={[styles.receiptVehicle, { color: themeStyles.colors.text.secondary }]}>
+          {item.vehicle}
+        </Text>
+        {item.vendorName && (
+          <Text style={[styles.receiptVendor, { color: themeStyles.colors.text.secondary }]}>
+            {item.vendorName}
+          </Text>
+        )}
+
         {/* Preview of extracted text */}
         {item.extractedText && (
-          <Text style={[styles.extractedTextPreview, { color: themeStyles.colors.text.secondary }]} numberOfLines={2}>
-            {item.extractedText.substring(0, 100)}{item.extractedText.length > 100 ? '...' : ''}
+          <Text
+            style={[styles.extractedTextPreview, { color: themeStyles.colors.text.secondary }]}
+            numberOfLines={2}
+          >
+            {item.extractedText.substring(0, 100)}
+            {item.extractedText.length > 100 ? '...' : ''}
           </Text>
         )}
       </View>
@@ -120,7 +136,11 @@ export default function ReportsScreen() {
         <Text style={[styles.receiptDate, { color: themeStyles.colors.text.secondary }]}>
           {formatDate(item.date)}
         </Text>
-        <Feather name="chevron-right" size={moderateScale(20)} color={themeStyles.colors.text.secondary} />
+        <Feather
+          name="chevron-right"
+          size={moderateScale(20)}
+          color={themeStyles.colors.text.secondary}
+        />
       </View>
     </TouchableOpacity>
   );
@@ -129,7 +149,7 @@ export default function ReportsScreen() {
   const handleReceiptPress = (receipt: Receipt) => {
     router.push({
       pathname: '/camera/report',
-      params: { receipt: JSON.stringify(receipt) }
+      params: { receipt: JSON.stringify(receipt) },
     });
   };
 
@@ -139,19 +159,23 @@ export default function ReportsScreen() {
         <Text style={[styles.headerTitle, { color: themeStyles.colors.text.primary }]}>
           {t('receipts', 'Receipts')}
         </Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.addButton, { backgroundColor: themeStyles.colors.greenThemeColor }]}
-          onPress={() => router.push("/camera")}
+          onPress={() => router.push('/camera')}
         >
           <Feather name="plus" size={moderateScale(24)} color={themeStyles.colors.white} />
         </TouchableOpacity>
       </View>
 
       <View style={styles.searchContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={[styles.searchButton, { backgroundColor: themeStyles.colors.darkGrey }]}
         >
-          <Feather name="search" size={moderateScale(20)} color={themeStyles.colors.text.secondary} />
+          <Feather
+            name="search"
+            size={moderateScale(20)}
+            color={themeStyles.colors.text.secondary}
+          />
           <Text style={[styles.searchText, { color: themeStyles.colors.text.secondary }]}>
             {t('searchReceipts', 'Search receipts...')}
           </Text>
@@ -164,13 +188,17 @@ export default function ReportsScreen() {
         </View>
       ) : receipts.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Feather name="file-text" size={moderateScale(60)} color={themeStyles.colors.text.secondary} />
+          <Feather
+            name="file-text"
+            size={moderateScale(60)}
+            color={themeStyles.colors.text.secondary}
+          />
           <Text style={[styles.emptyText, { color: themeStyles.colors.text.secondary }]}>
             {t('noReceipts', 'No receipts found')}
           </Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.scanButton, { backgroundColor: themeStyles.colors.greenThemeColor }]}
-            onPress={() => router.push("/camera")}
+            onPress={() => router.push('/camera')}
           >
             <Text style={[styles.scanButtonText, { color: themeStyles.colors.white }]}>
               {t('scanReceipt', 'Scan Receipt')}
@@ -185,9 +213,9 @@ export default function ReportsScreen() {
           contentContainerStyle={styles.receiptsList}
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
               colors={[themeStyles.colors.greenThemeColor]}
               tintColor={themeStyles.colors.greenThemeColor}
             />

@@ -1,6 +1,6 @@
 // app/(app)/settings/_layout.tsx - CLEANED UP VERSION
-import { Stack } from 'expo-router';
 import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { Stack } from 'expo-router';
 
 export default function SettingsLayout() {
   const { backgroundColor } = useAppTheme();
@@ -12,17 +12,17 @@ export default function SettingsLayout() {
         contentStyle: { backgroundColor },
       }}
     >
-      <Stack.Screen 
+      <Stack.Screen
         name="index"
-        options={{ 
+        options={{
           headerShown: false,
         }}
       />
-      <Stack.Screen 
-        name="edit" 
-        options={{ 
+      <Stack.Screen
+        name="edit"
+        options={{
           headerShown: false,
-          presentation: 'modal'
+          presentation: 'modal',
         }}
       />
     </Stack>

@@ -1,60 +1,48 @@
 // src/components/camera/ImageDetailsComponents.tsx
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  Image, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView,
-  Animated 
-} from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { MaterialIcons } from '@expo/vector-icons';
-import { useTranslation } from 'react-i18next';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { AIClassifiedReceipt } from '@/src/types/ReceiptInterfaces';
+import { MaterialIcons } from '@expo/vector-icons';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  Animated,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SectionContainer } from './CameraUIComponents';
 
 // Receipt Image Preview
-export const ImagePreview = ({ 
-  uri, 
-  onScanPress 
-}: { 
-  uri: string, 
-  onScanPress: () => void 
-}) => {
+export const ImagePreview = ({ uri, onScanPress }: { uri: string; onScanPress: () => void }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <View style={[
-      styles.imageContainer,
-      { 
-        backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-        ...themeStyles.shadow.md
-      }
-    ]}>
-      <Image 
-        source={{ uri }} 
-        style={styles.image}
-        resizeMode="cover" 
-      />
+    <View
+      style={[
+        styles.imageContainer,
+        {
+          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
+          ...themeStyles.shadow.md,
+        },
+      ]}
+    >
+      <Image source={{ uri }} style={styles.image} resizeMode="cover" />
       <View style={styles.imagePlaceholder}>
-        <TouchableOpacity 
-          style={[
-            styles.scanButton,
-            { backgroundColor: themeStyles.colors.greenThemeColor }
-          ]}
+        <TouchableOpacity
+          style={[styles.scanButton, { backgroundColor: themeStyles.colors.greenThemeColor }]}
           onPress={onScanPress}
         >
           <MaterialIcons name="document-scanner" size={24} color={themeStyles.colors.white} />
-          <Text style={[
-            styles.scanButtonText,
-            { color: themeStyles.colors.white }
-          ]}>{t('tapToScan', 'Tap to scan receipt')}</Text>
+          <Text style={[styles.scanButtonText, { color: themeStyles.colors.white }]}>
+            {t('tapToScan', 'Tap to scan receipt')}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -62,147 +50,159 @@ export const ImagePreview = ({
 };
 
 // Recognized Text Display
-export const RecognizedTextDisplay = ({ 
-  text, 
-  fadeAnim, 
-  slideAnim 
-}: { 
-  text: string, 
-  fadeAnim: Animated.Value, 
-  slideAnim: Animated.Value 
+export const RecognizedTextDisplay = ({
+  text,
+  fadeAnim,
+  slideAnim,
+}: {
+  text: string;
+  fadeAnim: Animated.Value;
+  slideAnim: Animated.Value;
 }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         styles.textContainer,
         {
           backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
           ...themeStyles.shadow.sm,
           opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }]
-        }
+          transform: [{ translateY: slideAnim }],
+        },
       ]}
     >
       <View style={styles.sectionHeader}>
-        <MaterialIcons name="document-scanner" size={20} color={themeStyles.colors.greenThemeColor} />
-        <Text style={[
-          styles.sectionTitle,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
-        ]}>{t('recognizedText', 'Recognized Text')}</Text>
+        <MaterialIcons
+          name="document-scanner"
+          size={20}
+          color={themeStyles.colors.greenThemeColor}
+        />
+        <Text
+          style={[
+            styles.sectionTitle,
+            { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
+          ]}
+        >
+          {t('recognizedText', 'Recognized Text')}
+        </Text>
       </View>
       <ScrollView style={styles.textScroll}>
-        <Text style={[
-          styles.recognizedText,
-          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
-        ]}>{text}</Text>
+        <Text
+          style={[
+            styles.recognizedText,
+            { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
+          ]}
+        >
+          {text}
+        </Text>
       </ScrollView>
     </Animated.View>
   );
 };
 
 // Classification Display
-export const ClassificationDisplay = ({ 
+export const ClassificationDisplay = ({
   data,
   formatCurrency,
   getConfidenceColor,
-  safeGetProperty
-}: { 
-  data: AIClassifiedReceipt,
-  formatCurrency: (amount?: string) => string,
-  getConfidenceColor: (confidence: number) => string,
-  safeGetProperty: <T>(obj: any, property: string, defaultValue: T) => T
+  safeGetProperty,
+}: {
+  data: AIClassifiedReceipt;
+  formatCurrency: (amount?: string) => string;
+  getConfidenceColor: (confidence: number) => string;
+  safeGetProperty: <T>(obj: any, property: string, defaultValue: T) => T;
 }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   if (!data) return null;
-  
-  const confidencePercent = Math.round((safeGetProperty(data, 'confidence', 0) * 100));
-  
+
+  const confidencePercent = Math.round(safeGetProperty(data, 'confidence', 0) * 100);
+
   const renderClassificationItem = (
-    label: string, 
+    label: string,
     value: string | React.ReactNode,
     isLarge = false
   ) => (
     <View style={styles.classificationItem}>
-      <Text style={[
-        styles.itemLabel,
-        { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
-      ]}>{t(label.toLowerCase(), label)}</Text>
-      
+      <Text
+        style={[
+          styles.itemLabel,
+          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
+        ]}
+      >
+        {t(label.toLowerCase(), label)}
+      </Text>
+
       {typeof value === 'string' ? (
-        <Text style={[
-          isLarge ? styles.itemValueLarge : styles.itemValue,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
-        ]} numberOfLines={1}>
+        <Text
+          style={[
+            isLarge ? styles.itemValueLarge : styles.itemValue,
+            { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
+          ]}
+          numberOfLines={1}
+        >
           {value}
         </Text>
-      ) : value}
+      ) : (
+        value
+      )}
     </View>
   );
-  
+
   return (
     <SectionContainer
       title={t('aiClassification', 'AI Classification')}
       icon="auto-awesome"
       rightComponent={
-        <View style={[
-          styles.confidenceBadge,
-          { backgroundColor: getConfidenceColor(safeGetProperty(data, 'confidence', 0)) }
-        ]}>
-          <Text style={[
-            styles.confidenceText,
-            { color: isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.white }
-          ]}>
+        <View
+          style={[
+            styles.confidenceBadge,
+            { backgroundColor: getConfidenceColor(safeGetProperty(data, 'confidence', 0)) },
+          ]}
+        >
+          <Text
+            style={[
+              styles.confidenceText,
+              { color: isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.white },
+            ]}
+          >
             {confidencePercent}%
           </Text>
         </View>
       }
     >
       <View style={styles.classificationGrid}>
-        {renderClassificationItem('Type', (
-          <View style={[
-            styles.typeTag,
-            { backgroundColor: themeStyles.colors.greenThemeColor }
-          ]}>
-            <Text style={[
-              styles.typeTagText,
-              { color: themeStyles.colors.white }
-            ]}>
+        {renderClassificationItem(
+          'Type',
+          <View style={[styles.typeTag, { backgroundColor: themeStyles.colors.greenThemeColor }]}>
+            <Text style={[styles.typeTagText, { color: themeStyles.colors.white }]}>
               {safeGetProperty(data, 'type', 'Other')}
             </Text>
           </View>
-        ))}
-        
-        {renderClassificationItem('Amount', 
+        )}
+
+        {renderClassificationItem(
+          'Amount',
           formatCurrency(safeGetProperty(data, 'amount', '')),
           true
         )}
-        
-        {renderClassificationItem('Date', 
-          safeGetProperty(data, 'date', 'Unknown')
-        )}
-        
-        {renderClassificationItem('Vendor', 
-          safeGetProperty(data, 'vendorName', 'Unknown Vendor')
-        )}
-        
-        {renderClassificationItem('Vehicle', 
-          safeGetProperty(data, 'vehicle', 'Unknown Vehicle')
-        )}
-        
-        {safeGetProperty(data, 'location', '') && (
-          renderClassificationItem('Location', 
-            safeGetProperty(data, 'location', '')
-          )
-        )}
+
+        {renderClassificationItem('Date', safeGetProperty(data, 'date', 'Unknown'))}
+
+        {renderClassificationItem('Vendor', safeGetProperty(data, 'vendorName', 'Unknown Vendor'))}
+
+        {renderClassificationItem('Vehicle', safeGetProperty(data, 'vehicle', 'Unknown Vehicle'))}
+
+        {safeGetProperty(data, 'location', '') &&
+          renderClassificationItem('Location', safeGetProperty(data, 'location', ''))}
       </View>
     </SectionContainer>
   );
@@ -214,24 +214,26 @@ export const AnalyzingIndicator = () => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   const isDarkTheme = theme === 'dark';
-  
+
   return (
-    <View style={[
-      styles.classifyingContainer,
-      { 
-        backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-        ...themeStyles.shadow.sm
-      }
-    ]}>
-      <MaterialIcons 
-        name="analytics" 
-        size={20} 
-        color={themeStyles.colors.greenThemeColor} 
-      />
-      <Text style={[
-        styles.classifyingText,
-        { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
-      ]}>{t('analyzing', 'Analyzing receipt...')}</Text>
+    <View
+      style={[
+        styles.classifyingContainer,
+        {
+          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
+          ...themeStyles.shadow.sm,
+        },
+      ]}
+    >
+      <MaterialIcons name="analytics" size={20} color={themeStyles.colors.greenThemeColor} />
+      <Text
+        style={[
+          styles.classifyingText,
+          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
+        ]}
+      >
+        {t('analyzing', 'Analyzing receipt...')}
+      </Text>
     </View>
   );
 };

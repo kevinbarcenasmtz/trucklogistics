@@ -1,12 +1,12 @@
-// app/index.tsx 
-import React from 'react';
-import { StyleSheet, View, ActivityIndicator, Text } from "react-native";
-import { Redirect } from "expo-router";
+// app/index.tsx
 import { useAuth } from '@/src/context/AuthContext';
-import { useAppStateMachine } from '@/src/state/appStateMachine';
-import { OnboardingEngine } from '@/src/onboarding/OnboardingEngine';
 import { useAppTheme } from '@/src/hooks/useOnboardingTheme'; // ✅ NEW IMPORT
+import { OnboardingEngine } from '@/src/onboarding/OnboardingEngine';
+import { useAppStateMachine } from '@/src/state/appStateMachine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Redirect } from 'expo-router';
+import React from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 
@@ -19,10 +19,10 @@ export default function Index() {
     if (__DEV__) {
       AsyncStorage.multiRemove([
         'onboarding_progress',
-        'onboardingCompleted', 
+        'onboardingCompleted',
         'languageSelected',
         'userLanguage',
-        'trucklogistics_theme', 
+        'trucklogistics_theme',
       ]).then(() => {
         console.log('🔧 DEV: Cleared onboarding data + theme for testing');
       });
@@ -75,12 +75,12 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center"
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   errorText: {
     fontSize: 16,
     textAlign: 'center',
     paddingHorizontal: 20,
-  }
+  },
 });

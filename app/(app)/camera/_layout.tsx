@@ -1,11 +1,11 @@
 // app/(app)/camera/_layout.tsx
-import { Stack } from 'expo-router';
 import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { Stack } from 'expo-router';
 import { Platform } from 'react-native';
 
 export default function CameraLayout() {
   const { backgroundColor } = useAppTheme();
-  
+
   return (
     <Stack
       screenOptions={{

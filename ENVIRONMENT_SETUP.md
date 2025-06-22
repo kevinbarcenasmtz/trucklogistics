@@ -7,18 +7,21 @@ This document describes how to set up environment variables for the TruckLogisti
 For each environment (development, preview, production), set up the following variables in the Expo Dashboard or using EAS CLI:
 
 ### Public Variables (Available in App Code)
+
 - `EXPO_PUBLIC_API_URL`: The URL of the backend API
   - Development: https://dev-api.trucklogistics.com
   - Preview: https://staging-api.trucklogistics.com
   - Production: https://api.trucklogistics.com
 
 ### Build Configuration Variables
+
 - `APP_VARIANT`: Determines app configuration (bundle ID, app name)
   - Development: "development"
   - Preview: "preview"
   - Production: "production"
 
 ### Secret Variables (For Build Process)
+
 - `GOOGLE_SERVICES_JSON`: The content of your `google-services.json` file (for Firebase on Android)
 - `GOOGLE_SERVICE_INFO_PLIST`: The content of your `GoogleService-Info.plist` file (for Firebase on iOS)
 - `SENTRY_AUTH_TOKEN`: Authentication token for Sentry error reporting
@@ -28,6 +31,7 @@ For each environment (development, preview, production), set up the following va
 ### Using EAS CLI
 
 1. Create variables for production:
+
    ```bash
    eas env:create --environment production --key EXPO_PUBLIC_API_URL --value https://api.trucklogistics.com --type plain
    eas env:create --environment production --key APP_VARIANT --value production --type plain
@@ -37,6 +41,7 @@ For each environment (development, preview, production), set up the following va
    ```
 
 2. Create variables for preview:
+
    ```bash
    eas env:create --environment preview --key EXPO_PUBLIC_API_URL --value https://staging-api.trucklogistics.com --type plain
    eas env:create --environment preview --key APP_VARIANT --value preview --type plain

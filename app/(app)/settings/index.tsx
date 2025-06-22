@@ -1,26 +1,26 @@
 // app/(app)/settings/index.tsx - COMPLETE ENHANCED VERSION
+import { useAuth } from '@/src/context/AuthContext';
+import { useTheme } from '@/src/context/ThemeContext';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  StyleSheet,
-  SafeAreaView,
-  View,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  Switch,
   ActivityIndicator,
   Alert,
-  Platform
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { useRouter } from "expo-router";
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '@/src/context/AuthContext';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import * as Haptics from 'expo-haptics';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AnimatedSwitch = Animated.createAnimatedComponent(Switch);
 
@@ -28,22 +28,22 @@ export default function Settings() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { user, logout, userData } = useAuth();
-  
+
   // ✅ ENHANCED: Get all theme values including loading state
-  const { 
-    theme, 
-    themePreference, 
-    isDarkTheme, 
-    setTheme, 
+  const {
+    theme,
+    themePreference,
+    isDarkTheme,
+    setTheme,
     isChangingTheme, // ✅ NEW: Loading state
-    themeConstants 
+    themeConstants,
   } = useTheme();
-  
+
   const themeStyles = getThemeStyles(theme);
-  
+
   const [isLanguageLoading, setIsLanguageLoading] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  
+
   const [form, setForm] = useState({
     emailNotifications: true,
     pushNotifications: false,
@@ -56,16 +56,18 @@ export default function Settings() {
     } catch (error) {
       console.warn('Haptic feedback not supported:', error);
     }
-    
+
     // Cycle through theme options: system -> light -> dark -> system
-    const nextTheme = 
-      themePreference === themeConstants.THEME_SYSTEM ? themeConstants.THEME_LIGHT :
-      themePreference === themeConstants.THEME_LIGHT ? themeConstants.THEME_DARK :
-      themeConstants.THEME_SYSTEM;
-    
+    const nextTheme =
+      themePreference === themeConstants.THEME_SYSTEM
+        ? themeConstants.THEME_LIGHT
+        : themePreference === themeConstants.THEME_LIGHT
+          ? themeConstants.THEME_DARK
+          : themeConstants.THEME_SYSTEM;
+
     // Call setTheme with proper error handling
     const success = await setTheme(nextTheme);
-    
+
     if (!success) {
       Alert.alert(
         t('error', 'Error'),
@@ -78,8 +80,8 @@ export default function Settings() {
   // Get current theme label for display
   const getThemeLabel = () => {
     if (isChangingTheme) return t('changing', 'Changing...'); // ✅ Loading text
-    
-    switch(themePreference) {
+
+    switch (themePreference) {
       case themeConstants.THEME_SYSTEM:
         return t('themeSystem', 'System');
       case themeConstants.THEME_LIGHT:
@@ -144,14 +146,14 @@ export default function Settings() {
     router.push('/(app)/settings/edit');
   };
 
-  const SettingItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    onPress, 
-    rightComponent, 
+  const SettingItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    rightComponent,
     disabled = false,
-    loading = false 
+    loading = false,
   }: {
     icon: string;
     title: string;
@@ -164,57 +166,48 @@ export default function Settings() {
     <TouchableOpacity
       style={[
         styles.settingItem,
-        { 
+        {
           backgroundColor: themeStyles.colors.darkGrey,
           opacity: disabled || loading ? 0.6 : 1,
-        }
+        },
       ]}
       onPress={onPress}
       disabled={disabled || loading}
     >
       <View style={styles.settingItemLeft}>
         {loading ? (
-          <ActivityIndicator 
-            size="small" 
-            color={themeStyles.colors.greenThemeColor} 
-          />
+          <ActivityIndicator size="small" color={themeStyles.colors.greenThemeColor} />
         ) : (
-          <Feather 
-            name={icon as any} 
-            size={20} 
-            color={themeStyles.colors.greenThemeColor} 
-          />
+          <Feather name={icon as any} size={20} color={themeStyles.colors.greenThemeColor} />
         )}
-        
+
         <View style={styles.settingItemContent}>
           <Text style={[styles.settingItemTitle, { color: themeStyles.colors.text.primary }]}>
             {title}
           </Text>
           {subtitle && (
-            <Text style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}>
+            <Text
+              style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}
+            >
               {subtitle}
             </Text>
           )}
         </View>
       </View>
-      
+
       {rightComponent || (
-        <Feather 
-          name="chevron-right" 
-          size={20} 
-          color={themeStyles.colors.text.secondary} 
-        />
+        <Feather name="chevron-right" size={20} color={themeStyles.colors.text.secondary} />
       )}
     </TouchableOpacity>
   );
 
-  const SwitchItem = ({ 
-    icon, 
-    title, 
-    subtitle, 
-    value, 
+  const SwitchItem = ({
+    icon,
+    title,
+    subtitle,
+    value,
     onValueChange,
-    disabled = false 
+    disabled = false,
   }: {
     icon: string;
     title: string;
@@ -226,31 +219,29 @@ export default function Settings() {
     <View
       style={[
         styles.settingItem,
-        { 
+        {
           backgroundColor: themeStyles.colors.darkGrey,
           opacity: disabled ? 0.6 : 1,
-        }
+        },
       ]}
     >
       <View style={styles.settingItemLeft}>
-        <Feather 
-          name={icon as any} 
-          size={20} 
-          color={themeStyles.colors.greenThemeColor} 
-        />
-        
+        <Feather name={icon as any} size={20} color={themeStyles.colors.greenThemeColor} />
+
         <View style={styles.settingItemContent}>
           <Text style={[styles.settingItemTitle, { color: themeStyles.colors.text.primary }]}>
             {title}
           </Text>
           {subtitle && (
-            <Text style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}>
+            <Text
+              style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}
+            >
               {subtitle}
             </Text>
           )}
         </View>
       </View>
-      
+
       <AnimatedSwitch
         entering={FadeIn.delay(300)}
         value={value}
@@ -269,41 +260,36 @@ export default function Settings() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.colors.background }]}>
       <View style={[styles.header, { backgroundColor: themeStyles.colors.background }]}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color={themeStyles.colors.text.primary} />
         </TouchableOpacity>
-        
+
         <Text style={[styles.headerTitle, { color: themeStyles.colors.text.primary }]}>
           {t('settings', 'Settings')}
         </Text>
-        
+
         <View style={styles.headerRight} />
       </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Section */}
-        <Animated.View 
-          entering={FadeIn.delay(100)}
-          style={styles.section}
-        >
+        <Animated.View entering={FadeIn.delay(100)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
             {t('profile', 'Profile')}
           </Text>
-          
+
           <View style={[styles.profileCard, { backgroundColor: themeStyles.colors.darkGrey }]}>
             <View style={styles.profileInfo}>
-              <View style={[styles.avatar, { backgroundColor: themeStyles.colors.greenThemeColor }]}>
+              <View
+                style={[styles.avatar, { backgroundColor: themeStyles.colors.greenThemeColor }]}
+              >
                 <Text style={styles.avatarText}>
-                  {userData?.fname?.charAt(0)?.toUpperCase() || user?.fname?.charAt(0)?.toUpperCase() || 'U'}
+                  {userData?.fname?.charAt(0)?.toUpperCase() ||
+                    user?.fname?.charAt(0)?.toUpperCase() ||
+                    'U'}
                 </Text>
               </View>
-              
+
               <View style={styles.profileDetails}>
                 <Text style={[styles.profileName, { color: themeStyles.colors.text.primary }]}>
                   {userData?.fname || user?.fname || ''} {userData?.lname || user?.lname || ''}
@@ -313,34 +299,28 @@ export default function Settings() {
                 </Text>
               </View>
             </View>
-            
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={handleEditProfile}
-            >
+
+            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
               <Feather name="edit-2" size={18} color={themeStyles.colors.text.secondary} />
             </TouchableOpacity>
           </View>
         </Animated.View>
 
         {/* Appearance Section */}
-        <Animated.View 
-          entering={FadeIn.delay(200)}
-          style={styles.section}
-        >
+        <Animated.View entering={FadeIn.delay(200)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
             {t('appearance', 'Appearance')}
           </Text>
-          
+
           <SettingItem
-            icon={isDarkTheme ? "moon" : "sun"}
+            icon={isDarkTheme ? 'moon' : 'sun'}
             title={t('theme', 'Theme')}
             subtitle={getThemeLabel()}
             onPress={handleThemeChange}
             disabled={isChangingTheme}
             loading={isChangingTheme}
           />
-          
+
           <SettingItem
             icon="globe"
             title={t('language', 'Language')}
@@ -352,98 +332,85 @@ export default function Settings() {
         </Animated.View>
 
         {/* Notifications Section */}
-        <Animated.View 
-          entering={FadeIn.delay(300)}
-          style={styles.section}
-        >
+        <Animated.View entering={FadeIn.delay(300)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
             {t('notifications', 'Notifications')}
           </Text>
-          
+
           <SwitchItem
             icon="mail"
             title={t('emailNotifications', 'Email Notifications')}
             subtitle={t('emailNotificationsDesc', 'Receive updates via email')}
             value={form.emailNotifications}
-            onValueChange={(value) => setForm(prev => ({ ...prev, emailNotifications: value }))}
+            onValueChange={value => setForm(prev => ({ ...prev, emailNotifications: value }))}
           />
-          
+
           <SwitchItem
             icon="bell"
             title={t('pushNotifications', 'Push Notifications')}
             subtitle={t('pushNotificationsDesc', 'Receive push notifications')}
             value={form.pushNotifications}
-            onValueChange={(value) => setForm(prev => ({ ...prev, pushNotifications: value }))}
+            onValueChange={value => setForm(prev => ({ ...prev, pushNotifications: value }))}
           />
         </Animated.View>
 
         {/* Support Section */}
-        <Animated.View 
-          entering={FadeIn.delay(400)}
-          style={styles.section}
-        >
+        <Animated.View entering={FadeIn.delay(400)} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
             {t('support', 'Support')}
           </Text>
-          
+
           <SettingItem
             icon="help-circle"
             title={t('help', 'Help & Support')}
-            onPress={() => {/* Navigate to help */}}
+            onPress={() => {
+              /* Navigate to help */
+            }}
           />
-          
+
           <SettingItem
             icon="info"
             title={t('about', 'About')}
-            onPress={() => {/* Navigate to about */}}
+            onPress={() => {
+              /* Navigate to about */
+            }}
           />
-          
+
           <SettingItem
             icon="star"
             title={t('rateApp', 'Rate App')}
-            onPress={() => {/* Open app store */}}
+            onPress={() => {
+              /* Open app store */
+            }}
           />
         </Animated.View>
 
         {/* Account Section */}
-        <Animated.View 
-          entering={FadeIn.delay(500)}
-          style={[styles.section, styles.lastSection]}
-        >
+        <Animated.View entering={FadeIn.delay(500)} style={[styles.section, styles.lastSection]}>
           <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
             {t('account', 'Account')}
           </Text>
-          
+
           <TouchableOpacity
             style={[
               styles.settingItem,
               styles.logoutButton,
-              { 
+              {
                 backgroundColor: themeStyles.colors.darkGrey,
                 opacity: isLoggingOut ? 0.6 : 1,
-              }
+              },
             ]}
             onPress={handleLogout}
             disabled={isLoggingOut}
           >
             <View style={styles.settingItemLeft}>
               {isLoggingOut ? (
-                <ActivityIndicator 
-                  size="small" 
-                  color={themeStyles.colors.status.error} 
-                />
+                <ActivityIndicator size="small" color={themeStyles.colors.status.error} />
               ) : (
-                <Feather 
-                  name="log-out" 
-                  size={20} 
-                  color={themeStyles.colors.status.error} 
-                />
+                <Feather name="log-out" size={20} color={themeStyles.colors.status.error} />
               )}
-              
-              <Text style={[
-                styles.settingItemTitle, 
-                { color: themeStyles.colors.status.error }
-              ]}>
+
+              <Text style={[styles.settingItemTitle, { color: themeStyles.colors.status.error }]}>
                 {isLoggingOut ? t('loggingOut', 'Logging out...') : t('logout', 'Logout')}
               </Text>
             </View>

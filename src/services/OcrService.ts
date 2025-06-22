@@ -1,15 +1,13 @@
 // src/services/OcrService.ts
-import * as FileSystem from 'expo-file-system';
 import Constants from 'expo-constants';
+import * as FileSystem from 'expo-file-system';
 
 // Get API URL from environment variables or constants
-const API_URL = 
-  Constants.expoConfig?.extra?.ocrApiUrl || 
-  process.env.EXPO_PUBLIC_OCR_API_URL
-  
+const API_URL = Constants.expoConfig?.extra?.ocrApiUrl || process.env.EXPO_PUBLIC_OCR_API_URL;
+
 // Get API key if it exists
-// const API_KEY = 
-//   Constants.expoConfig?.extra?.ocrApiKey || 
+// const API_KEY =
+//   Constants.expoConfig?.extra?.ocrApiKey ||
 //   process.env.EXPO_PUBLIC_OCR_API_KEY;
 
 export class OcrService {
@@ -24,7 +22,7 @@ export class OcrService {
       const base64 = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-      
+
       // Format for sending to server
       const imageData = `data:image/jpeg;base64,${base64}`;
 
@@ -32,7 +30,7 @@ export class OcrService {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
+
       // Add API key to headers if available
       // if (API_KEY) {
       //   headers['Authorization'] = `Bearer ${API_KEY}`;

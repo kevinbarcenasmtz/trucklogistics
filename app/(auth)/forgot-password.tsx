@@ -1,22 +1,14 @@
 // app/(auth)/forgot-password.tsx
-import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  SafeAreaView, 
-  TouchableOpacity,
-  Alert,
-  Platform
-} from 'react-native';
-import { useRouter } from "expo-router";
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from "@/src/theme";
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
-import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
+import { useTheme } from '@/src/context/ThemeContext';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -27,71 +19,58 @@ export default function ForgotPasswordScreen() {
   const { resetPassword, loading } = useAuth();
 
   // Get text color based on theme
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
+  const getTextColor = () =>
+    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
 
   // Get secondary text color based on theme
-  const getSecondaryTextColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.text.secondary;
+  const getSecondaryTextColor = () =>
+    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
 
   // Get background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const getBackgroundColor = () =>
+    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
 
   const handleReset = async () => {
     if (!email) {
-      Alert.alert("Error", t('pleaseEnterEmail', 'Please enter your email'));
+      Alert.alert('Error', t('pleaseEnterEmail', 'Please enter your email'));
       return;
     }
-  
+
     try {
       await resetPassword(email);
       Alert.alert(
         t('resetEmailSent', 'Reset Email Sent'),
         t('checkEmailForInstructions', 'Please check your email for password reset instructions'),
-        [
-          { text: t('ok', 'OK'), onPress: () => router.back() }
-        ]
+        [{ text: t('ok', 'OK'), onPress: () => router.back() }]
       );
     } catch (error: any) {
-      Alert.alert("Error", error.message);
+      Alert.alert('Error', error.message);
     }
   };
 
   return (
-    <SafeAreaView style={[
-      styles.safeArea,
-      { backgroundColor: getBackgroundColor() }
-    ]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: getBackgroundColor() }]}>
       <View style={styles.container}>
-        <TouchableOpacity 
-          onPress={() => router.back()} 
+        <TouchableOpacity
+          onPress={() => router.back()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Feather 
-            name="arrow-left" 
-            size={24} 
-            color={getTextColor()} 
-          />
+          <Feather name="arrow-left" size={24} color={getTextColor()} />
         </TouchableOpacity>
-        
+
         <View style={styles.contentContainer}>
-          <Text style={[
-            styles.title,
-            { color: getTextColor() }
-          ]}>{t('forgotPasswordTitle', 'Forgot Password')}</Text>
-          
-          <Text style={[
-            styles.subtitle,
-            { color: getSecondaryTextColor() }
-          ]}>
-            {t('forgotPasswordSubtitle', 'Enter your email address and we will send you instructions to reset your password.')}
+          <Text style={[styles.title, { color: getTextColor() }]}>
+            {t('forgotPasswordTitle', 'Forgot Password')}
           </Text>
-          
+
+          <Text style={[styles.subtitle, { color: getSecondaryTextColor() }]}>
+            {t(
+              'forgotPasswordSubtitle',
+              'Enter your email address and we will send you instructions to reset your password.'
+            )}
+          </Text>
+
           <View style={styles.inputContainer}>
             <FormInput
               labelValue={email}
@@ -102,9 +81,11 @@ export default function ForgotPasswordScreen() {
               autoCapitalize="none"
             />
           </View>
-          
+
           <FormButton
-            buttonTitle={loading ? t('sending', 'Sending...') : t('resetPassword', 'Reset Password')}
+            buttonTitle={
+              loading ? t('sending', 'Sending...') : t('resetPassword', 'Reset Password')
+            }
             onPress={handleReset}
             disabled={loading}
             backgroundColor={themeStyles.colors.greenThemeColor}
@@ -154,5 +135,5 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: '100%',
     marginBottom: verticalScale(20),
-  }
+  },
 });

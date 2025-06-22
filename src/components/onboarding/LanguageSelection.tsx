@@ -1,9 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, Image, Platform } from 'react-native';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { useTranslation } from 'react-i18next';
 import FormButton from '@/src/components/forms/FormButton';
+import { useTheme } from '@/src/context/ThemeContext';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, Image, Platform, StyleSheet, Text, View } from 'react-native';
 
 interface LanguageOption {
   code: 'en' | 'es';
@@ -28,29 +28,23 @@ export const LanguageSelection: React.FC<LanguageSelectionProps> = ({
   selectedLanguage,
   onSelectLanguage,
   isLoading,
-  error
+  error,
 }) => {
   const { t } = useTranslation();
   const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
 
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const getBackgroundColor = () =>
+    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
 
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
+  const getTextColor = () =>
+    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
 
-  const getSecondaryTextColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.text.secondary;
+  const getSecondaryTextColor = () =>
+    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
 
   return (
-    <View style={[
-      styles.container,
-      { backgroundColor: getBackgroundColor() }
-    ]}>
+    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
       <View style={styles.headerContainer}>
         <Image
           source={require('@/assets/icons/logo.jpg')}
@@ -70,52 +64,41 @@ export const LanguageSelection: React.FC<LanguageSelectionProps> = ({
             }),
           ]}
         />
-        <Text style={[
-          styles.appTitle,
-          { color: getTextColor() }
-        ]}>
-          Trucking Logistics Pro
-        </Text>
-        <Text style={[
-          styles.title,
-          { color: getTextColor() }
-        ]}>
+        <Text style={[styles.appTitle, { color: getTextColor() }]}>Trucking Logistics Pro</Text>
+        <Text style={[styles.title, { color: getTextColor() }]}>
           {t('selectLanguage', 'Choose your preferred language')}
         </Text>
       </View>
 
       <View style={styles.formContainer}>
-      {LANGUAGE_OPTIONS.map((option) => (
-  <FormButton
-    key={option.code}
-    buttonTitle={`${option.flag} ${option.nativeLabel}`}
-    onPress={() => onSelectLanguage(option.code)}
-    disabled={false}
-    backgroundColor={
-      selectedLanguage === option.code 
-        ? '#004d40' // Your app's green theme color (direct hex)
-        : '#F3F4F6' // Light gray background
-    }
-    textColor={
-      selectedLanguage === option.code 
-        ? '#FFFFFF' // White text for selected
-        : '#111827' // Dark text for unselected
-    }
-    style={[
-      styles.languageButton,
-      {
-        opacity: isLoading ? 0.6 : 1,
-        pointerEvents: isLoading ? 'none' : 'auto',
-      }
-    ]}
-  />
-))}
-        </View>
+        {LANGUAGE_OPTIONS.map(option => (
+          <FormButton
+            key={option.code}
+            buttonTitle={`${option.flag} ${option.nativeLabel}`}
+            onPress={() => onSelectLanguage(option.code)}
+            disabled={false}
+            backgroundColor={
+              selectedLanguage === option.code
+                ? '#004d40' // Your app's green theme color (direct hex)
+                : '#F3F4F6' // Light gray background
+            }
+            textColor={
+              selectedLanguage === option.code
+                ? '#FFFFFF' // White text for selected
+                : '#111827' // Dark text for unselected
+            }
+            style={[
+              styles.languageButton,
+              {
+                opacity: isLoading ? 0.6 : 1,
+                pointerEvents: isLoading ? 'none' : 'auto',
+              },
+            ]}
+          />
+        ))}
+      </View>
       <View style={styles.footerContainer}>
-        <Text style={[
-          styles.footerText,
-          { color: getSecondaryTextColor() }
-        ]}>
+        <Text style={[styles.footerText, { color: getSecondaryTextColor() }]}>
           {t('chooseLater', 'You can change the language later in settings')}
         </Text>
       </View>
@@ -130,18 +113,19 @@ export const LanguageSelection: React.FC<LanguageSelectionProps> = ({
 
       {isLoading && (
         <View style={styles.loadingOverlay}>
-          <View style={[
-            styles.loadingContent,
-            { 
-              backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-              ...themeStyles.shadow.lg
-            }
-          ]}>
+          <View
+            style={[
+              styles.loadingContent,
+              {
+                backgroundColor: isDarkTheme
+                  ? themeStyles.colors.darkGrey
+                  : themeStyles.colors.surface,
+                ...themeStyles.shadow.lg,
+              },
+            ]}
+          >
             <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
-            <Text style={[
-              styles.loadingText, 
-              { color: getTextColor() }
-            ]}>
+            <Text style={[styles.loadingText, { color: getTextColor() }]}>
               {t('applyingLanguage', 'Applying language...')}
             </Text>
           </View>

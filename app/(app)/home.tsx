@@ -1,62 +1,55 @@
 // app/(app)/home.tsx
-import React from "react";
-import { ScrollView, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { useRouter } from "expo-router";
-import { useTranslation } from 'react-i18next';
+import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ActivityItem = ({ icon, text }: { icon: any; text: string }) => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   return (
     <View style={styles.activityItem}>
       <Feather name={icon} size={20} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.activityText, { color: themeStyles.colors.text.secondary }]}>{text}</Text>
+      <Text style={[styles.activityText, { color: themeStyles.colors.text.secondary }]}>
+        {text}
+      </Text>
     </View>
   );
 };
 
-const QuickAccessButton = ({ 
-  icon, 
-  title, 
-  onPress 
-}: { 
-  icon: any; 
-  title: string; 
+const QuickAccessButton = ({
+  icon,
+  title,
+  onPress,
+}: {
+  icon: any;
+  title: string;
   onPress: () => void;
 }) => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   return (
-    <TouchableOpacity 
-      style={[
-        styles.quickButton, 
-        { backgroundColor: themeStyles.colors.darkGrey }
-      ]} 
+    <TouchableOpacity
+      style={[styles.quickButton, { backgroundColor: themeStyles.colors.darkGrey }]}
       onPress={onPress}
     >
       <Feather name={icon} size={30} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.quickButtonText, { color: themeStyles.colors.text.primary }]}>{title}</Text>
+      <Text style={[styles.quickButtonText, { color: themeStyles.colors.text.primary }]}>
+        {title}
+      </Text>
     </TouchableOpacity>
   );
 };
 
-const StatItem = ({ 
-  icon, 
-  value, 
-  label 
-}: { 
-  icon: any; 
-  value: string; 
-  label: string;
-}) => {
+const StatItem = ({ icon, value, label }: { icon: any; value: string; label: string }) => {
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  
+
   return (
     <View style={styles.statItem}>
       <Feather name={icon} size={24} color={themeStyles.colors.greenThemeColor} />
@@ -76,14 +69,20 @@ export default function HomeScreen() {
     <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={[styles.welcomeText, { color: themeStyles.colors.text.primary }]}>{t('welcomeTitle')}</Text>
-          <Text style={[styles.subText, { color: themeStyles.colors.text.secondary }]}>{t('welcomeSubtitle')}</Text>
+          <Text style={[styles.welcomeText, { color: themeStyles.colors.text.primary }]}>
+            {t('welcomeTitle')}
+          </Text>
+          <Text style={[styles.subText, { color: themeStyles.colors.text.secondary }]}>
+            {t('welcomeSubtitle')}
+          </Text>
         </View>
 
         <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
           <View style={styles.cardHeader}>
             <Feather name="activity" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>{t('recentActivity')}</Text>
+            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>
+              {t('recentActivity')}
+            </Text>
           </View>
           <View style={styles.cardContent}>
             <ActivityItem icon="bookmark" text={t('lastReceipt')} />
@@ -95,18 +94,20 @@ export default function HomeScreen() {
         <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
           <View style={styles.cardHeader}>
             <Feather name="star" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>{t('quickAccess')}</Text>
+            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>
+              {t('quickAccess')}
+            </Text>
           </View>
           <View style={styles.buttonGrid}>
             <QuickAccessButton
               icon="file-text"
               title={t('viewReceipts')}
-              onPress={() => router.push("/reports")}
+              onPress={() => router.push('/reports')}
             />
-            <QuickAccessButton 
+            <QuickAccessButton
               icon="truck"
               title={t('manageFleet')}
-              onPress={() => router.push("/stats")}
+              onPress={() => router.push('/stats')}
             />
           </View>
         </View>
@@ -114,7 +115,9 @@ export default function HomeScreen() {
         <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
           <View style={styles.cardHeader}>
             <Feather name="bar-chart-2" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>{t('statistics')}</Text>
+            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>
+              {t('statistics')}
+            </Text>
           </View>
           <View style={styles.statsGrid}>
             <StatItem icon="truck" value="15" label={t('activeTrucks')} />
