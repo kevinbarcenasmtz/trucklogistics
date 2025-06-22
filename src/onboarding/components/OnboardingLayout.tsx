@@ -1,6 +1,6 @@
 // src/onboarding/components/OnboardingLayout.tsx
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native'; // Remove SafeAreaView import
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, verticalScale, horizontalScale, moderateScale } from '@/src/theme';
 
@@ -51,7 +51,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   };
 
   return (
-    <SafeAreaView style={[
+    <View style={[  // Changed from SafeAreaView to View
       styles.container,
       { backgroundColor: getBackgroundColor() }
     ]}>
@@ -59,7 +59,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
       <View style={styles.content}>
         {children}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
