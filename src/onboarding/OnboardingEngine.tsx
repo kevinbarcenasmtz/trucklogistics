@@ -6,9 +6,11 @@ import { getAvailableSteps } from './stepRegistry';
 import { OnboardingStep } from './components/OnboardingStep';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles } from '@/src/theme';
+import { useAuth } from '@/src/context/AuthContext';
 
 export const OnboardingEngine: React.FC = () => {
-  const { state, completeOnboardingStep, goBackToStep, completeOnboarding } = useAppStateMachine();
+    const { state, completeOnboardingStep, goBackToStep, completeOnboarding } = useAppStateMachine();
+  const { completeOnboarding: authCompleteOnboarding } = useAuth();
   const { theme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   
@@ -28,9 +30,11 @@ export const OnboardingEngine: React.FC = () => {
     !progress.completedSteps.includes(step.id)
   );
 
-  // If no current step, onboarding is complete
   if (!currentStep) {
-    completeOnboarding();
+    // Call state machine completion WITH callback to AuthContext
+    completeOnboarding(() => {
+      authCompleteOnboarding(); // This handles navigation
+    });
     return null;
   }
 

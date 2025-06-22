@@ -394,9 +394,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Complete onboarding
   const completeOnboarding = async () => {
     try {
-      await AsyncStorage.setItem("onboardingCompleted", "true");
+      // Set both storage keys for consistency
+      await AsyncStorage.multiSet([
+        ["onboardingCompleted", "true"],
+        ["onboarding_progress", JSON.stringify({ completed: true })]
+      ]);
+      
       setIsOnboardingCompleted(true);
-      router.replace("/(auth)/login");
+      
+      // Navigate after state update
+      setTimeout(() => {
+        router.replace("/(auth)/login");
+      }, 100);
     } catch (error) {
       console.error("Error setting onboarding status:", error);
       Alert.alert('Error', 'Could not complete onboarding');

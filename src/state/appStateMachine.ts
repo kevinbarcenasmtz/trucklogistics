@@ -10,6 +10,7 @@ import {
   isAuthenticatedFromStorage,
   markOnboardingComplete 
 } from '../onboarding/utils/storage';
+import { useRouter } from 'expo-router';
 
 type AppState = 
   | { type: 'initializing' }
@@ -18,11 +19,11 @@ type AppState =
   | { type: 'unauthenticated' }
   | { type: 'error'; error: string };
 
-type AppAction =
+  type AppAction =
   | { type: 'INITIALIZE_COMPLETE'; payload: AppState }
   | { type: 'ONBOARDING_STEP_COMPLETE'; stepId: string; data?: any }
   | { type: 'ONBOARDING_GO_BACK'; toStepId: string }
-  | { type: 'ONBOARDING_COMPLETE' }
+  | { type: 'ONBOARDING_COMPLETE'; callback?: () => void } 
   | { type: 'AUTH_SUCCESS'; user: any }
   | { type: 'ERROR'; error: string };
 
@@ -32,6 +33,8 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
       return action.payload;
       
     case 'ONBOARDING_STEP_COMPLETE': {
+
+        
       if (state.type !== 'onboarding') return state;
       
       const updatedProgress: OnboardingProgress = {
@@ -86,6 +89,11 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     
     case 'ONBOARDING_COMPLETE':
       markOnboardingComplete();
+       // Trigger a callback to notify AuthContext
+    if (action.callback) {
+        action.callback();
+      }
+      
       return { type: 'unauthenticated' };
       
     case 'AUTH_SUCCESS':
@@ -153,6 +161,7 @@ const initializeApp = async (): Promise<AppState> => {
 
 export const useAppStateMachine = () => {
   const [state, dispatch] = useReducer(appReducer, { type: 'initializing' });
+  const router = useRouter();
   
   useEffect(() => {
     initializeApp().then(initialState => {
@@ -168,8 +177,8 @@ export const useAppStateMachine = () => {
     dispatch({ type: 'ONBOARDING_GO_BACK', toStepId: stepId });
   };
 
-  const completeOnboarding = () => {
-    dispatch({ type: 'ONBOARDING_COMPLETE' });
+  const completeOnboarding = (callback?: () => void) => {
+    dispatch({ type: 'ONBOARDING_COMPLETE', callback });
   };
 
   const authenticateUser = (user: any) => {
