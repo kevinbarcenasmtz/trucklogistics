@@ -55,13 +55,15 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
         const savedTheme = await AsyncStorage.getItem(THEME_STORAGE_KEY);
         if (savedTheme === THEME_LIGHT || savedTheme === THEME_DARK || savedTheme === THEME_SYSTEM) {
           setThemePreference(savedTheme);
+        } else {
+          console.log('No valid saved theme, keeping system');
         }
       } catch (error) {
         console.error('Failed to load theme preference:', error);
         setThemePreference(THEME_SYSTEM);
       }
     };
-
+  
     loadThemePreference();
   }, []);
 

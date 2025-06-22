@@ -1,23 +1,16 @@
 // app/(app)/camera/_layout.tsx
 import { Stack } from 'expo-router';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
 import { Platform } from 'react-native';
 
 export default function CameraLayout() {
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  
-  // Get background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const { backgroundColor } = useAppTheme();
   
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: getBackgroundColor() },
+        contentStyle: { backgroundColor },
         animation: Platform.OS === 'ios' ? 'default' : 'fade_from_bottom',
         gestureEnabled: true,
         ...Platform.select({

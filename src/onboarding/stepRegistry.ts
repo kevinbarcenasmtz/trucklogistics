@@ -2,7 +2,6 @@
 import { OnboardingStepConfig, OnboardingContext } from './types';
 import { LanguageSelectionStep } from './steps/LanguageSelectionStep';
 import { WelcomeStep } from './steps/WelcomeStep';
-import { PermissionsStep } from './steps/PermissionsStep';
 
 export const ONBOARDING_STEPS: OnboardingStepConfig[] = [
   {
@@ -19,14 +18,6 @@ export const ONBOARDING_STEPS: OnboardingStepConfig[] = [
     shouldShow: (ctx) => ctx.userType === 'new',
     analytics: 'onboarding_welcome_shown'
   },
-//   {
-//     id: 'permissions',
-//     component: PermissionsStep,
-//     isRequired: true,
-//     shouldShow: () => true,
-//     skipIf: (ctx) => ctx.deviceInfo.hasNotificationPermission && ctx.deviceInfo.hasLocationPermission,
-//     analytics: 'onboarding_permissions_shown'
-//   },
   // Future steps easily added here:
   // {
   //   id: 'driver_license',

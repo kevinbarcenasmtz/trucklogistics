@@ -14,15 +14,17 @@ export default function Index() {
   const { user } = useAuth();
   const { state } = useAppStateMachine();
   const { backgroundColor, textColor, themeStyles } = useAppTheme();
+
   React.useEffect(() => {
     if (__DEV__) {
       AsyncStorage.multiRemove([
         'onboarding_progress',
         'onboardingCompleted', 
         'languageSelected',
-        'userLanguage'
+        'userLanguage',
+        'trucklogistics_theme', 
       ]).then(() => {
-        console.log('🔧 DEV: Cleared onboarding data for testing');
+        console.log('🔧 DEV: Cleared onboarding data + theme for testing');
       });
     }
   }, []);

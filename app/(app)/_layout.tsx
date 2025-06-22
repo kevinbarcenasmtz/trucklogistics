@@ -1,22 +1,21 @@
 // app/(app)/_layout.tsx
 import { Tabs } from 'expo-router';
 import { Image, View, Pressable, StyleSheet, Platform } from 'react-native';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, verticalScale, moderateScale, horizontalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
 import TabBarIcon from '@/src/components/tabbaricon';
+import { verticalScale, moderateScale } from '@/src/theme';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../src/context/ThemeContext';
 
 export default function TabLayout() {
   const { t } = useTranslation();
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-
+  const { isDarkTheme } = useTheme();
+  const { themeStyles } = useAppTheme();
   // Define the tab bar background color based on theme
   const tabBarBackgroundColor = isDarkTheme 
     ? themeStyles.colors.black_grey 
     : themeStyles.colors.white;
   
-  // Define the tab bar border color based on theme
   const tabBarBorderColor = isDarkTheme
     ? themeStyles.colors.darkGrey
     : themeStyles.colors.border;
