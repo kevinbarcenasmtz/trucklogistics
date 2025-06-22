@@ -6,6 +6,7 @@ import { AuthProvider } from '@/src/context/AuthContext';
 import { StatusBar } from "expo-status-bar";
 import { View, Platform } from "react-native";
 import { getThemeStyles } from "@/src/theme";
+import 'react-native-gesture-handler';
 
 // Import i18n config to initialize it
 import '@/src/i18n';

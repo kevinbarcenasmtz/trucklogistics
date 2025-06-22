@@ -1,4 +1,4 @@
-// app/(auth)/onboarding.tsx
+// app/(auth)/onboarding.tsx 
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Image, Platform } from "react-native";
 import { useRouter } from "expo-router";
@@ -15,15 +15,18 @@ interface DotsProps {
 
 const Dots: React.FC<DotsProps> = ({ selected }) => {
   const { isDarkTheme } = useTheme();
-  
   return (
     <View
       style={[
         styles.dot,
-        selected ? styles.selectedDot : [
-          styles.unselectedDot,
-          { backgroundColor: isDarkTheme ? "rgba(255, 255, 255, 0.5)" : "rgba(0, 0, 0, 0.2)" }
-        ],
+        {
+          backgroundColor: selected 
+            ? '#004d40' // Your green theme color
+            : isDarkTheme 
+              ? "rgba(255, 255, 255, 0.3)" 
+              : "rgba(0, 0, 0, 0.2)"
+        },
+        selected && styles.selectedDot,
       ]}
     />
   );
@@ -32,7 +35,6 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
 const Skip = ({ ...props }) => {
   const { t } = useTranslation();
   const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
   
   return (
     <TouchableOpacity 
@@ -40,13 +42,13 @@ const Skip = ({ ...props }) => {
       {...props}
       activeOpacity={0.7}
       onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         props.onPress?.();
       }}
     >
       <Text style={[
         styles.buttonText,
-        { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+        { color: isDarkTheme ? '#FFFFFF' : '#111827' }
       ]}>{t('skip', 'Skip')}</Text>
     </TouchableOpacity>
   );
@@ -55,7 +57,6 @@ const Skip = ({ ...props }) => {
 const Next = ({ ...props }) => {
   const { t } = useTranslation();
   const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
   
   return (
     <TouchableOpacity 
@@ -63,13 +64,13 @@ const Next = ({ ...props }) => {
       {...props}
       activeOpacity={0.7}
       onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         props.onPress?.();
       }}
     >
       <Text style={[
         styles.buttonText,
-        { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+        { color: isDarkTheme ? '#FFFFFF' : '#111827' }
       ]}>{t('next', 'Next')}</Text>
     </TouchableOpacity>
   );
@@ -77,26 +78,28 @@ const Next = ({ ...props }) => {
 
 const Done = ({ ...props }) => {
   const { t } = useTranslation();
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { theme } = useTheme();
   
   return (
     <TouchableOpacity 
-      style={styles.button} 
+      style={[styles.button, styles.doneButton]} 
       {...props}
       activeOpacity={0.7}
       onPress={() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         props.onPress?.();
       }}
     >
       <Text style={[
         styles.buttonText,
-        { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+        styles.doneButtonText,
+        { color: '#FFFFFF' }
       ]}>{t('getStarted', 'Get Started')}</Text>
     </TouchableOpacity>
   );
 };
+
+
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -106,36 +109,43 @@ export default function OnboardingScreen() {
 
   const handleOnboardingComplete = async () => {
     try {
-      // Set the onboarding flag in AsyncStorage
       await AsyncStorage.setItem("onboardingCompleted", "true");
-      // Navigate to the login screen
       router.replace("/(auth)/login");
     } catch (error) {
       console.error("Error saving onboarding status:", error);
     }
   };
 
-  // Get background color based on theme
-  const getBackgroundColor = (isDark = false) => {
-    if (isDark) {
-      return isDarkTheme 
-        ? themeStyles.colors.black_grey 
-        : themeStyles.colors.background;
-    } else {
-      return isDarkTheme
-        ? themeStyles.colors.darkGrey
-        : themeStyles.colors.surface;
+  const getBackgroundColor = (isSpecial = false) => {
+    if (isSpecial) {
+      return '#004d40'; // Green background for last slide
     }
+    return isDarkTheme 
+      ? themeStyles.colors.black_grey 
+      : themeStyles.colors.background;
   };
 
-  // Get dot color
-  const getDotColor = () => isDarkTheme 
-    ? '#FFFFFF'
-    : themeStyles.colors.text.primary;
+  const getTextColor = (isSpecial = false) => {
+    if (isSpecial) {
+      return '#FFFFFF'; // White text on green background
+    }
+    return isDarkTheme 
+      ? themeStyles.colors.white 
+      : themeStyles.colors.text.primary;
+  };
+
+  const getSubtitleColor = (isSpecial = false) => {
+    if (isSpecial) {
+      return 'rgba(255, 255, 255, 0.9)'; // Semi-transparent white
+    }
+    return isDarkTheme 
+      ? themeStyles.colors.grey 
+      : themeStyles.colors.text.secondary;
+  };
 
   const pages = [
     {
-      backgroundColor: getBackgroundColor(true),
+      backgroundColor: getBackgroundColor(),
       image: (
         <Image
           source={require("@/assets/icons/trucking_logistics.png")}
@@ -155,15 +165,15 @@ export default function OnboardingScreen() {
           ]}
         />
       ),
-      title: t('onboardingTitle1', 'Welcome to TruckLogistics'),
-      subtitle: t('onboardingSubtitle1', 'Streamline your logistics operations with our powerful tools.'),
+      title: t('onboardingTitle1', 'Welcome to Trucking Logistics Pro'),
+      subtitle: t('onboardingSubtitle1', 'Simplify your logistics with advanced tools for seamless trucking operations.'),
       titleStyles: [
         styles.title,
-        { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+        { color: getTextColor() }
       ],
       subTitleStyles: [
         styles.subtitle,
-        { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
+        { color: getSubtitleColor() }
       ],
     },
     {
@@ -187,19 +197,19 @@ export default function OnboardingScreen() {
           ]}
         />
       ),
-      title: t('onboardingTitle2', 'Track with Ease'),
-      subtitle: t('onboardingSubtitle2', 'Monitor your fleet in real-time and optimize routes.'),
+      title: t('onboardingTitle2', 'Generate Insightful Reports'),
+      subtitle: t('onboardingSubtitle2', 'Track and analyze your performance with professional-grade reporting tools.'),
       titleStyles: [
         styles.title,
-        { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary }
+        { color: getTextColor() }
       ],
       subTitleStyles: [
         styles.subtitle,
-        { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary }
+        { color: getSubtitleColor() }
       ],
     },
     {
-      backgroundColor: themeStyles.colors.primary,
+      backgroundColor: getBackgroundColor(true), // Special green background
       image: (
         <Image
           source={require("@/assets/icons/pngwing.com(2).png")}
@@ -219,15 +229,15 @@ export default function OnboardingScreen() {
           ]}
         />
       ),
-      title: t('onboardingTitle3', 'Analyze and Grow'),
-      subtitle: t('onboardingSubtitle3', 'Get insights from comprehensive reports and analytics.'),
+      title: t('onboardingTitle3', 'Stay on Track'),
+      subtitle: t('onboardingSubtitle3', 'Real-time navigation and scheduling for efficient deliveries.'),
       titleStyles: [
         styles.title,
-        { color: "#FFFFFF" }
+        { color: getTextColor(true) }
       ],
       subTitleStyles: [
         styles.subtitle,
-        { color: 'rgba(255, 255, 255, 0.9)' }
+        { color: getSubtitleColor(true) }
       ],
     },
   ];
@@ -243,6 +253,11 @@ export default function OnboardingScreen() {
       pages={pages}
       containerStyles={{ paddingBottom: 0 }}
       bottomBarHighlight={false}
+      transitionAnimationDuration={300}
+      allowFontScaling={false}
+      showNext={true}
+      showSkip={true}
+      showDone={true}
     />
   );
 }
@@ -250,31 +265,40 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   button: {
     marginHorizontal: horizontalScale(16),
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: horizontalScale(16),
-    borderRadius: moderateScale(4),
+    paddingVertical: verticalScale(12),
+    paddingHorizontal: horizontalScale(20),
+    borderRadius: moderateScale(8),
+  },
+  doneButton: {
+    backgroundColor: '#004d40',
   },
   buttonText: {
     fontSize: moderateScale(16),
     fontWeight: '600',
     letterSpacing: 0.1,
   },
+  doneButtonText: {
+    color: '#FFFFFF',
+  },
   dot: {
-    width: moderateScale(10),
-    height: moderateScale(10),
-    borderRadius: moderateScale(5),
+    width: moderateScale(8),
+    height: moderateScale(8),
+    borderRadius: moderateScale(4),
     marginHorizontal: horizontalScale(4),
     marginBottom: verticalScale(16),
   },
+  selectedDot: {
+    transform: [{ scale: 1.2 }],
+  },
   image: {
-    width: horizontalScale(350),
-    height: verticalScale(350),
+    width: horizontalScale(300),
+    height: verticalScale(300),
     resizeMode: "contain",
   },
   title: {
-    fontSize: moderateScale(24),
-    fontWeight: '600',
-    lineHeight: moderateScale(32),
+    fontSize: moderateScale(28),
+    fontWeight: '700',
+    lineHeight: moderateScale(36),
     textAlign: "center",
     marginBottom: verticalScale(16),
     paddingHorizontal: horizontalScale(24),
@@ -283,14 +307,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(16),
     textAlign: "center",
     lineHeight: moderateScale(24),
-    paddingHorizontal: horizontalScale(48),
+    paddingHorizontal: horizontalScale(32),
     marginBottom: verticalScale(24),
-  },
-  selectedDot: {
-    backgroundColor: '#111827',
-    transform: [{scale: 1.2}],
-  },
-  unselectedDot: {
-    backgroundColor: "rgba(255, 255, 255, 0.5)",
   },
 });

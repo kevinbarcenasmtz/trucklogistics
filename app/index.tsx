@@ -1,4 +1,3 @@
-globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 // app/index.tsx
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, ActivityIndicator } from "react-native";
@@ -7,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { getThemeStyles } from "@/src/theme";
+globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 
 export default function Index(): JSX.Element {
   const { theme } = useTheme();
