@@ -1,3 +1,4 @@
+// src/context/ThemeContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Appearance, ColorSchemeName } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -6,13 +7,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type ThemeType = 'light' | 'dark';
 export type ThemePreference = ThemeType | 'system';
 
-// Theme context type
+// Enhanced theme context type with error handling
 interface ThemeContextType {
   theme: ThemeType;
   themePreference: ThemePreference;
   isSystemTheme: boolean;
   isDarkTheme: boolean;
-  setTheme: (theme: ThemePreference) => Promise<void>;
+  setTheme: (theme: ThemePreference) => Promise<boolean>; 
+  isChangingTheme: boolean; 
   themeConstants: {
     THEME_SYSTEM: 'system';
     THEME_LIGHT: 'light';
@@ -39,6 +41,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
   // Initialize state
   const [themePreference, setThemePreference] = useState<ThemePreference>(THEME_SYSTEM);
   const [colorScheme, setColorScheme] = useState<ColorSchemeName>(Appearance.getColorScheme());
+  const [isChangingTheme, setIsChangingTheme] = useState(false); //   Loading state
 
   // Get effective theme (actual theme to apply)
   const effectiveTheme: ThemeType = themePreference === THEME_SYSTEM 
@@ -55,6 +58,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
         }
       } catch (error) {
         console.error('Failed to load theme preference:', error);
+        setThemePreference(THEME_SYSTEM);
       }
     };
 
@@ -70,27 +74,30 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
     return () => subscription.remove();
   }, []);
 
-  // Save theme preference when it changes
-  // Inside ThemeContext.tsx - modify the setTheme function
-  const setTheme = async (newTheme: ThemePreference): Promise<void> => {
+  //   FIXED: Proper error handling and return success status
+  const setTheme = async (newTheme: ThemePreference): Promise<boolean> => {
+    setIsChangingTheme(true);
+    
     try {
-      
       // Save to storage first
       await AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme);
       
-      // Update state
+      // Update state only after successful storage
       setThemePreference(newTheme);
       
-      // Apply to native elements
-      if (newTheme !== THEME_SYSTEM) {
-        Appearance.setColorScheme(newTheme);
-      } else {
-        Appearance.setColorScheme(null); // Reset to system
-      }
+      console.log(`Theme changed to: ${newTheme}`);
+      return true; // Success
       
-      // On iOS, the colorScheme doesn't update immediately
-      // so we still need to rely on our own state
     } catch (error) {
+      // PROPER ERROR HANDLING: Log error and provide user feedback
+      console.error('Failed to save theme preference:', error);
+      
+      //   You could add user-facing error handling here:
+      // Alert.alert('Theme Error', 'Failed to save theme preference. Please try again.');
+      
+      return false; //   Failure
+    } finally {
+      setIsChangingTheme(false);
     }
   };
 
@@ -101,6 +108,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): JSX.Element {
     isSystemTheme: themePreference === THEME_SYSTEM,
     isDarkTheme: effectiveTheme === THEME_DARK,
     setTheme,
+    isChangingTheme, //   Expose loading state
     themeConstants: {
       THEME_SYSTEM,
       THEME_LIGHT,

@@ -1,4 +1,4 @@
-// app/(app)/settings/index.tsx
+// app/(app)/settings/index.tsx - COMPLETE ENHANCED VERSION
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -28,8 +28,17 @@ export default function Settings() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { user, logout, userData } = useAuth();
-  // Get all theme-related values from context
-  const { theme, themePreference, isDarkTheme, setTheme, themeConstants } = useTheme();
+  
+  // ✅ ENHANCED: Get all theme values including loading state
+  const { 
+    theme, 
+    themePreference, 
+    isDarkTheme, 
+    setTheme, 
+    isChangingTheme, // ✅ NEW: Loading state
+    themeConstants 
+  } = useTheme();
+  
   const themeStyles = getThemeStyles(theme);
   
   const [isLanguageLoading, setIsLanguageLoading] = useState(false);
@@ -40,35 +49,45 @@ export default function Settings() {
     pushNotifications: false,
   });
 
-  // Handle theme change
+  // ✅ ENHANCED: Better error handling and user feedback
   const handleThemeChange = async () => {
     try {
       await Haptics.selectionAsync();
-      
-      // Cycle through theme options: system -> light -> dark -> system
-      const nextTheme = 
-        themePreference === themeConstants.THEME_SYSTEM ? themeConstants.THEME_LIGHT :
-        themePreference === themeConstants.THEME_LIGHT ? themeConstants.THEME_DARK :
-        themeConstants.THEME_SYSTEM;
-      
-      // Call setTheme from the context
-      await setTheme(nextTheme);
     } catch (error) {
-      console.error('Error changing theme:', error);
+      console.warn('Haptic feedback not supported:', error);
+    }
+    
+    // Cycle through theme options: system -> light -> dark -> system
+    const nextTheme = 
+      themePreference === themeConstants.THEME_SYSTEM ? themeConstants.THEME_LIGHT :
+      themePreference === themeConstants.THEME_LIGHT ? themeConstants.THEME_DARK :
+      themeConstants.THEME_SYSTEM;
+    
+    // Call setTheme with proper error handling
+    const success = await setTheme(nextTheme);
+    
+    if (!success) {
+      Alert.alert(
+        t('error', 'Error'),
+        t('themeChangeError', 'Failed to change theme. Please try again.'),
+        [{ text: t('ok', 'OK') }]
+      );
     }
   };
 
   // Get current theme label for display
   const getThemeLabel = () => {
+    if (isChangingTheme) return t('changing', 'Changing...'); // ✅ Loading text
+    
     switch(themePreference) {
       case themeConstants.THEME_SYSTEM:
-        return 'System';
+        return t('themeSystem', 'System');
       case themeConstants.THEME_LIGHT:
-        return 'Light';
+        return t('themeLight', 'Light');
       case themeConstants.THEME_DARK:
-        return 'Dark';
+        return t('themeDark', 'Dark');
       default:
-        return 'System';
+        return t('themeSystem', 'System');
     }
   };
 
@@ -78,581 +97,473 @@ export default function Settings() {
       setIsLanguageLoading(true);
       const newLanguage = i18n.language === 'en' ? 'es' : 'en';
       await i18n.changeLanguage(newLanguage);
-      
-      // Save language preference
-      try {
-        await AsyncStorage.setItem('userLanguage', newLanguage);
-        await AsyncStorage.setItem('languageSelected', 'true');
-      } catch (error) {
-        console.error('Error saving language preference:', error);
-      }
+      await AsyncStorage.setItem('userLanguage', newLanguage);
     } catch (error) {
-      console.log('Error changing language:', error);
+      console.error('Error changing language:', error);
+      Alert.alert(
+        t('error', 'Error'),
+        t('languageChangeError', 'Failed to change language. Please try again.')
+      );
     } finally {
       setIsLanguageLoading(false);
     }
   };
 
   const handleLogout = async () => {
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    setIsLoggingOut(true);
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-      Alert.alert("Error", "Failed to log out. Please try again.");
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
-
-  const getLocation = () => {
-    if (!userData) return t('unknownLocation');
-    const { city = '', state = '' } = userData;
-    return `${city}, ${state}`.trim().replace(/^, |, $/g, '');
-  };
-
-  const getFullName = () => {
-    if (!userData) return t('defaultName');
-    const { fname = '', lname = '' } = userData;
-    return `${fname} ${lname}`.trim();
-  };
-
-  const renderAvatar = () => {
-    if (userData?.fname && userData?.lname) {
-      const initials = `${userData.fname[0]}${userData.lname[0]}`.toUpperCase();
-      return (
-        <View style={[
-          styles.avatar,
-          { 
-            backgroundColor: themeStyles.colors.greenThemeColor,
-            ...Platform.select({
-              ios: {
-                shadowColor: themeStyles.colors.black,
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 3,
-              },
-              android: {
-                elevation: 4,
-              },
-            }),
-          }
-        ]}>
-          <Text style={[
-            styles.avatarText,
-            { color: themeStyles.colors.white }
-          ]}>{initials}</Text>
-        </View>
-      );
-    }
-    return (
-      <View style={[
-        styles.avatar,
-        { 
-          backgroundColor: themeStyles.colors.greenThemeColor,
-          ...Platform.select({
-            ios: {
-              shadowColor: themeStyles.colors.black,
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 3,
-            },
-            android: {
-              elevation: 4,
-            },
-          }),
-        }
-      ]}>
-        <Text style={[
-          styles.avatarText,
-          { color: themeStyles.colors.white }
-        ]}>JD</Text>
-      </View>
+    Alert.alert(
+      t('logout', 'Logout'),
+      t('logoutConfirmation', 'Are you sure you want to logout?'),
+      [
+        {
+          text: t('cancel', 'Cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('logout', 'Logout'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsLoggingOut(true);
+              await logout();
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert(
+                t('error', 'Error'),
+                t('logoutError', 'Failed to logout. Please try again.')
+              );
+            } finally {
+              setIsLoggingOut(false);
+            }
+          },
+        },
+      ]
     );
   };
 
-  // Get background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const handleEditProfile = () => {
+    router.push('/(app)/settings/edit');
+  };
 
-  // Get card background color based on theme
-  const getCardBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.darkGrey 
-    : themeStyles.colors.surface;
+  const SettingItem = ({ 
+    icon, 
+    title, 
+    subtitle, 
+    onPress, 
+    rightComponent, 
+    disabled = false,
+    loading = false 
+  }: {
+    icon: string;
+    title: string;
+    subtitle?: string;
+    onPress?: () => void;
+    rightComponent?: React.ReactNode;
+    disabled?: boolean;
+    loading?: boolean;
+  }) => (
+    <TouchableOpacity
+      style={[
+        styles.settingItem,
+        { 
+          backgroundColor: themeStyles.colors.darkGrey,
+          opacity: disabled || loading ? 0.6 : 1,
+        }
+      ]}
+      onPress={onPress}
+      disabled={disabled || loading}
+    >
+      <View style={styles.settingItemLeft}>
+        {loading ? (
+          <ActivityIndicator 
+            size="small" 
+            color={themeStyles.colors.greenThemeColor} 
+          />
+        ) : (
+          <Feather 
+            name={icon as any} 
+            size={20} 
+            color={themeStyles.colors.greenThemeColor} 
+          />
+        )}
+        
+        <View style={styles.settingItemContent}>
+          <Text style={[styles.settingItemTitle, { color: themeStyles.colors.text.primary }]}>
+            {title}
+          </Text>
+          {subtitle && (
+            <Text style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+      </View>
+      
+      {rightComponent || (
+        <Feather 
+          name="chevron-right" 
+          size={20} 
+          color={themeStyles.colors.text.secondary} 
+        />
+      )}
+    </TouchableOpacity>
+  );
 
-  // Get primary text color based on theme
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
-
-  // Get secondary text color based on theme
-  const getSecondaryTextColor = () => isDarkTheme 
-    ? themeStyles.colors.grey 
-    : themeStyles.colors.text.secondary;
-
-  // Get border color based on theme
-  const getBorderColor = () => isDarkTheme 
-    ? themeStyles.colors.transParent 
-    : themeStyles.colors.border;
+  const SwitchItem = ({ 
+    icon, 
+    title, 
+    subtitle, 
+    value, 
+    onValueChange,
+    disabled = false 
+  }: {
+    icon: string;
+    title: string;
+    subtitle?: string;
+    value: boolean;
+    onValueChange: (value: boolean) => void;
+    disabled?: boolean;
+  }) => (
+    <View
+      style={[
+        styles.settingItem,
+        { 
+          backgroundColor: themeStyles.colors.darkGrey,
+          opacity: disabled ? 0.6 : 1,
+        }
+      ]}
+    >
+      <View style={styles.settingItemLeft}>
+        <Feather 
+          name={icon as any} 
+          size={20} 
+          color={themeStyles.colors.greenThemeColor} 
+        />
+        
+        <View style={styles.settingItemContent}>
+          <Text style={[styles.settingItemTitle, { color: themeStyles.colors.text.primary }]}>
+            {title}
+          </Text>
+          {subtitle && (
+            <Text style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}>
+              {subtitle}
+            </Text>
+          )}
+        </View>
+      </View>
+      
+      <AnimatedSwitch
+        entering={FadeIn.delay(300)}
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        trackColor={{
+          false: themeStyles.colors.border,
+          true: themeStyles.colors.greenThemeColor,
+        }}
+        thumbColor={value ? '#FFFFFF' : themeStyles.colors.text.secondary}
+        ios_backgroundColor={themeStyles.colors.border}
+      />
+    </View>
+  );
 
   return (
-    <SafeAreaView style={{ 
-      flex: 1, 
-      backgroundColor: getBackgroundColor()
-    }}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={[
-            styles.headerTitle,
-            { color: getTextColor() }
-          ]}>{t('settings')}</Text>
-          <Text style={[
-            styles.headerSubtitle,
-            { color: getSecondaryTextColor() }
-          ]}>{t('manageAccount')}</Text>
-        </View>
-
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: verticalScale(100) }}
+    <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.colors.background }]}>
+      <View style={[styles.header, { backgroundColor: themeStyles.colors.background }]}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
         >
-          <Animated.View 
-            entering={FadeIn.duration(600)} 
+          <Feather name="arrow-left" size={24} color={themeStyles.colors.text.primary} />
+        </TouchableOpacity>
+        
+        <Text style={[styles.headerTitle, { color: themeStyles.colors.text.primary }]}>
+          {t('settings', 'Settings')}
+        </Text>
+        
+        <View style={styles.headerRight} />
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Section */}
+        <Animated.View 
+          entering={FadeIn.delay(100)}
+          style={styles.section}
+        >
+          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
+            {t('profile', 'Profile')}
+          </Text>
+          
+          <View style={[styles.profileCard, { backgroundColor: themeStyles.colors.darkGrey }]}>
+            <View style={styles.profileInfo}>
+              <View style={[styles.avatar, { backgroundColor: themeStyles.colors.greenThemeColor }]}>
+                <Text style={styles.avatarText}>
+                  {userData?.fname?.charAt(0)?.toUpperCase() || user?.fname?.charAt(0)?.toUpperCase() || 'U'}
+                </Text>
+              </View>
+              
+              <View style={styles.profileDetails}>
+                <Text style={[styles.profileName, { color: themeStyles.colors.text.primary }]}>
+                  {userData?.fname || user?.fname || ''} {userData?.lname || user?.lname || ''}
+                </Text>
+                <Text style={[styles.profileEmail, { color: themeStyles.colors.text.secondary }]}>
+                  {userData?.email || user?.email || ''}
+                </Text>
+              </View>
+            </View>
+            
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={handleEditProfile}
+            >
+              <Feather name="edit-2" size={18} color={themeStyles.colors.text.secondary} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        {/* Appearance Section */}
+        <Animated.View 
+          entering={FadeIn.delay(200)}
+          style={styles.section}
+        >
+          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
+            {t('appearance', 'Appearance')}
+          </Text>
+          
+          <SettingItem
+            icon={isDarkTheme ? "moon" : "sun"}
+            title={t('theme', 'Theme')}
+            subtitle={getThemeLabel()}
+            onPress={handleThemeChange}
+            disabled={isChangingTheme}
+            loading={isChangingTheme}
+          />
+          
+          <SettingItem
+            icon="globe"
+            title={t('language', 'Language')}
+            subtitle={i18n.language === 'en' ? 'English' : 'Español'}
+            onPress={handleLanguageChange}
+            disabled={isLanguageLoading}
+            loading={isLanguageLoading}
+          />
+        </Animated.View>
+
+        {/* Notifications Section */}
+        <Animated.View 
+          entering={FadeIn.delay(300)}
+          style={styles.section}
+        >
+          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
+            {t('notifications', 'Notifications')}
+          </Text>
+          
+          <SwitchItem
+            icon="mail"
+            title={t('emailNotifications', 'Email Notifications')}
+            subtitle={t('emailNotificationsDesc', 'Receive updates via email')}
+            value={form.emailNotifications}
+            onValueChange={(value) => setForm(prev => ({ ...prev, emailNotifications: value }))}
+          />
+          
+          <SwitchItem
+            icon="bell"
+            title={t('pushNotifications', 'Push Notifications')}
+            subtitle={t('pushNotificationsDesc', 'Receive push notifications')}
+            value={form.pushNotifications}
+            onValueChange={(value) => setForm(prev => ({ ...prev, pushNotifications: value }))}
+          />
+        </Animated.View>
+
+        {/* Support Section */}
+        <Animated.View 
+          entering={FadeIn.delay(400)}
+          style={styles.section}
+        >
+          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
+            {t('support', 'Support')}
+          </Text>
+          
+          <SettingItem
+            icon="help-circle"
+            title={t('help', 'Help & Support')}
+            onPress={() => {/* Navigate to help */}}
+          />
+          
+          <SettingItem
+            icon="info"
+            title={t('about', 'About')}
+            onPress={() => {/* Navigate to about */}}
+          />
+          
+          <SettingItem
+            icon="star"
+            title={t('rateApp', 'Rate App')}
+            onPress={() => {/* Open app store */}}
+          />
+        </Animated.View>
+
+        {/* Account Section */}
+        <Animated.View 
+          entering={FadeIn.delay(500)}
+          style={[styles.section, styles.lastSection]}
+        >
+          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
+            {t('account', 'Account')}
+          </Text>
+          
+          <TouchableOpacity
             style={[
-              styles.profile,
+              styles.settingItem,
+              styles.logoutButton,
               { 
-                backgroundColor: getCardBackgroundColor(),
-                ...Platform.select({
-                  ios: {
-                    shadowColor: themeStyles.colors.black,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: isDarkTheme ? 0.3 : 0.1,
-                    shadowRadius: 3,
-                  },
-                  android: {
-                    elevation: 4,
-                  },
-                }),
+                backgroundColor: themeStyles.colors.darkGrey,
+                opacity: isLoggingOut ? 0.6 : 1,
               }
             ]}
+            onPress={handleLogout}
+            disabled={isLoggingOut}
           >
-            {renderAvatar()}
-            <Text style={[
-              styles.profileName,
-              { color: getTextColor() }
-            ]}>{getFullName()}</Text>
-            <Text style={[
-              styles.profileEmail,
-              { color: getSecondaryTextColor() }
-            ]}>{userData?.email || t('defaultEmail')}</Text>
-
-            <View style={styles.actionButtonsContainer}>
-              <TouchableOpacity
-                style={styles.actionButtonWrapper}
-                onPress={() => router.push("/(app)/settings/edit")}
-                activeOpacity={0.7}
-              >
-                <View style={[
-                  styles.profileAction,
-                  { backgroundColor: themeStyles.colors.greenThemeColor }
-                ]}>
-                  <Text style={[
-                    styles.profileActionText,
-                    { color: themeStyles.colors.white }
-                  ]}>{t('editProfile')}</Text>
-                  <Feather color={themeStyles.colors.white} name="edit" size={16} />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={styles.actionButtonWrapper}
-                onPress={handleLogout} 
-                disabled={isLoggingOut}
-                activeOpacity={0.7}
-              >
-                <View style={[
-                  styles.profileAction,
-                  { backgroundColor: themeStyles.colors.greenThemeColor }
-                ]}>
-                  <Text style={[
-                    styles.profileActionText,
-                    { color: themeStyles.colors.white }
-                  ]}>
-                    {isLoggingOut ? t('loggingOut', 'Logging out...') : t('logOut')}
-                  </Text>
-                  {isLoggingOut ? (
-                    <ActivityIndicator size="small" color={themeStyles.colors.white} />
-                  ) : (
-                    <Feather color={themeStyles.colors.white} name="log-out" size={16} />
-                  )}
-                </View>
-              </TouchableOpacity>
+            <View style={styles.settingItemLeft}>
+              {isLoggingOut ? (
+                <ActivityIndicator 
+                  size="small" 
+                  color={themeStyles.colors.status.error} 
+                />
+              ) : (
+                <Feather 
+                  name="log-out" 
+                  size={20} 
+                  color={themeStyles.colors.status.error} 
+                />
+              )}
+              
+              <Text style={[
+                styles.settingItemTitle, 
+                { color: themeStyles.colors.status.error }
+              ]}>
+                {isLoggingOut ? t('loggingOut', 'Logging out...') : t('logout', 'Logout')}
+              </Text>
             </View>
-          </Animated.View>
+          </TouchableOpacity>
+        </Animated.View>
 
-          <View style={styles.section}>
-            <Text style={[
-              styles.sectionTitle,
-              { color: getSecondaryTextColor() }
-            ]}>{t('preferences')}</Text>
-
-            <View style={[
-              styles.sectionBody,
-              { 
-                backgroundColor: getCardBackgroundColor(),
-                ...Platform.select({
-                  ios: {
-                    shadowColor: themeStyles.colors.black,
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: isDarkTheme ? 0.2 : 0.1,
-                    shadowRadius: 2,
-                  },
-                  android: {
-                    elevation: 2,
-                  },
-                }),
-              }
-            ]}>
-              <View style={[
-                styles.rowWrapper, 
-                styles.rowFirst,
-                { borderColor: getBorderColor() }
-              ]}>
-                <TouchableOpacity 
-                  onPress={handleLanguageChange}
-                  style={styles.row}
-                  activeOpacity={0.6}
-                >
-                  <View style={[
-                    styles.rowIcon, 
-                    { backgroundColor: '#fe9400' }
-                  ]}>
-                    <Feather 
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
-                      name="globe" 
-                      size={20} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.rowLabel,
-                    { color: getTextColor() }
-                  ]}>{t('languagePreference')}</Text>
-                  <View style={styles.rowSpacer} />
-                  {isLanguageLoading ? (
-                    <ActivityIndicator 
-                      size="small" 
-                      color={themeStyles.colors.greenThemeColor} 
-                    />
-                  ) : (
-                    <>
-                      <Text style={[
-                        styles.rowValue,
-                        { color: getSecondaryTextColor() }
-                      ]}>
-                        {i18n.language === 'en' ? t('english') : t('spanish')}
-                      </Text>
-                      <Feather 
-                        color={getSecondaryTextColor()} 
-                        name="chevron-right" 
-                        size={20} 
-                      />
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              <View style={[
-                styles.rowWrapper,
-                { borderColor: getBorderColor() }
-              ]}>
-                <TouchableOpacity 
-                  onPress={handleThemeChange}
-                  style={styles.row}
-                  activeOpacity={0.6}
-                >
-                  <View style={[
-                    styles.rowIcon, 
-                    { backgroundColor: '#007AFF' }
-                  ]}>
-                    <Feather 
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
-                      name={isDarkTheme ? "moon" : "sun"} 
-                      size={20} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.rowLabel,
-                    { color: getTextColor() }
-                  ]}>{t('darkMode')}</Text>
-                  <View style={styles.rowSpacer} />
-                  <Text style={[
-                    styles.rowValue,
-                    { color: getSecondaryTextColor() }
-                  ]}>
-                    {getThemeLabel()}
-                  </Text>
-                  <Feather 
-                    color={getSecondaryTextColor()} 
-                    name="chevron-right" 
-                    size={20} 
-                  />
-                </TouchableOpacity>
-              </View>
-
-              <View style={[
-                styles.rowWrapper,
-                { borderColor: getBorderColor() }
-              ]}>
-                <View style={styles.row}>
-                  <View style={[
-                    styles.rowIcon, 
-                    { backgroundColor: '#32c759' }
-                  ]}>
-                    <Feather 
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-                      name="navigation" 
-                      size={20} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.rowLabel,
-                    { color: getTextColor() }
-                  ]}>{t('location')}</Text>
-                  <View style={styles.rowSpacer} />
-                  <Text style={[
-                    styles.rowValue,
-                    { color: getSecondaryTextColor() }
-                  ]}>{getLocation()}</Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <Text style={[
-              styles.sectionTitle,
-              { color: getSecondaryTextColor() }
-            ]}>{t('notifications')}</Text>
-
-            <View style={[
-              styles.sectionBody,
-              { 
-                backgroundColor: getCardBackgroundColor(),
-                ...Platform.select({
-                  ios: {
-                    shadowColor: themeStyles.colors.black,
-                    shadowOffset: { width: 0, height: 1 },
-                    shadowOpacity: isDarkTheme ? 0.2 : 0.1,
-                    shadowRadius: 2,
-                  },
-                  android: {
-                    elevation: 2,
-                  },
-                }),
-              }
-            ]}>
-              <View style={[
-                styles.rowWrapper, 
-                styles.rowFirst,
-                { borderColor: getBorderColor() }
-              ]}>
-                <View style={styles.row}>
-                  <View style={[
-                    styles.rowIcon, 
-                    { backgroundColor: '#38C959' }
-                  ]}>
-                    <Feather 
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
-                      name="at-sign" 
-                      size={20} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.rowLabel,
-                    { color: getTextColor() }
-                  ]}>{t('emailNotifications')}</Text>
-                  <View style={styles.rowSpacer} />
-                  <AnimatedSwitch
-                    entering={FadeIn}
-                    onValueChange={emailNotifications => {
-                      Haptics.selectionAsync();
-                      setForm({ ...form, emailNotifications });
-                    }}
-                    value={form.emailNotifications}
-                    trackColor={{ 
-                      false: isDarkTheme ? '#555555' : '#D0D0D0', 
-                      true: themeStyles.colors.greenThemeColor 
-                    }}
-                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
-                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
-                  />
-                </View>
-              </View>
-
-              <View style={[
-                styles.rowWrapper,
-                { borderColor: getBorderColor() }
-              ]}>
-                <View style={styles.row}>
-                  <View style={[
-                    styles.rowIcon, 
-                    { backgroundColor: '#38C959' }
-                  ]}>
-                    <Feather 
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white} 
-                      name="bell" 
-                      size={20} 
-                    />
-                  </View>
-                  <Text style={[
-                    styles.rowLabel,
-                    { color: getTextColor() }
-                  ]}>{t('pushNotifications')}</Text>
-                  <View style={styles.rowSpacer} />
-                  <AnimatedSwitch
-                    entering={FadeIn}
-                    onValueChange={pushNotifications => {
-                      Haptics.selectionAsync();
-                      setForm({ ...form, pushNotifications });
-                    }}
-                    value={form.pushNotifications}
-                    trackColor={{ 
-                      false: isDarkTheme ? '#555555' : '#D0D0D0', 
-                      true: themeStyles.colors.greenThemeColor 
-                    }}
-                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
-                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
-                  />
-                </View>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
+        {/* Footer spacing */}
+        <View style={styles.footer} />
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: verticalScale(14),
     flex: 1,
   },
   header: {
-    paddingHorizontal: horizontalScale(24),
-    marginBottom: verticalScale(16),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: horizontalScale(20),
+    paddingVertical: verticalScale(16),
+    paddingTop: Platform.OS === 'ios' ? verticalScale(8) : verticalScale(16),
+  },
+  backButton: {
+    padding: moderateScale(8),
   },
   headerTitle: {
-    fontSize: moderateScale(28),
-    fontWeight: '700',
-    letterSpacing: 0.5,
-  },
-  headerSubtitle: {
-    fontSize: moderateScale(16),
-    marginTop: verticalScale(4),
-  },
-  profile: {
-    padding: horizontalScale(24),
-    alignItems: 'center',
-    borderRadius: moderateScale(16),
-    marginHorizontal: horizontalScale(16),
-    marginBottom: verticalScale(24),
-    marginTop: verticalScale(4),
-  },
-  avatar: {
-    height: moderateScale(80),
-    width: moderateScale(80),
-    borderRadius: moderateScale(40),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: moderateScale(24),
-    fontWeight: '700',
-  },
-  profileName: {
-    marginTop: verticalScale(16),
-    fontSize: moderateScale(18),
-    fontWeight: '700',
-  },
-  profileEmail: {
-    marginTop: verticalScale(4),
-    fontSize: moderateScale(16),
-  },
-  actionButtonsContainer: {
-    flexDirection: 'row',
-    marginTop: verticalScale(16),
-    gap: horizontalScale(8),
-  },
-  actionButtonWrapper: {
-    flex: 1,
-  },
-  profileAction: {
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: horizontalScale(12),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: moderateScale(8),
-    minWidth: horizontalScale(120),
-    gap: horizontalScale(8),
-  },
-  profileActionText: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(20),
     fontWeight: '600',
+  },
+  headerRight: {
+    width: moderateScale(40),
+  },
+  scrollView: {
+    flex: 1,
   },
   section: {
     marginBottom: verticalScale(24),
+    paddingHorizontal: horizontalScale(20),
+  },
+  lastSection: {
+    marginBottom: verticalScale(8),
   },
   sectionTitle: {
-    marginBottom: verticalScale(16),
-    marginHorizontal: horizontalScale(24),
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(16),
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    marginBottom: verticalScale(12),
+    paddingHorizontal: horizontalScale(4),
   },
-  sectionBody: {
-    borderRadius: moderateScale(16),
-    marginHorizontal: horizontalScale(16),
-    paddingLeft: horizontalScale(16),
-    overflow: 'hidden',
-  },
-  row: {
-    paddingVertical: verticalScale(16),
-    paddingRight: horizontalScale(16),
+  profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: verticalScale(70),
+    justifyContent: 'space-between',
+    padding: moderateScale(16),
+    borderRadius: moderateScale(12),
   },
-  rowWrapper: {
-    borderTopWidth: 1,
-    backdropFilter: 'blur(10px)',
-  },
-  rowFirst: {
-    borderTopWidth: 0,
-  },
-  rowLabel: {
-    fontSize: moderateScale(16),
-    fontWeight: '500',
+  profileInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    flexWrap: 'wrap',
   },
-  rowValue: {
-    fontSize: moderateScale(16),
-    marginRight: horizontalScale(8),
-  },
-  rowIcon: {
-    marginRight: horizontalScale(16),
-    width: moderateScale(36),
-    height: moderateScale(36),
-    borderRadius: moderateScale(8),
+  avatar: {
+    width: moderateScale(48),
+    height: moderateScale(48),
+    borderRadius: moderateScale(24),
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: horizontalScale(12),
   },
-  rowSpacer: {
+  avatarText: {
+    color: '#FFFFFF',
+    fontSize: moderateScale(18),
+    fontWeight: '600',
+  },
+  profileDetails: {
     flex: 1,
+  },
+  profileName: {
+    fontSize: moderateScale(16),
+    fontWeight: '600',
+    marginBottom: verticalScale(2),
+  },
+  profileEmail: {
+    fontSize: moderateScale(14),
+  },
+  editButton: {
+    padding: moderateScale(8),
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: moderateScale(16),
+    borderRadius: moderateScale(12),
+    marginBottom: verticalScale(8),
+  },
+  settingItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingItemContent: {
+    marginLeft: horizontalScale(12),
+    flex: 1,
+  },
+  settingItemTitle: {
+    fontSize: moderateScale(16),
+    fontWeight: '500',
+  },
+  settingItemSubtitle: {
+    fontSize: moderateScale(14),
+    marginTop: verticalScale(2),
+  },
+  logoutButton: {
+    borderWidth: 1,
+    borderColor: 'rgba(255, 59, 48, 0.2)',
+  },
+  footer: {
+    height: verticalScale(40),
   },
 });

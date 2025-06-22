@@ -9,7 +9,8 @@ import {
   Alert,
   Animated,
   TouchableOpacity,
-  useColorScheme
+  useColorScheme,
+  ActivityIndicator
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '@/src/context/ThemeContext';
@@ -36,10 +37,9 @@ export default function VerificationScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
-  const { theme, themePreference, setTheme } = useTheme();
+  const { theme, themePreference, setTheme, isChangingTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
-  const systemColorScheme = useColorScheme();
-  
+  const systemColorScheme = useColorScheme();  
   // Parse receipt data from params
   const initialReceipt: Receipt = params.receipt ? 
     JSON.parse(params.receipt as string) : 
@@ -69,14 +69,25 @@ export default function VerificationScreen() {
   }, [systemColorScheme, themePreference]);
   
   // Toggle theme function
-  const toggleTheme = useCallback(() => {
+  const toggleTheme = useCallback(async () => {
     try {
-      setTheme(theme === 'dark' ? 'light' : 'dark');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       console.warn('Haptic feedback not supported', error);
     }
-  }, [theme, setTheme]);
+
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    const success = await setTheme(newTheme);
+    
+    if (!success) {
+      Alert.alert(
+        t('error', 'Error'),
+        t('themeChangeError', 'Failed to change theme. Please try again.')
+      );
+    }
+  }, [theme, setTheme, t]);
+
+
   
   // Handle input changes
   const handleInputChange = (field: keyof Receipt, value: string) => {
@@ -224,15 +235,26 @@ export default function VerificationScreen() {
     <TouchableOpacity 
       style={[
         styles.iconButton, 
-        { backgroundColor: themeStyles.colors.darkGrey }
+        { 
+          backgroundColor: themeStyles.colors.darkGrey,
+          opacity: isChangingTheme ? 0.6 : 1,
+        }
       ]} 
       onPress={toggleTheme}
+      disabled={isChangingTheme}
     >
-      <Feather 
-        name={theme === 'dark' ? 'sun' : 'moon'} 
-        size={20} 
-        color={themeStyles.colors.white} 
-      />
+      {isChangingTheme ? (
+        <ActivityIndicator 
+          size="small" 
+          color={themeStyles.colors.white} 
+        />
+      ) : (
+        <Feather 
+          name={theme === 'dark' ? 'sun' : 'moon'} 
+          size={20} 
+          color={themeStyles.colors.white} 
+        />
+      )}
     </TouchableOpacity>
   );
   

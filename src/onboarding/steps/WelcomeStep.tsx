@@ -1,10 +1,11 @@
-// src/onboarding/steps/WelcomeStep.tsx
+// src/onboarding/steps/WelcomeStep.tsx - CLEANED UP VERSION
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from 'react-native';
 import Onboarding from 'react-native-onboarding-swiper';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
+import { useOnboardingTheme } from '@/src/hooks/useOnboardingTheme'; // ✅ NEW IMPORT
+import { horizontalScale, verticalScale, moderateScale } from '@/src/theme';
 import { OnboardingStepProps } from '../types';
 import { StatusBar } from "expo-status-bar";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -23,14 +24,14 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
         styles.dot,
         {
           backgroundColor: selected 
-            ? (isDarkTheme ? '#ffff' : '#29292b') // Dark theme: green, Light theme: white
+            ? (isDarkTheme ? '#ffff' : '#29292b')
             : isDarkTheme 
-              ? 'rgba(255, 255, 255, 0.3)' // Dark theme: semi-transparent white
-              : 'rgba(255, 255, 255, 0.4)', // Light theme: semi-transparent white
+              ? 'rgba(255, 255, 255, 0.3)'
+              : 'rgba(255, 255, 255, 0.4)',
           borderWidth: selected ? 0 : 1,
           borderColor: isDarkTheme 
-            ? 'rgba(255, 255, 255, 0.3)' // Dark theme: light border
-            : 'rgba(0, 0, 0, 0.2)', // Light theme: dark border
+            ? 'rgba(255, 255, 255, 0.3)'
+            : 'rgba(0, 0, 0, 0.2)',
           ...Platform.select({
             ios: {
               shadowColor: isDarkTheme ? '#FFFFFF' : '#000',
@@ -121,36 +122,9 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({
   canGoBack
 }) => {
   const { t } = useTranslation();
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { isDarkTheme } = useTheme();
+  const { getBackgroundColor, getTextColor, getSecondaryTextColor, themeStyles } = useOnboardingTheme(); // ✅ REPLACES 18+ LINES
   const insets = useSafeAreaInsets();
-
-  const getBackgroundColor = (isSpecial = false) => {
-    if (isSpecial) {
-      return '#004d40'; // Green background for last slide
-    }
-    return isDarkTheme 
-      ? themeStyles.colors.black_grey 
-      : themeStyles.colors.background;
-  };
-
-  const getTextColor = (isSpecial = false) => {
-    if (isSpecial) {
-      return '#FFFFFF'; // White text on green background
-    }
-    return isDarkTheme 
-      ? themeStyles.colors.white 
-      : themeStyles.colors.text.primary;
-  };
-
-  const getSubtitleColor = (isSpecial = false) => {
-    if (isSpecial) {
-      return 'rgba(255, 255, 255, 0.9)'; // Semi-transparent white
-    }
-    return isDarkTheme 
-      ? themeStyles.colors.grey 
-      : themeStyles.colors.text.secondary;
-  };
 
   const pages = [
     {
@@ -182,7 +156,7 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({
       ],
       subTitleStyles: [
         styles.subtitle,
-        { color: getSubtitleColor() }
+        { color: getSecondaryTextColor() }
       ],
     },
     {
@@ -214,11 +188,11 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({
       ],
       subTitleStyles: [
         styles.subtitle,
-        { color: getSubtitleColor() }
+        { color: getSecondaryTextColor() }
       ],
     },
     {
-      backgroundColor: getBackgroundColor(true),
+      backgroundColor: getBackgroundColor(true), // ✅ Special green background
       image: (
         <Image
           source={require("@/assets/icons/logistics3.png")}
@@ -242,11 +216,11 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({
       subtitle: t('onboardingSubtitle3', 'Real-time navigation and scheduling for efficient deliveries.'),
       titleStyles: [
         styles.title,
-        { color: getTextColor(true) }
+        { color: getTextColor(true) } // ✅ Special white text
       ],
       subTitleStyles: [
         styles.subtitle,
-        { color: getSubtitleColor(true) }
+        { color: getSecondaryTextColor(true) } // ✅ Special semi-transparent white
       ],
     },
   ];
@@ -308,12 +282,12 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.3 }],
   },
   image: {
-    width: horizontalScale(280), // Larger, more prominent
-    height: verticalScale(200),  // Better proportions
+    width: horizontalScale(280),
+    height: verticalScale(200),
     resizeMode: "contain",
   },
   title: {
-    fontSize: moderateScale(32), // Slightly larger
+    fontSize: moderateScale(32),
     fontWeight: '700',
     lineHeight: moderateScale(38),
     textAlign: "center",
@@ -321,7 +295,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: horizontalScale(20),
   },
   subtitle: {
-    fontSize: moderateScale(17), // Slightly larger for readability
+    fontSize: moderateScale(17),
     textAlign: "center",
     lineHeight: moderateScale(26),
     paddingHorizontal: horizontalScale(28),

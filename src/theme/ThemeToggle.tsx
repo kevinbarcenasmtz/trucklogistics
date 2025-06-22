@@ -1,9 +1,10 @@
-// src/theme/ThemeToggle.tsx
+// src/theme/ThemeToggle.tsx 
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, Alert, ActivityIndicator } from 'react-native';
 import { useTheme, ThemePreference } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { getThemeStyles } from '../theme';
+import * as Haptics from 'expo-haptics';
 
 export default function ThemeToggle(): JSX.Element {
   const { 
@@ -11,6 +12,7 @@ export default function ThemeToggle(): JSX.Element {
     themePreference, 
     setTheme, 
     isDarkTheme,
+    isChangingTheme, // ✅ NEW: Get loading state
     themeConstants: { THEME_SYSTEM, THEME_LIGHT, THEME_DARK } 
   } = useTheme();
   
@@ -57,6 +59,27 @@ export default function ThemeToggle(): JSX.Element {
     }
   };
 
+  // ✅ ENHANCED: Proper error handling and user feedback
+  const handleThemeChange = async () => {
+    try {
+      // Haptic feedback
+      await Haptics.selectionAsync();
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+
+    const nextTheme = getNextTheme();
+    const success = await setTheme(nextTheme);
+    
+    if (!success) {
+      Alert.alert(
+        'Theme Error', 
+        'Failed to change theme. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
+  };
+
   // Use theme-consistent icon size from typography
   const iconSize = themeStyles.typography.fontSize.md;
   
@@ -64,17 +87,30 @@ export default function ThemeToggle(): JSX.Element {
     <TouchableOpacity
       style={[
         styles.container,
-        { padding: themeStyles.spacing.sm }
+        { 
+          padding: themeStyles.spacing.sm,
+          opacity: isChangingTheme ? 0.6 : 1, // ✅ Visual feedback during change
+        }
       ]}
-      onPress={() => setTheme(getNextTheme())}
+      onPress={handleThemeChange}
+      disabled={isChangingTheme} // ✅ Prevent double-taps
       accessibilityLabel="Toggle theme"
       accessibilityHint={`Current theme is ${getThemeLabel()}, tap to change`}
     >
-     <Ionicons
-        name={getThemeIcon() as keyof typeof Ionicons.glyphMap}
-        size={iconSize}
-        color={themeStyles.colors.text.primary}
-      />
+      {isChangingTheme ? (
+        // ✅ Show loading indicator during theme change
+        <ActivityIndicator 
+          size="small" 
+          color={themeStyles.colors.text.primary} 
+        />
+      ) : (
+        <Ionicons
+          name={getThemeIcon() as keyof typeof Ionicons.glyphMap}
+          size={iconSize}
+          color={themeStyles.colors.text.primary}
+        />
+      )}
+      
       <Text style={[
         styles.label,
         { 
@@ -83,7 +119,7 @@ export default function ThemeToggle(): JSX.Element {
           color: themeStyles.colors.text.primary
         }
       ]}>
-        {getThemeLabel()}
+        {isChangingTheme ? 'Changing...' : getThemeLabel()} {/* ✅ Loading text */}
       </Text>
     </TouchableOpacity>
   );

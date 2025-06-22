@@ -1,8 +1,9 @@
-// src/onboarding/components/OnboardingLayout.tsx
+// src/onboarding/components/OnboardingLayout.tsx - CLEANED UP VERSION
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native'; // Remove SafeAreaView import
+import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, verticalScale, horizontalScale, moderateScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useOnboardingTheme'; // ✅ NEW IMPORT
+import { verticalScale, horizontalScale, moderateScale } from '@/src/theme';
 
 interface OnboardingLayoutProps {
   children: React.ReactNode;
@@ -17,16 +18,8 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   totalSteps,
   showProgress = true
 }) => {
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
-
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
+  const { isDarkTheme } = useTheme();
+  const { backgroundColor, themeStyles } = useAppTheme(); // ✅ REPLACES 6 LINES
 
   const renderProgressDots = () => {
     if (!showProgress) return null;
@@ -51,15 +44,15 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   };
 
   return (
-    <View style={[  // Changed from SafeAreaView to View
+    <SafeAreaView style={[
       styles.container,
-      { backgroundColor: getBackgroundColor() }
+      { backgroundColor }
     ]}>
       {renderProgressDots()}
       <View style={styles.content}>
         {children}
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -1,17 +1,9 @@
-// app/(auth)/_layout.tsx
+// app/(auth)/_layout.tsx - CLEANED UP VERSION
 import { Stack } from "expo-router";
 import { useEffect } from "react";
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles } from "@/src/theme";
-
+import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
 export default function AuthLayout() {
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-
-  // Get background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
+  const { backgroundColor } = useAppTheme();
 
   useEffect(() => {
     console.log("Auth layout mounted");
@@ -21,7 +13,7 @@ export default function AuthLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: getBackgroundColor() },
+        contentStyle: { backgroundColor },
       }}
     >
       <Stack.Screen 

@@ -1,11 +1,11 @@
-// app/_layout.tsx
+// app/_layout.tsx - CLEANED UP VERSION
 import React, { useEffect } from 'react';
 import { Stack } from "expo-router";
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { AuthProvider } from '@/src/context/AuthContext';
 import { StatusBar } from "expo-status-bar";
 import { View, Platform } from "react-native";
-import { getThemeStyles } from "@/src/theme";
+import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
 import 'react-native-gesture-handler';
 
 // Import i18n config to initialize it
@@ -14,39 +14,29 @@ import '../src/config/firebase';
 
 // Theme-aware stack navigator
 function ThemedStack(): JSX.Element {
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-
-  // Get appropriate background color based on theme
-  const getBackgroundColor = () => isDarkTheme 
-    ? themeStyles.colors.black_grey 
-    : themeStyles.colors.background;
-    
-  // Get appropriate text color based on theme
-  const getTextColor = () => isDarkTheme 
-    ? themeStyles.colors.white 
-    : themeStyles.colors.text.primary;
+  const { isDarkTheme } = useTheme();
+  const { backgroundColor, textColor } = useAppTheme();
 
   return (
     <View 
       style={{ 
         flex: 1, 
-        backgroundColor: getBackgroundColor()
+        backgroundColor
       }}
     >
       <StatusBar 
         style={isDarkTheme ? "light" : "dark"} 
-        backgroundColor={Platform.OS === 'android' ? getBackgroundColor() : 'transparent'}
+        backgroundColor={Platform.OS === 'android' ? backgroundColor : 'transparent'}
         translucent={Platform.OS === 'android'}
       />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor: getBackgroundColor(),
+            backgroundColor,
           },
-          headerTintColor: getTextColor(),
+          headerTintColor: textColor,
           contentStyle: {
-            backgroundColor: getBackgroundColor(),
+            backgroundColor,
           },
           headerShown: false,
           animation: Platform.OS === 'ios' ? 'default' : 'fade_from_bottom',

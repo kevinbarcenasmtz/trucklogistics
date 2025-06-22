@@ -1,6 +1,6 @@
+// src/theme/index.ts - FIXED VERSION (No Circular Dependency)
 import { Dimensions } from 'react-native';
 import { ThemeType } from '../context/ThemeContext';
-import { getThemeStyles as originalGetThemeStyles } from '@/src/theme';
 
 // Window dimensions (from Dimensions.ts)
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
@@ -108,8 +108,6 @@ const COLORS = {
   greenThemeColor: '#004d40',
   thirdOnboardingColor: '#00796b',
 };
-
-// Enhanced light theme colors with better contrast
 
 // Typography - using moderateScale for responsive sizing
 const TYPOGRAPHY = {
@@ -280,7 +278,7 @@ export interface ThemeStyles {
   applicationStyles: typeof APPLICATION_STYLES;
 }
 
-// Generate theme styles based on theme type
+// ✅ CLEANED UP: Generate theme styles based on theme type
 export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
   const isDark = theme === 'dark';
   
@@ -294,7 +292,6 @@ export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
     thirdOnboardingColor: '#00796b' // Keep brand color consistent
   };
 
-  
   return {
     colors: {
       primary: isDark ? COLORS.primary.dark : COLORS.primary.light,
