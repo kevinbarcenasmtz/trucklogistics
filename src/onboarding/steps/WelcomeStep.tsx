@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+// src/onboarding/steps/WelcomeStep.tsx
+import React, { useState, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { PanGestureHandler, GestureHandlerRootView } from 'react-native-gesture-handler';
 import Animated, { 
@@ -8,9 +9,10 @@ import Animated, {
   withSpring,
   runOnJS
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, horizontalScale, verticalScale, moderateScale } from '@/src/theme';
-import { useTranslation } from 'react-i18next';
+import { OnboardingStepProps } from '../types';
 import { Feather } from '@expo/vector-icons';
 import FormButton from '@/src/components/forms/FormButton';
 
@@ -24,35 +26,50 @@ interface OnboardingSlide {
   backgroundColor?: string;
 }
 
-interface OnboardingSlidesProps {
-  currentStep: 'intro' | 'features' | 'permissions';
-  onNext: () => void;
-  onPrevious?: () => void;
-  canProceed: boolean;
-  isLoading: boolean;
-  stepIndex: number;
-  totalSteps: number;
-}
-
-export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
-  currentStep,
-  onNext,
-  onPrevious,
-  canProceed,
-  isLoading,
-  stepIndex,
-  totalSteps,
+export const WelcomeStep: React.FC<OnboardingStepProps> = ({
+  onComplete,
+  onBack,
+  canGoBack
 }) => {
   const { t } = useTranslation();
   const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
   
+  const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
   const translateX = useSharedValue(0);
 
-  // Reset animation when step changes
+  // Define your original slides
+  const slides: OnboardingSlide[] = [
+    {
+      key: 'intro',
+      title: t('onboardingTitle1', 'Welcome to Trucking Logistics Pro'),
+      subtitle: t('onboardingSubtitle1', 'Simplify your logistics with advanced tools for seamless trucking operations.'),
+      image: require('@/assets/icons/trucking_logistics.png'),
+    },
+    {
+      key: 'features',
+      title: t('onboardingTitle2', 'Generate Insightful Reports'),
+      subtitle: t('onboardingSubtitle2', 'Track and analyze your performance with professional-grade reporting tools.'),
+      image: require('@/assets/icons/pngwing.com(1).png'),
+    },
+    {
+      key: 'permissions',
+      title: t('onboardingTitle3', 'Stay on Track'),
+      subtitle: t('onboardingSubtitle3', 'Real-time navigation and scheduling for efficient deliveries.'),
+      image: require('@/assets/icons/pngwing.com(2).png'),
+      backgroundColor: '#004d40',
+    },
+  ];
+
+  const currentSlide = slides[currentSlideIndex];
+  const isLastSlide = currentSlideIndex === slides.length - 1;
+  const isFirstSlide = currentSlideIndex === 0;
+
+  // Reset animation when slide changes
   useEffect(() => {
     translateX.value = withSpring(0);
-  }, [currentStep, translateX]);
+  }, [currentSlideIndex, translateX]);
 
   const getTextColor = () => isDarkTheme 
     ? themeStyles.colors.white 
@@ -66,30 +83,26 @@ export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
     ? themeStyles.colors.black_grey 
     : themeStyles.colors.background;
 
-  const slides: Record<string, OnboardingSlide> = {
-    intro: {
-      key: 'intro',
-      title: t('onboardingTitle1', 'Welcome to Trucking Logistics Pro'),
-      subtitle: t('onboardingSubtitle1', 'Simplify your logistics with advanced tools for seamless trucking operations.'),
-      image: require('@/assets/icons/trucking_logistics.png'),
-    },
-    features: {
-      key: 'features',
-      title: t('onboardingTitle2', 'Generate Insightful Reports'),
-      subtitle: t('onboardingSubtitle2', 'Track and analyze your performance with professional-grade reporting tools.'),
-      image: require('@/assets/icons/pngwing.com(1).png'),
-    },
-    permissions: {
-      key: 'permissions',
-      title: t('onboardingTitle3', 'Stay on Track'),
-      subtitle: t('onboardingSubtitle3', 'Real-time navigation and scheduling for efficient deliveries.'),
-      image: require('@/assets/icons/pngwing.com(2).png'),
-      backgroundColor: '#004d40',
-    },
+  const goToNextSlide = () => {
+    if (currentSlideIndex < slides.length - 1) {
+      setCurrentSlideIndex(currentSlideIndex + 1);
+    }
   };
 
-  const currentSlide = slides[currentStep];
-  const isLastSlide = stepIndex === totalSteps - 1;
+  const goToPreviousSlide = () => {
+    if (currentSlideIndex > 0) {
+      setCurrentSlideIndex(currentSlideIndex - 1);
+    }
+  };
+
+  const handleFinish = async () => {
+    setIsLoading(true);
+    // Small delay for better UX
+    setTimeout(() => {
+      setIsLoading(false);
+      onComplete();
+    }, 500);
+  };
 
   const gestureHandler = useAnimatedGestureHandler({
     onStart: () => {
@@ -106,7 +119,7 @@ export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
     onEnd: (event) => {
       const velocity = event.velocityX;
       const shouldGoNext = (event.translationX < -screenWidth / 4 || velocity < -500) && !isLastSlide;
-      const shouldGoPrevious = (event.translationX > screenWidth / 4 || velocity > 500) && stepIndex > 0;
+      const shouldGoPrevious = (event.translationX > screenWidth / 4 || velocity > 500) && !isFirstSlide;
       
       if (shouldGoNext) {
         // Animate out and then trigger state change
@@ -115,17 +128,17 @@ export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
           stiffness: 300,
         }, (finished) => {
           if (finished) {
-            runOnJS(onNext)();
+            runOnJS(goToNextSlide)();
           }
         });
-      } else if (shouldGoPrevious && onPrevious) {
+      } else if (shouldGoPrevious) {
         // Animate out and then trigger state change
         translateX.value = withSpring(screenWidth, {
           damping: 20,
           stiffness: 300,
         }, (finished) => {
           if (finished) {
-            runOnJS(onPrevious)();
+            runOnJS(goToPreviousSlide)();
           }
         });
       } else {
@@ -143,29 +156,32 @@ export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
 
   const renderProgressDots = () => (
     <View style={styles.dotsContainer}>
-      {Array.from({ length: totalSteps }, (_, index) => (
+      {slides.map((_, index) => (
         <View
           key={index}
           style={[
             styles.dot,
             {
-              backgroundColor: index <= stepIndex 
+              backgroundColor: index <= currentSlideIndex 
                 ? '#004d40'
                 : isDarkTheme 
                   ? 'rgba(255, 255, 255, 0.3)' 
                   : 'rgba(0, 0, 0, 0.2)',
             },
-            index === stepIndex && styles.activeDot,
+            index === currentSlideIndex && styles.activeDot,
           ]}
         />
       ))}
     </View>
   );
 
-  // Don't render if no current slide
-  if (!currentSlide) {
-    return null;
-  }
+  const handleNext = () => {
+    if (isLastSlide) {
+      handleFinish();
+    } else {
+      goToNextSlide();
+    }
+  };
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -175,10 +191,10 @@ export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
       ]}>
         {/* Header with back button */}
         <View style={styles.header}>
-          {onPrevious && stepIndex > 0 && (
+          {(canGoBack && isFirstSlide) || (!isFirstSlide) ? (
             <TouchableOpacity 
               style={styles.backButton}
-              onPress={onPrevious}
+              onPress={isFirstSlide ? onBack : goToPreviousSlide}
               disabled={isLoading}
             >
               <Feather 
@@ -187,16 +203,15 @@ export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
                 color={currentSlide.backgroundColor ? '#FFFFFF' : getTextColor()} 
               />
             </TouchableOpacity>
-          )}
+          ) : null}
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Swipeable Content - Wrap the entire content */}
+        {/* Swipeable Content */}
         <PanGestureHandler onGestureEvent={gestureHandler} enabled={!isLoading}>
           <Animated.View style={[styles.content, animatedStyle]}>
-            {/* Always render current slide content */}
             <Image
-              key={currentSlide.key} // Force re-render when slide changes
+              key={currentSlide.key}
               source={currentSlide.image}
               style={styles.image}
               resizeMode="contain"
@@ -240,8 +255,8 @@ export const OnboardingSlides: React.FC<OnboardingSlidesProps> = ({
                   ? t('getStarted', 'Get Started') 
                   : t('next', 'Next')
             }
-            onPress={onNext}
-            disabled={!canProceed || isLoading}
+            onPress={handleNext}
+            disabled={isLoading}
             backgroundColor="#004d40"
             textColor="#FFFFFF"
             style={styles.nextButton}
@@ -262,7 +277,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: horizontalScale(16),
     paddingTop: verticalScale(60),
     paddingBottom: verticalScale(16),
-    zIndex: 10, // Keep header above content
+    zIndex: 10,
   },
   backButton: {
     padding: moderateScale(8),
@@ -303,7 +318,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: horizontalScale(24),
     paddingBottom: verticalScale(48),
-    zIndex: 10, // Keep footer above content
+    zIndex: 10,
   },
   dotsContainer: {
     flexDirection: 'row',
