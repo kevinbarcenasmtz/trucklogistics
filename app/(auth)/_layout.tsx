@@ -1,4 +1,4 @@
-// app/(auth)/_layout.tsx - CLEANED UP VERSION
+// app/(auth)/_layout.tsx
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';

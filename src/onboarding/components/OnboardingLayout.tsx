@@ -1,4 +1,4 @@
-// src/onboarding/components/OnboardingLayout.tsx - CLEANED UP VERSION
+// src/onboarding/components/OnboardingLayout.tsx
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import React from 'react';

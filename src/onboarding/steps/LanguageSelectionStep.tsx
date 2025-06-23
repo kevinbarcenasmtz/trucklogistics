@@ -2,9 +2,9 @@
 import FormButton from '@/src/components/forms/FormButton';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { Language, OnboardingStepProps } from '../types';
 import { saveLanguagePreference } from '../utils/storage';
 
@@ -32,25 +32,34 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
     isDarkTheme,
   } = useAppTheme();
 
-  const [isProcessing, setIsProcessing] = useState(false);
-
   const handleLanguageSelect = async (language: Language) => {
-    if (isProcessing) return;
-
-    setIsProcessing(true);
-
     try {
-      await saveLanguagePreference(language);
-      await i18n.changeLanguage(language);
+      // Save preference and change language
+      await Promise.all([
+        saveLanguagePreference(language),
+        i18n.changeLanguage(language)
+      ]);
 
-      setTimeout(() => {
-        onComplete({ language });
-      }, 400);
-    } catch (err) {
-      console.error('Failed to set language:', err);
-      setTimeout(() => {
-        onComplete({ language });
-      }, 400);
+      // Complete the step with language data
+      onComplete({ language });
+    } catch (error) {
+      console.error('Failed to set language:', error);
+      
+      // Show user-friendly error
+      Alert.alert(
+        t('error', 'Error'),
+        t('languageChangeError', 'Failed to change language. Please try again.'),
+        [
+          {
+            text: t('cancel', 'Cancel'),
+            style: 'cancel'
+          },
+          {
+            text: t('retry', 'Retry'),
+            onPress: () => handleLanguageSelect(language)
+          }
+        ]
+      );
     }
   };
 
@@ -73,7 +82,9 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             }),
           ]}
         />
-        <Text style={[styles.appTitle, { color: getTextColor() }]}>Trucking Logistics Pro</Text>
+        <Text style={[styles.appTitle, { color: getTextColor() }]}>
+          Trucking Logistics Pro
+        </Text>
         <Text style={[styles.title, { color: getTextColor() }]}>
           {t('selectLanguage', 'Choose your preferred language')}
         </Text>
@@ -85,12 +96,13 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             key={option.code}
             buttonTitle={`${option.flag} ${option.nativeLabel}`}
             onPress={() => handleLanguageSelect(option.code)}
-            disabled={isProcessing}
             backgroundColor={
               context.selectedLanguage === option.code ? surfaceColor : buttonPrimaryBg
             }
-            textColor={context.selectedLanguage === option.code ? getTextColor() : '#ffff'}
-            style={[styles.languageButton, { opacity: isProcessing ? 0.7 : 1 }]}
+            textColor={
+              context.selectedLanguage === option.code ? getTextColor() : '#FFFFFF'
+            }
+            style={styles.languageButton}
           />
         ))}
       </View>

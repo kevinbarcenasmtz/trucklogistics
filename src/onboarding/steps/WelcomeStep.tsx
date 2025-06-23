@@ -1,5 +1,4 @@
 // src/onboarding/steps/WelcomeStep.tsx
-import { useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import * as Haptics from 'expo-haptics';
@@ -15,7 +14,7 @@ interface DotsProps {
 }
 
 const Dots: React.FC<DotsProps> = ({ selected }) => {
-  const { isDarkTheme } = useTheme();
+  const { isDarkTheme, textColor, borderColor } = useAppTheme();
 
   return (
     <View
@@ -23,17 +22,15 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
         styles.dot,
         {
           backgroundColor: selected
-            ? isDarkTheme
-              ? '#ffff'
-              : '#29292b'
+            ? textColor
             : isDarkTheme
               ? 'rgba(255, 255, 255, 0.3)'
-              : 'rgba(255, 255, 255, 0.4)',
+              : 'rgba(0, 0, 0, 0.2)',
           borderWidth: selected ? 0 : 1,
-          borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)',
+          borderColor: borderColor,
           ...Platform.select({
             ios: {
-              shadowColor: isDarkTheme ? '#FFFFFF' : '#000',
+              shadowColor: textColor,
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.2,
               shadowRadius: 1,
@@ -51,7 +48,7 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
 
 const Skip = ({ ...props }) => {
   const { t } = useTranslation();
-  const { getTextColor } = useAppTheme();
+  const { textColor } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -63,14 +60,14 @@ const Skip = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: getTextColor() }]}>{t('skip', 'Skip')}</Text>
+      <Text style={[styles.buttonText, { color: textColor }]}>{t('skip', 'Skip')}</Text>
     </TouchableOpacity>
   );
 };
 
 const Next = ({ ...props }) => {
   const { t } = useTranslation();
-  const { getTextColor } = useAppTheme();
+  const { textColor } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -82,17 +79,18 @@ const Next = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: getTextColor() }]}>{t('next', 'Next')}</Text>
+      <Text style={[styles.buttonText, { color: textColor }]}>{t('next', 'Next')}</Text>
     </TouchableOpacity>
   );
 };
 
 const Done = ({ ...props }) => {
   const { t } = useTranslation();
+  const { primaryColor } = useAppTheme();
 
   return (
     <TouchableOpacity
-      style={[styles.button, styles.doneButton]}
+      style={[styles.button, styles.doneButton, { backgroundColor: primaryColor }]}
       {...props}
       activeOpacity={0.7}
       onPress={() => {
@@ -100,17 +98,22 @@ const Done = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, styles.doneButtonText, { color: '#FFFFFF' }]}>
+      <Text style={[styles.buttonText, styles.doneButtonText]}>
         {t('getStarted', 'Get Started')}
       </Text>
     </TouchableOpacity>
   );
 };
 
-export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete, onBack, canGoBack }) => {
+export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete}) => {
   const { t } = useTranslation();
-  const { getBackgroundColor, getTextColor, getSecondaryTextColor, themeStyles, isDarkTheme } =
-    useAppTheme();
+  const { 
+    getBackgroundColor, 
+    getTextColor, 
+    getSecondaryTextColor, 
+    themeStyles, 
+    isDarkTheme 
+  } = useAppTheme();
 
   const pages = [
     {
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(8),
   },
   doneButton: {
-    // backgroundColor: '#29292b',
+    // backgroundColor set dynamically
   },
   buttonText: {
     fontSize: moderateScale(16),
