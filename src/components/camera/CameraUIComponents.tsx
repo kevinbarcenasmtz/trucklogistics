@@ -1,10 +1,13 @@
 // src/components/camera/CameraUIComponents.tsx
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+// Get the MaterialIcons icon name type
+type MaterialIconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
 // Screen header with back button
 export const ScreenHeader = ({
@@ -16,19 +19,15 @@ export const ScreenHeader = ({
   onBack: () => void;
   rightComponent?: React.ReactNode;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { backgroundColor, surfaceColor, textColor, borderColor } = useAppTheme();
 
   return (
     <View
       style={[
         styles.header,
         {
-          borderBottomColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.border,
-          backgroundColor: isDarkTheme
-            ? themeStyles.colors.black_grey
-            : themeStyles.colors.background,
+          borderBottomColor: borderColor,
+          backgroundColor: backgroundColor,
         },
       ]}
     >
@@ -36,7 +35,7 @@ export const ScreenHeader = ({
         style={[
           styles.backButton,
           {
-            backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
+            backgroundColor: surfaceColor,
           },
         ]}
         onPress={() => {
@@ -44,21 +43,10 @@ export const ScreenHeader = ({
           onBack();
         }}
       >
-        <MaterialIcons
-          name="arrow-back"
-          size={24}
-          color={isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary}
-        />
+        <MaterialIcons name="arrow-back" size={24} color={textColor} />
       </TouchableOpacity>
 
-      <Text
-        style={[
-          styles.headerTitle,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
-      >
-        {title}
-      </Text>
+      <Text style={[styles.headerTitle, { color: textColor }]}>{title}</Text>
 
       {rightComponent || <View style={{ width: 40 }} />}
     </View>
@@ -77,7 +65,7 @@ export const ActionButton = ({
   style = {},
 }: {
   title: string;
-  icon?: string;
+  icon?: MaterialIconName;
   onPress: () => void;
   isLoading?: boolean;
   backgroundColor?: string;
@@ -85,14 +73,13 @@ export const ActionButton = ({
   disabled?: boolean;
   style?: any;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { primaryColor } = useAppTheme();
 
   return (
     <TouchableOpacity
       style={[
         styles.actionButton,
-        { backgroundColor: backgroundColor || themeStyles.colors.greenThemeColor },
+        { backgroundColor: backgroundColor || primaryColor },
         disabled && { opacity: 0.6 },
         style,
       ]}
@@ -129,20 +116,18 @@ export const SectionContainer = ({
 }: {
   title?: string;
   children: React.ReactNode;
-  icon?: string;
+  icon?: MaterialIconName; // Fixed: Use proper MaterialIcons type
   rightComponent?: React.ReactNode;
   style?: any;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { surfaceColor, textColor, primaryColor, themeStyles } = useAppTheme();
 
   return (
     <View
       style={[
         styles.sectionContainer,
         {
-          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
+          backgroundColor: surfaceColor,
           ...themeStyles.shadow.sm,
         },
         style,
@@ -154,18 +139,11 @@ export const SectionContainer = ({
             <MaterialIcons
               name={icon}
               size={20}
-              color={themeStyles.colors.greenThemeColor}
+              color={primaryColor}
               style={{ marginRight: horizontalScale(8) }}
             />
           )}
-          <Text
-            style={[
-              styles.sectionTitle,
-              { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-            ]}
-          >
-            {title}
-          </Text>
+          <Text style={[styles.sectionTitle, { color: textColor }]}>{title}</Text>
           {rightComponent}
         </View>
       )}
@@ -184,9 +162,7 @@ export const StatusBanner = ({
   successText: string;
   pendingText: string;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { textColor, successColor, warningColor } = useAppTheme();
 
   const isApproved = status === 'Approved';
 
@@ -196,26 +172,21 @@ export const StatusBanner = ({
         styles.statusBanner,
         isApproved
           ? {
-              backgroundColor: themeStyles.colors.status.success + '22',
-              borderColor: themeStyles.colors.status.success,
+              backgroundColor: successColor + '22',
+              borderColor: successColor,
             }
           : {
-              backgroundColor: themeStyles.colors.status.warning + '22',
-              borderColor: themeStyles.colors.status.warning,
+              backgroundColor: warningColor + '22',
+              borderColor: warningColor,
             },
       ]}
     >
       <MaterialIcons
         name={isApproved ? 'check-circle' : 'pending'}
         size={24}
-        color={isApproved ? themeStyles.colors.status.success : themeStyles.colors.status.warning}
+        color={isApproved ? successColor : warningColor}
       />
-      <Text
-        style={[
-          styles.statusText,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
-      >
+      <Text style={[styles.statusText, { color: textColor }]}>
         {isApproved ? successText : pendingText}
       </Text>
     </View>
@@ -224,30 +195,12 @@ export const StatusBanner = ({
 
 // Loading screen
 export const LoadingScreen = ({ message }: { message: string }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { backgroundColor, textColor, primaryColor } = useAppTheme();
 
   return (
-    <View
-      style={[
-        styles.loadingContainer,
-        {
-          backgroundColor: isDarkTheme
-            ? themeStyles.colors.black_grey
-            : themeStyles.colors.background,
-        },
-      ]}
-    >
-      <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
-      <Text
-        style={[
-          styles.loadingText,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
-      >
-        {message}
-      </Text>
+    <View style={[styles.loadingContainer, { backgroundColor }]}>
+      <ActivityIndicator size="large" color={primaryColor} />
+      <Text style={[styles.loadingText, { color: textColor }]}>{message}</Text>
     </View>
   );
 };

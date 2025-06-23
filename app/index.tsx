@@ -1,6 +1,6 @@
 // app/index.tsx
 import { useAuth } from '@/src/context/AuthContext';
-import { useAppTheme } from '@/src/hooks/useOnboardingTheme'; // ✅ NEW IMPORT
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { OnboardingEngine } from '@/src/onboarding/OnboardingEngine';
 import { useAppStateMachine } from '@/src/state/appStateMachine';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -13,7 +13,7 @@ globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 export default function Index() {
   const { user } = useAuth();
   const { state } = useAppStateMachine();
-  const { backgroundColor, textColor, themeStyles } = useAppTheme();
+  const { backgroundColor, textColor, primaryColor } = useAppTheme();
 
   React.useEffect(() => {
     if (__DEV__) {
@@ -33,7 +33,7 @@ export default function Index() {
   if (state.type === 'initializing') {
     return (
       <View style={[styles.container, { backgroundColor }]}>
-        <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
+        <ActivityIndicator size="large" color={primaryColor} />
       </View>
     );
   }
@@ -67,7 +67,7 @@ export default function Index() {
   // Fallback
   return (
     <View style={[styles.container, { backgroundColor }]}>
-      <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
+      <ActivityIndicator size="large" color={primaryColor} />
     </View>
   );
 }

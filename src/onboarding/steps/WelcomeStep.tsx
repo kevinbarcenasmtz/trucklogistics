@@ -1,6 +1,6 @@
-// src/onboarding/steps/WelcomeStep.tsx - CLEANED UP VERSION
+// src/onboarding/steps/WelcomeStep.tsx
 import { useTheme } from '@/src/context/ThemeContext';
-import { useOnboardingTheme } from '@/src/hooks/useOnboardingTheme'; // ✅ NEW IMPORT
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import * as Haptics from 'expo-haptics';
 import { StatusBar } from 'expo-status-bar';
@@ -8,7 +8,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Onboarding from 'react-native-onboarding-swiper';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { OnboardingStepProps } from '../types';
 
 interface DotsProps {
@@ -52,7 +51,7 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
 
 const Skip = ({ ...props }) => {
   const { t } = useTranslation();
-  const { isDarkTheme } = useTheme();
+  const { getTextColor } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -64,16 +63,14 @@ const Skip = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: isDarkTheme ? '#FFFFFF' : '#111827' }]}>
-        {t('skip', 'Skip')}
-      </Text>
+      <Text style={[styles.buttonText, { color: getTextColor() }]}>{t('skip', 'Skip')}</Text>
     </TouchableOpacity>
   );
 };
 
 const Next = ({ ...props }) => {
   const { t } = useTranslation();
-  const { isDarkTheme } = useTheme();
+  const { getTextColor } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -85,9 +82,7 @@ const Next = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: isDarkTheme ? '#FFFFFF' : '#111827' }]}>
-        {t('next', 'Next')}
-      </Text>
+      <Text style={[styles.buttonText, { color: getTextColor() }]}>{t('next', 'Next')}</Text>
     </TouchableOpacity>
   );
 };
@@ -114,10 +109,8 @@ const Done = ({ ...props }) => {
 
 export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete, onBack, canGoBack }) => {
   const { t } = useTranslation();
-  const { isDarkTheme } = useTheme();
-  const { getBackgroundColor, getTextColor, getSecondaryTextColor, themeStyles } =
-    useOnboardingTheme(); // ✅ REPLACES 18+ LINES
-  const insets = useSafeAreaInsets();
+  const { getBackgroundColor, getTextColor, getSecondaryTextColor, themeStyles, isDarkTheme } =
+    useAppTheme();
 
   const pages = [
     {
@@ -150,7 +143,7 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete, onBack,
       subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor() }],
     },
     {
-      backgroundColor: getBackgroundColor(),
+      backgroundColor: getBackgroundColor(true),
       image: (
         <Image
           source={require('@/assets/icons/logistics2.png')}
@@ -175,11 +168,11 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete, onBack,
         'onboardingSubtitle2',
         'Track and analyze your performance with professional-grade reporting tools.'
       ),
-      titleStyles: [styles.title, { color: getTextColor() }],
-      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor() }],
+      titleStyles: [styles.title, { color: getTextColor(true) }],
+      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor(true) }],
     },
     {
-      backgroundColor: getBackgroundColor(true), // ✅ Special green background
+      backgroundColor: getBackgroundColor(true),
       image: (
         <Image
           source={require('@/assets/icons/logistics3.png')}
@@ -204,20 +197,14 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete, onBack,
         'onboardingSubtitle3',
         'Real-time navigation and scheduling for efficient deliveries.'
       ),
-      titleStyles: [
-        styles.title,
-        { color: getTextColor(true) }, // ✅ Special white text
-      ],
-      subTitleStyles: [
-        styles.subtitle,
-        { color: getSecondaryTextColor(true) }, // ✅ Special semi-transparent white
-      ],
+      titleStyles: [styles.title, { color: getTextColor(true) }],
+      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor(true) }],
     },
   ];
 
   return (
     <View style={{ flex: 1 }}>
-      <StatusBar hidden={false} style="light" backgroundColor="transparent" translucent={true} />
+      <StatusBar hidden={true} style="light" backgroundColor="transparent" translucent={true} />
       <Onboarding
         pages={pages}
         onDone={onComplete}

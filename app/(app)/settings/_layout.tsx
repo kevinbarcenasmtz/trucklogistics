@@ -1,5 +1,5 @@
 // app/(app)/settings/_layout.tsx - CLEANED UP VERSION
-import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 
 export default function SettingsLayout() {

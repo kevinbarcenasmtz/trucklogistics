@@ -1,5 +1,5 @@
 // app/(app)/camera/_layout.tsx
-import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 import { Platform } from 'react-native';
 

@@ -1,7 +1,6 @@
 // src/onboarding/OnboardingEngine.tsx
 import { useAuth } from '@/src/context/AuthContext';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAppStateMachine } from '../state/appStateMachine';
@@ -11,13 +10,12 @@ import { getAvailableSteps } from './stepRegistry';
 export const OnboardingEngine: React.FC = () => {
   const { state, completeOnboardingStep, goBackToStep, completeOnboarding } = useAppStateMachine();
   const { completeOnboarding: authCompleteOnboarding } = useAuth();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { backgroundColor, primaryColor } = useAppTheme();
 
   if (state.type !== 'onboarding') {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor: themeStyles.colors.background }]}>
-        <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
+      <View style={[styles.loadingContainer, { backgroundColor }]}>
+        <ActivityIndicator size="large" color={primaryColor} />
       </View>
     );
   }
@@ -29,9 +27,8 @@ export const OnboardingEngine: React.FC = () => {
   const currentStep = availableSteps.find(step => !progress.completedSteps.includes(step.id));
 
   if (!currentStep) {
-    // Call state machine completion WITH callback to AuthContext
     completeOnboarding(() => {
-      authCompleteOnboarding(); // This handles navigation
+      authCompleteOnboarding();
     });
     return null;
   }

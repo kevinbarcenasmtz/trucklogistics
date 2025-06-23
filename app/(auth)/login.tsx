@@ -3,8 +3,8 @@ import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import SocialButton from '@/src/components/forms/SocialButton';
 import { useAuth } from '@/src/context/AuthContext';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -26,60 +26,67 @@ export default function LoginScreen() {
   const { login, loading, googleLogin } = useAuth();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const { t } = useTranslation();
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const {
+    backgroundColor,
+    surfaceColor,
+    textColor,
+    secondaryTextColor,
+    primaryColor,
+    buttonPrimaryBg,
+    themeStyles,
+    isDarkTheme,
+  } = useAppTheme();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Get background color based on theme
-  const getBackgroundColor = () =>
-    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
-
-  // Get text color based on theme
-  const getTextColor = () =>
-    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
-
-  // Get secondary text color based on theme
-  const getSecondaryTextColor = () =>
-    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
-
-  // Get button background color based on theme
-  const getButtonBgColor = () =>
-    isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.primary;
-
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!email.trim() || !password.trim()) {
+      Alert.alert(t('error', 'Error'), t('fillAllFields', 'Please fill in all fields'));
       return;
     }
 
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+
+    try {
       await login(email, password);
       router.replace('/(app)/home');
-    } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
+    } catch (error) {
+      // Error handling is done in the AuthContext
+      console.error('Login failed:', error);
     }
   };
 
   const handleGoogleLogin = async () => {
+    setIsGoogleLoading(true);
+
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      setIsGoogleLoading(true);
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+
+    try {
       await googleLogin();
       router.replace('/(app)/home');
-    } catch (error: any) {
-      if (error.message) {
-        Alert.alert('Google Sign-In Failed', error.message);
-      }
+    } catch (error) {
+      console.error('Google login failed:', error);
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: getBackgroundColor() }]}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.headerContainer}>
           <Image
             source={require('@/assets/icons/logo.jpg')}
@@ -93,15 +100,15 @@ export default function LoginScreen() {
                   shadowOpacity: isDarkTheme ? 0.4 : 0.2,
                   shadowRadius: 5,
                 },
-                android: {
-                  elevation: 5,
-                },
+                android: { elevation: 5 },
               }),
             ]}
           />
-          <Text style={[styles.title, { color: getTextColor() }]}>Trucking Logistics Pro</Text>
-          <Text style={[styles.subtitle, { color: getTextColor() }]}>
+          <Text style={[styles.title, { color: textColor }]}>
             {t('welcomeBack', 'Welcome Back')}
+          </Text>
+          <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
+            {t('signInContinue', 'Sign in to continue to your account')}
           </Text>
         </View>
 
@@ -109,78 +116,78 @@ export default function LoginScreen() {
           <FormInput
             labelValue={email}
             onChangeText={setEmail}
-            placeholderText={t('email', 'Email')}
+            placeholderText={t('enterEmail', 'Enter your email')}
             iconType="user"
             keyboardType="email-address"
             autoCapitalize="none"
-            autoCorrect={false}
+            autoComplete="email"
           />
           <FormInput
             labelValue={password}
             onChangeText={setPassword}
-            placeholderText={t('password', 'Password')}
+            placeholderText={t('enterPassword', 'Enter your password')}
             iconType="lock"
             secureTextEntry
+            autoComplete="password"
           />
-
           <TouchableOpacity
-            style={styles.forgotButton}
+            style={styles.forgotPassword}
             onPress={() => router.push('/(auth)/forgot-password')}
-            activeOpacity={0.6}
           >
-            <Text style={[styles.forgotButtonText, { color: getSecondaryTextColor() }]}>
+            <Text style={[styles.forgotPasswordText, { color: primaryColor }]}>
               {t('forgotPassword', 'Forgot Password?')}
             </Text>
           </TouchableOpacity>
-
           <FormButton
             buttonTitle={t('signIn', 'Sign In')}
             onPress={handleLogin}
             disabled={loading}
-            backgroundColor={getButtonBgColor()}
-            textColor={themeStyles.colors.white}
+            backgroundColor={buttonPrimaryBg}
+            textColor="#FFFFFF"
+            style={styles.signInButton}
           />
-        </View>
-
-        <View style={styles.formContainer}>
-          <Text style={[styles.orText, { color: getSecondaryTextColor() }]}>
-            - {t('or', 'Or')} -
-          </Text>
+          <View style={styles.dividerContainer}>
+            <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
+            <Text style={[styles.dividerText, { color: secondaryTextColor }]}>
+              {t('orContinueWith', 'Or continue with')}
+            </Text>
+            <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
+          </View>
           <SocialButton
-            buttonTitle={t('signInWithGoogle', 'Sign In with Google')}
-            btnType="google"
-            color={themeStyles.colors.white}
-            backgroundColor={themeStyles.colors.greenThemeColor}
+            buttonTitle={t('continueWithGoogle', 'Continue with Google')}
+            btnType="google-plus"
+            color={textColor}
+            backgroundColor={buttonPrimaryBg}
             onPress={handleGoogleLogin}
             disabled={isGoogleLoading}
           />
         </View>
 
-        <TouchableOpacity
-          style={styles.createAccountButton}
-          onPress={() => router.push('/(auth)/signup')}
-          activeOpacity={0.6}
-        >
-          <Text style={[styles.createAccountText, { color: getSecondaryTextColor() }]}>
-            {t('noAccount', "Don't have an account?")}{' '}
-            <Text style={[styles.signUpText, { color: getTextColor() }]}>
-              {t('signUpLink', 'Sign Up')}
+        <View style={styles.footer}>
+          <View style={styles.footerTextContainer}>
+            <Text style={[styles.footerText, { color: secondaryTextColor }]}>
+              {t('dontHaveAccount', "Don't have an account? ")}
             </Text>
-          </Text>
-        </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/(auth)/signup')} activeOpacity={0.7}>
+              <Text style={[styles.signUpLink, { color: primaryColor }]}>
+                {t('signUp', 'Sign Up')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
   },
-  container: {
+  scrollContent: {
     flexGrow: 1,
     paddingHorizontal: horizontalScale(24),
-    paddingTop: verticalScale(48),
+    paddingTop: verticalScale(32),
     paddingBottom: verticalScale(24),
   },
   headerContainer: {
@@ -191,50 +198,69 @@ const styles = StyleSheet.create({
     height: moderateScale(120),
     width: moderateScale(120),
     resizeMode: 'cover',
+    marginBottom: verticalScale(24),
   },
   title: {
     fontSize: moderateScale(28),
     fontWeight: '700',
     lineHeight: moderateScale(34),
-    marginTop: verticalScale(16),
+    marginBottom: verticalScale(8),
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: moderateScale(16),
-    marginTop: verticalScale(8),
-    marginHorizontal: horizontalScale(24),
+    lineHeight: moderateScale(24),
     textAlign: 'center',
-    opacity: 0.9,
-    letterSpacing: 0.3,
   },
   formContainer: {
-    width: '100%',
-    marginBottom: verticalScale(4),
+    flex: 1,
+    gap: verticalScale(16),
   },
-  forgotButton: {
+  forgotPassword: {
+    alignSelf: 'center',
+    marginTop: verticalScale(-8),
+  },
+  forgotPasswordText: {
+    fontSize: moderateScale(14),
+    fontWeight: '500',
+  },
+  signInButton: {
+    marginTop: verticalScale(8),
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginVertical: verticalScale(8),
-    paddingHorizontal: horizontalScale(4),
+  },
+  divider: {
+    flex: 1,
+    height: 1,
     opacity: 0.8,
   },
-  forgotButtonText: {
-    fontSize: moderateScale(16),
-    fontWeight: '600',
+  dividerText: {
+    marginHorizontal: horizontalScale(8),
+    fontSize: moderateScale(14),
+  },
+  googleButton: {
+    marginBottom: verticalScale(6),
+  },
+  footer: {
+    alignItems: 'center',
+    paddingTop: verticalScale(16),
+  },
+  footerTextContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  footerText: {
+    fontSize: moderateScale(14),
     textAlign: 'center',
   },
-  orText: {
-    paddingHorizontal: horizontalScale(8),
+  signUpLink: {
     fontSize: moderateScale(14),
     fontWeight: '600',
-    textAlign: 'center',
-    marginVertical: verticalScale(8),
-  },
-  createAccountButton: {
-    marginTop: verticalScale(24),
-  },
-  createAccountText: {
-    fontSize: moderateScale(14),
-    textAlign: 'center',
-  },
-  signUpText: {
-    fontWeight: 'bold',
+    marginLeft: horizontalScale(4),
   },
 });

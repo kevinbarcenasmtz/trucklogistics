@@ -30,7 +30,7 @@ export const OnboardingStep: React.FC<Props> = ({
       <OnboardingLayout
         stepIndex={stepIndex}
         totalSteps={totalSteps}
-        showProgress={stepConfig.id !== 'welcome'} // Hide progress for welcome step
+        showProgress={stepConfig.id !== 'welcome'}
       >
         <StepComponent {...stepProps} stepIndex={stepIndex} totalSteps={totalSteps} />
       </OnboardingLayout>

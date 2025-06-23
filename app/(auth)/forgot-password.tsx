@@ -2,8 +2,8 @@
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import { useAuth } from '@/src/context/AuthContext';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
@@ -12,23 +12,12 @@ import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'r
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const { resetPassword, loading } = useAuth();
 
-  // Get text color based on theme
-  const getTextColor = () =>
-    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
-
-  // Get secondary text color based on theme
-  const getSecondaryTextColor = () =>
-    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
-
-  // Get background color based on theme
-  const getBackgroundColor = () =>
-    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
+  const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles } =
+    useAppTheme();
 
   const handleReset = async () => {
     if (!email) {
@@ -49,22 +38,22 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: getBackgroundColor() }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       <View style={styles.container}>
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
           activeOpacity={0.7}
         >
-          <Feather name="arrow-left" size={24} color={getTextColor()} />
+          <Feather name="arrow-left" size={24} color={textColor} />
         </TouchableOpacity>
 
         <View style={styles.contentContainer}>
-          <Text style={[styles.title, { color: getTextColor() }]}>
+          <Text style={[styles.title, { color: textColor }]}>
             {t('forgotPasswordTitle', 'Forgot Password')}
           </Text>
 
-          <Text style={[styles.subtitle, { color: getSecondaryTextColor() }]}>
+          <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
             {t(
               'forgotPasswordSubtitle',
               'Enter your email address and we will send you instructions to reset your password.'
@@ -88,7 +77,7 @@ export default function ForgotPasswordScreen() {
             }
             onPress={handleReset}
             disabled={loading}
-            backgroundColor={themeStyles.colors.greenThemeColor}
+            backgroundColor={primaryColor}
             textColor={themeStyles.colors.white}
           />
         </View>

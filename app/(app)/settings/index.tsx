@@ -1,7 +1,8 @@
-// app/(app)/settings/index.tsx - COMPLETE ENHANCED VERSION
+// app/(app)/settings/index.tsx - USING NEW HOOK & CLEAN IMPLEMENTATION
 import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme'; // ✅ Single import
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -24,32 +25,44 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 const AnimatedSwitch = Animated.createAnimatedComponent(Switch);
 
+type SettingsState = 'idle' | 'changing-language' | 'logging-out' | 'changing-theme';
+
 export default function Settings() {
   const router = useRouter();
   const { t, i18n } = useTranslation();
   const { user, logout, userData } = useAuth();
 
-  // ✅ ENHANCED: Get all theme values including loading state
+  // Theme management
+  const { themePreference, setTheme, isChangingTheme, themeConstants } = useTheme();
+
+  // ✅ Single hook for all theme values
   const {
-    theme,
-    themePreference,
+    backgroundColor,
+    surfaceColor,
+    textColor,
+    secondaryTextColor,
+    primaryColor,
+    borderColor,
+    themeStyles,
     isDarkTheme,
-    setTheme,
-    isChangingTheme, // ✅ NEW: Loading state
-    themeConstants,
-  } = useTheme();
+  } = useAppTheme();
 
-  const themeStyles = getThemeStyles(theme);
+  // ✅ Single state machine instead of multiple useState
+  const [settingsState, setSettingsState] = useState<SettingsState>('idle');
 
-  const [isLanguageLoading, setIsLanguageLoading] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const [form, setForm] = useState({
-    emailNotifications: true,
-    pushNotifications: false,
+  // ✅ Notification settings as separate state (independent business logic)
+  const [notificationSettings, setNotificationSettings] = useState({
+    email: true,
+    push: false,
   });
 
-  // ✅ ENHANCED: Better error handling and user feedback
+  // ✅ Calculated states instead of multiple useState
+  const isLoading = settingsState !== 'idle';
+  const isLanguageLoading = settingsState === 'changing-language';
+  const isLoggingOut = settingsState === 'logging-out';
+  const isThemeChanging = settingsState === 'changing-theme' || isChangingTheme;
+
+  // Handle theme change with error handling
   const handleThemeChange = async () => {
     try {
       await Haptics.selectionAsync();
@@ -57,29 +70,39 @@ export default function Settings() {
       console.warn('Haptic feedback not supported:', error);
     }
 
-    // Cycle through theme options: system -> light -> dark -> system
-    const nextTheme =
-      themePreference === themeConstants.THEME_SYSTEM
-        ? themeConstants.THEME_LIGHT
-        : themePreference === themeConstants.THEME_LIGHT
-          ? themeConstants.THEME_DARK
-          : themeConstants.THEME_SYSTEM;
+    setSettingsState('changing-theme');
 
-    // Call setTheme with proper error handling
-    const success = await setTheme(nextTheme);
+    try {
+      // Cycle through theme options: system -> light -> dark -> system
+      const nextTheme =
+        themePreference === themeConstants.THEME_SYSTEM
+          ? themeConstants.THEME_LIGHT
+          : themePreference === themeConstants.THEME_LIGHT
+            ? themeConstants.THEME_DARK
+            : themeConstants.THEME_SYSTEM;
 
-    if (!success) {
+      const success = await setTheme(nextTheme);
+
+      if (!success) {
+        Alert.alert(
+          t('error', 'Error'),
+          t('themeChangeError', 'Failed to change theme. Please try again.')
+        );
+      }
+    } catch (error) {
+      console.error('Error changing theme:', error);
       Alert.alert(
         t('error', 'Error'),
-        t('themeChangeError', 'Failed to change theme. Please try again.'),
-        [{ text: t('ok', 'OK') }]
+        t('themeChangeError', 'Failed to change theme. Please try again.')
       );
+    } finally {
+      setSettingsState('idle');
     }
   };
 
   // Get current theme label for display
   const getThemeLabel = () => {
-    if (isChangingTheme) return t('changing', 'Changing...'); // ✅ Loading text
+    if (isThemeChanging) return t('changing', 'Changing...');
 
     switch (themePreference) {
       case themeConstants.THEME_SYSTEM:
@@ -96,10 +119,19 @@ export default function Settings() {
   const handleLanguageChange = async () => {
     try {
       await Haptics.selectionAsync();
-      setIsLanguageLoading(true);
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+
+    setSettingsState('changing-language');
+
+    try {
       const newLanguage = i18n.language === 'en' ? 'es' : 'en';
       await i18n.changeLanguage(newLanguage);
+
+      // Save language preference
       await AsyncStorage.setItem('userLanguage', newLanguage);
+      await AsyncStorage.setItem('languageSelected', 'true');
     } catch (error) {
       console.error('Error changing language:', error);
       Alert.alert(
@@ -107,7 +139,7 @@ export default function Settings() {
         t('languageChangeError', 'Failed to change language. Please try again.')
       );
     } finally {
-      setIsLanguageLoading(false);
+      setSettingsState('idle');
     }
   };
 
@@ -125,7 +157,14 @@ export default function Settings() {
           style: 'destructive',
           onPress: async () => {
             try {
-              setIsLoggingOut(true);
+              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+            } catch (error) {
+              console.warn('Haptic feedback not supported:', error);
+            }
+
+            setSettingsState('logging-out');
+
+            try {
               await logout();
             } catch (error) {
               console.error('Logout error:', error);
@@ -134,7 +173,7 @@ export default function Settings() {
                 t('logoutError', 'Failed to logout. Please try again.')
               );
             } finally {
-              setIsLoggingOut(false);
+              setSettingsState('idle');
             }
           },
         },
@@ -142,284 +181,351 @@ export default function Settings() {
     );
   };
 
-  const handleEditProfile = () => {
-    router.push('/(app)/settings/edit');
+  // ✅ Flattened helper functions - simple calculations
+  const getLocation = () => {
+    if (!userData) return t('unknownLocation', 'Unknown Location');
+    const { city = '', state = '' } = userData;
+    return (
+      `${city}, ${state}`.trim().replace(/^, |, $/g, '') || t('unknownLocation', 'Unknown Location')
+    );
   };
 
-  const SettingItem = ({
-    icon,
-    title,
-    subtitle,
-    onPress,
-    rightComponent,
-    disabled = false,
-    loading = false,
-  }: {
-    icon: string;
-    title: string;
-    subtitle?: string;
-    onPress?: () => void;
-    rightComponent?: React.ReactNode;
-    disabled?: boolean;
-    loading?: boolean;
-  }) => (
-    <TouchableOpacity
-      style={[
-        styles.settingItem,
-        {
-          backgroundColor: themeStyles.colors.darkGrey,
-          opacity: disabled || loading ? 0.6 : 1,
-        },
-      ]}
-      onPress={onPress}
-      disabled={disabled || loading}
-    >
-      <View style={styles.settingItemLeft}>
-        {loading ? (
-          <ActivityIndicator size="small" color={themeStyles.colors.greenThemeColor} />
-        ) : (
-          <Feather name={icon as any} size={20} color={themeStyles.colors.greenThemeColor} />
-        )}
+  const getFullName = () => {
+    if (!userData) return t('defaultName', 'User');
+    const { fname = '', lname = '' } = userData;
+    return `${fname} ${lname}`.trim() || t('defaultName', 'User');
+  };
 
-        <View style={styles.settingItemContent}>
-          <Text style={[styles.settingItemTitle, { color: themeStyles.colors.text.primary }]}>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text
-              style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}
-            >
-              {subtitle}
-            </Text>
-          )}
-        </View>
-      </View>
+  const getInitials = () => {
+    if (userData?.fname && userData?.lname) {
+      return `${userData.fname[0]}${userData.lname[0]}`.toUpperCase();
+    }
+    return (
+      user?.fname?.substring(0, 2)?.toUpperCase() ||
+      user?.email?.substring(0, 2)?.toUpperCase() ||
+      'JD'
+    );
+  };
 
-      {rightComponent || (
-        <Feather name="chevron-right" size={20} color={themeStyles.colors.text.secondary} />
-      )}
-    </TouchableOpacity>
-  );
-
-  const SwitchItem = ({
-    icon,
-    title,
-    subtitle,
-    value,
-    onValueChange,
-    disabled = false,
-  }: {
-    icon: string;
-    title: string;
-    subtitle?: string;
-    value: boolean;
-    onValueChange: (value: boolean) => void;
-    disabled?: boolean;
-  }) => (
+  const renderAvatar = () => (
     <View
       style={[
-        styles.settingItem,
+        styles.avatar,
         {
-          backgroundColor: themeStyles.colors.darkGrey,
-          opacity: disabled ? 0.6 : 1,
+          backgroundColor: primaryColor,
+          ...Platform.select({
+            ios: {
+              shadowColor: themeStyles.colors.black,
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.2,
+              shadowRadius: 3,
+            },
+            android: {
+              elevation: 4,
+            },
+          }),
         },
       ]}
     >
-      <View style={styles.settingItemLeft}>
-        <Feather name={icon as any} size={20} color={themeStyles.colors.greenThemeColor} />
-
-        <View style={styles.settingItemContent}>
-          <Text style={[styles.settingItemTitle, { color: themeStyles.colors.text.primary }]}>
-            {title}
-          </Text>
-          {subtitle && (
-            <Text
-              style={[styles.settingItemSubtitle, { color: themeStyles.colors.text.secondary }]}
-            >
-              {subtitle}
-            </Text>
-          )}
-        </View>
-      </View>
-
-      <AnimatedSwitch
-        entering={FadeIn.delay(300)}
-        value={value}
-        onValueChange={onValueChange}
-        disabled={disabled}
-        trackColor={{
-          false: themeStyles.colors.border,
-          true: themeStyles.colors.greenThemeColor,
-        }}
-        thumbColor={value ? '#FFFFFF' : themeStyles.colors.text.secondary}
-        ios_backgroundColor={themeStyles.colors.border}
-      />
+      <Text style={[styles.avatarText, { color: themeStyles.colors.white }]}>{getInitials()}</Text>
     </View>
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeStyles.colors.background }]}>
-      <View style={[styles.header, { backgroundColor: themeStyles.colors.background }]}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color={themeStyles.colors.text.primary} />
-        </TouchableOpacity>
-
-        <Text style={[styles.headerTitle, { color: themeStyles.colors.text.primary }]}>
-          {t('settings', 'Settings')}
-        </Text>
-
-        <View style={styles.headerRight} />
-      </View>
-
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Profile Section */}
-        <Animated.View entering={FadeIn.delay(100)} style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
-            {t('profile', 'Profile')}
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+      <View style={styles.contentContainer}>
+        <View style={styles.header}>
+          <Text style={[styles.headerTitle, { color: textColor }]}>
+            {t('settings', 'Settings')}
           </Text>
-
-          <View style={[styles.profileCard, { backgroundColor: themeStyles.colors.darkGrey }]}>
-            <View style={styles.profileInfo}>
-              <View
-                style={[styles.avatar, { backgroundColor: themeStyles.colors.greenThemeColor }]}
-              >
-                <Text style={styles.avatarText}>
-                  {userData?.fname?.charAt(0)?.toUpperCase() ||
-                    user?.fname?.charAt(0)?.toUpperCase() ||
-                    'U'}
-                </Text>
-              </View>
-
-              <View style={styles.profileDetails}>
-                <Text style={[styles.profileName, { color: themeStyles.colors.text.primary }]}>
-                  {userData?.fname || user?.fname || ''} {userData?.lname || user?.lname || ''}
-                </Text>
-                <Text style={[styles.profileEmail, { color: themeStyles.colors.text.secondary }]}>
-                  {userData?.email || user?.email || ''}
-                </Text>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
-              <Feather name="edit-2" size={18} color={themeStyles.colors.text.secondary} />
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
-
-        {/* Appearance Section */}
-        <Animated.View entering={FadeIn.delay(200)} style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
-            {t('appearance', 'Appearance')}
+          <Text style={[styles.headerSubtitle, { color: secondaryTextColor }]}>
+            {t('manageAccount', 'Manage your account and preferences')}
           </Text>
+        </View>
 
-          <SettingItem
-            icon={isDarkTheme ? 'moon' : 'sun'}
-            title={t('theme', 'Theme')}
-            subtitle={getThemeLabel()}
-            onPress={handleThemeChange}
-            disabled={isChangingTheme}
-            loading={isChangingTheme}
-          />
-
-          <SettingItem
-            icon="globe"
-            title={t('language', 'Language')}
-            subtitle={i18n.language === 'en' ? 'English' : 'Español'}
-            onPress={handleLanguageChange}
-            disabled={isLanguageLoading}
-            loading={isLanguageLoading}
-          />
-        </Animated.View>
-
-        {/* Notifications Section */}
-        <Animated.View entering={FadeIn.delay(300)} style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
-            {t('notifications', 'Notifications')}
-          </Text>
-
-          <SwitchItem
-            icon="mail"
-            title={t('emailNotifications', 'Email Notifications')}
-            subtitle={t('emailNotificationsDesc', 'Receive updates via email')}
-            value={form.emailNotifications}
-            onValueChange={value => setForm(prev => ({ ...prev, emailNotifications: value }))}
-          />
-
-          <SwitchItem
-            icon="bell"
-            title={t('pushNotifications', 'Push Notifications')}
-            subtitle={t('pushNotificationsDesc', 'Receive push notifications')}
-            value={form.pushNotifications}
-            onValueChange={value => setForm(prev => ({ ...prev, pushNotifications: value }))}
-          />
-        </Animated.View>
-
-        {/* Support Section */}
-        <Animated.View entering={FadeIn.delay(400)} style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
-            {t('support', 'Support')}
-          </Text>
-
-          <SettingItem
-            icon="help-circle"
-            title={t('help', 'Help & Support')}
-            onPress={() => {
-              /* Navigate to help */
-            }}
-          />
-
-          <SettingItem
-            icon="info"
-            title={t('about', 'About')}
-            onPress={() => {
-              /* Navigate to about */
-            }}
-          />
-
-          <SettingItem
-            icon="star"
-            title={t('rateApp', 'Rate App')}
-            onPress={() => {
-              /* Open app store */
-            }}
-          />
-        </Animated.View>
-
-        {/* Account Section */}
-        <Animated.View entering={FadeIn.delay(500)} style={[styles.section, styles.lastSection]}>
-          <Text style={[styles.sectionTitle, { color: themeStyles.colors.text.primary }]}>
-            {t('account', 'Account')}
-          </Text>
-
-          <TouchableOpacity
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ paddingBottom: verticalScale(100) }}
+        >
+          <Animated.View
+            entering={FadeIn.duration(600)}
             style={[
-              styles.settingItem,
-              styles.logoutButton,
+              styles.profile,
               {
-                backgroundColor: themeStyles.colors.darkGrey,
-                opacity: isLoggingOut ? 0.6 : 1,
+                backgroundColor: surfaceColor,
+                ...Platform.select({
+                  ios: {
+                    shadowColor: themeStyles.colors.black,
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isDarkTheme ? 0.3 : 0.1,
+                    shadowRadius: 3,
+                  },
+                  android: {
+                    elevation: 4,
+                  },
+                }),
               },
             ]}
-            onPress={handleLogout}
-            disabled={isLoggingOut}
           >
-            <View style={styles.settingItemLeft}>
-              {isLoggingOut ? (
-                <ActivityIndicator size="small" color={themeStyles.colors.status.error} />
-              ) : (
-                <Feather name="log-out" size={20} color={themeStyles.colors.status.error} />
-              )}
+            {renderAvatar()}
+            <Text style={[styles.profileName, { color: textColor }]}>{getFullName()}</Text>
+            <Text style={[styles.profileEmail, { color: secondaryTextColor }]}>
+              {userData?.email || user?.email || t('defaultEmail', 'user@example.com')}
+            </Text>
 
-              <Text style={[styles.settingItemTitle, { color: themeStyles.colors.status.error }]}>
-                {isLoggingOut ? t('loggingOut', 'Logging out...') : t('logout', 'Logout')}
-              </Text>
+            <View style={styles.actionButtonsContainer}>
+              <TouchableOpacity
+                style={styles.actionButtonWrapper}
+                onPress={() => router.push('/(app)/settings/edit')}
+                activeOpacity={0.7}
+                disabled={isLoading}
+              >
+                <View
+                  style={[
+                    styles.profileAction,
+                    {
+                      backgroundColor: primaryColor,
+                      opacity: isLoading ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.profileActionText, { color: themeStyles.colors.white }]}>
+                    {t('editProfile', 'Edit Profile')}
+                  </Text>
+                  <Feather color={themeStyles.colors.white} name="edit" size={16} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.actionButtonWrapper}
+                onPress={handleLogout}
+                disabled={isLoading}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.profileAction,
+                    {
+                      backgroundColor: primaryColor,
+                      opacity: isLoading ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  <Text style={[styles.profileActionText, { color: themeStyles.colors.white }]}>
+                    {isLoggingOut ? t('loggingOut', 'Logging out...') : t('logOut', 'Log Out')}
+                  </Text>
+                  {isLoggingOut ? (
+                    <ActivityIndicator size="small" color={themeStyles.colors.white} />
+                  ) : (
+                    <Feather color={themeStyles.colors.white} name="log-out" size={16} />
+                  )}
+                </View>
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </Animated.View>
+          </Animated.View>
 
-        {/* Footer spacing */}
-        <View style={styles.footer} />
-      </ScrollView>
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+              {t('preferences', 'Preferences')}
+            </Text>
+
+            <View
+              style={[
+                styles.sectionBody,
+                {
+                  backgroundColor: surfaceColor,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: themeStyles.colors.black,
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: isDarkTheme ? 0.2 : 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                },
+              ]}
+            >
+              <View style={[styles.rowWrapper, styles.rowFirst, { borderColor: borderColor }]}>
+                <TouchableOpacity
+                  onPress={handleLanguageChange}
+                  style={styles.row}
+                  activeOpacity={0.6}
+                  disabled={isLoading}
+                >
+                  <View style={[styles.rowIcon, { backgroundColor: '#fe9400' }]}>
+                    <Feather
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
+                      name="globe"
+                      size={20}
+                    />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: textColor }]}>
+                    {t('languagePreference', 'Language')}
+                  </Text>
+                  <View style={styles.rowSpacer} />
+                  {isLanguageLoading ? (
+                    <ActivityIndicator size="small" color={primaryColor} />
+                  ) : (
+                    <>
+                      <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
+                        {i18n.language === 'en' ? t('english', 'English') : t('spanish', 'Español')}
+                      </Text>
+                      <Feather color={secondaryTextColor} name="chevron-right" size={20} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.rowWrapper, { borderColor: borderColor }]}>
+                <TouchableOpacity
+                  onPress={handleThemeChange}
+                  style={styles.row}
+                  activeOpacity={0.6}
+                  disabled={isLoading}
+                >
+                  <View style={[styles.rowIcon, { backgroundColor: '#007AFF' }]}>
+                    <Feather
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
+                      name={isDarkTheme ? 'moon' : 'sun'}
+                      size={20}
+                    />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: textColor }]}>{t('theme', 'Theme')}</Text>
+                  <View style={styles.rowSpacer} />
+                  {isThemeChanging ? (
+                    <ActivityIndicator size="small" color={primaryColor} />
+                  ) : (
+                    <>
+                      <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
+                        {getThemeLabel()}
+                      </Text>
+                      <Feather color={secondaryTextColor} name="chevron-right" size={20} />
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              <View style={[styles.rowWrapper, { borderColor: borderColor }]}>
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: '#32c759' }]}>
+                    <Feather
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
+                      name="navigation"
+                      size={20}
+                    />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: textColor }]}>
+                    {t('location', 'Location')}
+                  </Text>
+                  <View style={styles.rowSpacer} />
+                  <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
+                    {getLocation()}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+              {t('notifications', 'Notifications')}
+            </Text>
+
+            <View
+              style={[
+                styles.sectionBody,
+                {
+                  backgroundColor: surfaceColor,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: themeStyles.colors.black,
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: isDarkTheme ? 0.2 : 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                },
+              ]}
+            >
+              <View style={[styles.rowWrapper, styles.rowFirst, { borderColor: borderColor }]}>
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: '#38C959' }]}>
+                    <Feather
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
+                      name="at-sign"
+                      size={20}
+                    />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: textColor }]}>
+                    {t('emailNotifications', 'Email Notifications')}
+                  </Text>
+                  <View style={styles.rowSpacer} />
+                  <AnimatedSwitch
+                    entering={FadeIn}
+                    onValueChange={email => {
+                      try {
+                        Haptics.selectionAsync();
+                      } catch (error) {
+                        console.warn('Haptic feedback not supported:', error);
+                      }
+                      setNotificationSettings(prev => ({ ...prev, email }));
+                    }}
+                    value={notificationSettings.email}
+                    disabled={isLoading}
+                    trackColor={{
+                      false: isDarkTheme ? '#555555' : '#D0D0D0',
+                      true: primaryColor + '80',
+                    }}
+                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
+                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
+                  />
+                </View>
+              </View>
+
+              <View style={[styles.rowWrapper, { borderColor: borderColor }]}>
+                <View style={styles.row}>
+                  <View style={[styles.rowIcon, { backgroundColor: '#38C959' }]}>
+                    <Feather
+                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
+                      name="bell"
+                      size={20}
+                    />
+                  </View>
+                  <Text style={[styles.rowLabel, { color: textColor }]}>
+                    {t('pushNotifications', 'Push Notifications')}
+                  </Text>
+                  <View style={styles.rowSpacer} />
+                  <AnimatedSwitch
+                    entering={FadeIn}
+                    onValueChange={push => {
+                      try {
+                        Haptics.selectionAsync();
+                      } catch (error) {
+                        console.warn('Haptic feedback not supported:', error);
+                      }
+                      setNotificationSettings(prev => ({ ...prev, push }));
+                    }}
+                    value={notificationSettings.push}
+                    disabled={isLoading}
+                    trackColor={{
+                      false: isDarkTheme ? '#555555' : '#D0D0D0',
+                      true: primaryColor + '80',
+                    }}
+                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
+                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
+                  />
+                </View>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
     </SafeAreaView>
   );
 }
@@ -428,109 +534,123 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: horizontalScale(20),
-    paddingVertical: verticalScale(16),
-    paddingTop: Platform.OS === 'ios' ? verticalScale(8) : verticalScale(16),
+  contentContainer: {
+    paddingVertical: verticalScale(14),
+    flex: 1,
   },
-  backButton: {
-    padding: moderateScale(8),
+  header: {
+    paddingHorizontal: horizontalScale(24),
+    marginBottom: verticalScale(16),
   },
   headerTitle: {
-    fontSize: moderateScale(20),
-    fontWeight: '600',
+    fontSize: moderateScale(28),
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  headerRight: {
-    width: moderateScale(40),
+  headerSubtitle: {
+    fontSize: moderateScale(16),
+    marginTop: verticalScale(4),
   },
-  scrollView: {
+  profile: {
+    padding: horizontalScale(24),
+    alignItems: 'center',
+    borderRadius: moderateScale(16),
+    marginHorizontal: horizontalScale(16),
+    marginBottom: verticalScale(24),
+    marginTop: verticalScale(4),
+  },
+  avatar: {
+    height: moderateScale(80),
+    width: moderateScale(80),
+    borderRadius: moderateScale(40),
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarText: {
+    fontSize: moderateScale(24),
+    fontWeight: '700',
+  },
+  profileName: {
+    marginTop: verticalScale(16),
+    fontSize: moderateScale(18),
+    fontWeight: '700',
+  },
+  profileEmail: {
+    marginTop: verticalScale(4),
+    fontSize: moderateScale(16),
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    marginTop: verticalScale(16),
+    gap: horizontalScale(8),
+  },
+  actionButtonWrapper: {
     flex: 1,
+  },
+  profileAction: {
+    paddingVertical: verticalScale(8),
+    paddingHorizontal: horizontalScale(12),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: moderateScale(8),
+    minWidth: horizontalScale(120),
+    gap: horizontalScale(8),
+  },
+  profileActionText: {
+    fontSize: moderateScale(14),
+    fontWeight: '600',
   },
   section: {
     marginBottom: verticalScale(24),
-    paddingHorizontal: horizontalScale(20),
-  },
-  lastSection: {
-    marginBottom: verticalScale(8),
   },
   sectionTitle: {
-    fontSize: moderateScale(16),
-    fontWeight: '600',
-    marginBottom: verticalScale(12),
-    paddingHorizontal: horizontalScale(4),
-  },
-  profileCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: moderateScale(16),
-    borderRadius: moderateScale(12),
-  },
-  profileInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatar: {
-    width: moderateScale(48),
-    height: moderateScale(48),
-    borderRadius: moderateScale(24),
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: horizontalScale(12),
-  },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: moderateScale(18),
-    fontWeight: '600',
-  },
-  profileDetails: {
-    flex: 1,
-  },
-  profileName: {
-    fontSize: moderateScale(16),
-    fontWeight: '600',
-    marginBottom: verticalScale(2),
-  },
-  profileEmail: {
+    marginBottom: verticalScale(16),
+    marginHorizontal: horizontalScale(24),
     fontSize: moderateScale(14),
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  editButton: {
-    padding: moderateScale(8),
+  sectionBody: {
+    borderRadius: moderateScale(16),
+    marginHorizontal: horizontalScale(16),
+    paddingLeft: horizontalScale(16),
+    overflow: 'hidden',
   },
-  settingItem: {
+  row: {
+    paddingVertical: verticalScale(16),
+    paddingRight: horizontalScale(16),
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: moderateScale(16),
-    borderRadius: moderateScale(12),
-    marginBottom: verticalScale(8),
+    height: verticalScale(70),
   },
-  settingItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
+  rowWrapper: {
+    borderTopWidth: 1,
+    backdropFilter: 'blur(10px)',
   },
-  settingItemContent: {
-    marginLeft: horizontalScale(12),
-    flex: 1,
+  rowFirst: {
+    borderTopWidth: 0,
   },
-  settingItemTitle: {
+  rowLabel: {
     fontSize: moderateScale(16),
     fontWeight: '500',
+    flex: 1,
+    flexWrap: 'wrap',
   },
-  settingItemSubtitle: {
-    fontSize: moderateScale(14),
-    marginTop: verticalScale(2),
+  rowValue: {
+    fontSize: moderateScale(16),
+    marginRight: horizontalScale(8),
   },
-  logoutButton: {
-    borderWidth: 1,
-    borderColor: 'rgba(255, 59, 48, 0.2)',
+  rowIcon: {
+    marginRight: horizontalScale(16),
+    width: moderateScale(36),
+    height: moderateScale(36),
+    borderRadius: moderateScale(8),
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  footer: {
-    height: verticalScale(40),
+  rowSpacer: {
+    flex: 1,
   },
 });

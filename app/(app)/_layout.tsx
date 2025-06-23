@@ -1,29 +1,29 @@
 // app/(app)/_layout.tsx
 import TabBarIcon from '@/src/components/tabbaricon';
-import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { moderateScale, verticalScale } from '@/src/theme';
 import { Tabs } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
-import { useTheme } from '../../src/context/ThemeContext';
 
 export default function TabLayout() {
   const { t } = useTranslation();
-  const { isDarkTheme } = useTheme();
-  const { themeStyles } = useAppTheme();
-  // Define the tab bar background color based on theme
-  const tabBarBackgroundColor = isDarkTheme
-    ? themeStyles.colors.black_grey
-    : themeStyles.colors.white;
-
-  const tabBarBorderColor = isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.border;
+  const {
+    surfaceColor,
+    textColor,
+    secondaryTextColor,
+    primaryColor,
+    borderColor,
+    themeStyles,
+    isDarkTheme,
+  } = useAppTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: tabBarBackgroundColor,
+          backgroundColor: surfaceColor,
           height: verticalScale(90),
           paddingTop: themeStyles.spacing.xs,
           paddingBottom: verticalScale(22),
@@ -32,7 +32,7 @@ export default function TabLayout() {
           left: 0,
           right: 0,
           borderTopWidth: 1,
-          borderTopColor: tabBarBorderColor,
+          borderTopColor: borderColor,
           ...Platform.select({
             ios: {
               shadowColor: themeStyles.colors.black,
@@ -46,10 +46,8 @@ export default function TabLayout() {
           }),
         },
         tabBarShowLabel: false,
-        tabBarActiveTintColor: themeStyles.colors.greenThemeColor,
-        tabBarInactiveTintColor: isDarkTheme
-          ? themeStyles.colors.grey
-          : themeStyles.colors.text.secondary,
+        tabBarActiveTintColor: primaryColor,
+        tabBarInactiveTintColor: secondaryTextColor,
       }}
     >
       <Tabs.Screen
@@ -87,7 +85,7 @@ export default function TabLayout() {
               style={{
                 width: moderateScale(32),
                 height: moderateScale(32),
-                tintColor: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary,
+                tintColor: textColor, // ✅ Using textColor from hook
               }}
             />
           ),
@@ -107,7 +105,7 @@ export default function TabLayout() {
                 style={[
                   styles.cameraButtonInner,
                   {
-                    backgroundColor: themeStyles.colors.greenThemeColor,
+                    backgroundColor: primaryColor,
                     ...Platform.select({
                       ios: {
                         shadowColor: themeStyles.colors.black,

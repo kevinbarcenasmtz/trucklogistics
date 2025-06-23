@@ -1,13 +1,12 @@
-// app/_layout.tsx - CLEANED UP VERSION
+// app/_layout.tsx
 import { AuthProvider } from '@/src/context/AuthContext';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
-import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import 'react-native-gesture-handler';
-
 // Import i18n config to initialize it
 import '@/src/i18n';
 import '../src/config/firebase';

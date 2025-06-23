@@ -1,5 +1,4 @@
 // src/state/appStateMachine.ts (Updated)
-import { useRouter } from 'expo-router';
 import { useEffect, useReducer } from 'react';
 import { Platform } from 'react-native';
 import { getAvailableSteps, isOnboardingComplete } from '../onboarding/stepRegistry';
@@ -158,7 +157,6 @@ const initializeApp = async (): Promise<AppState> => {
 
 export const useAppStateMachine = () => {
   const [state, dispatch] = useReducer(appReducer, { type: 'initializing' });
-  const router = useRouter();
 
   useEffect(() => {
     initializeApp().then(initialState => {

@@ -1,7 +1,8 @@
 // app/(auth)/_layout.tsx - CLEANED UP VERSION
-import { useAppTheme } from '@/src/hooks/useOnboardingTheme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
+
 export default function AuthLayout() {
   const { backgroundColor } = useAppTheme();
 
