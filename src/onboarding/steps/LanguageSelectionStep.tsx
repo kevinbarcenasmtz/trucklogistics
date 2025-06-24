@@ -35,16 +35,13 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
   const handleLanguageSelect = async (language: Language) => {
     try {
       // Save preference and change language
-      await Promise.all([
-        saveLanguagePreference(language),
-        i18n.changeLanguage(language)
-      ]);
+      await Promise.all([saveLanguagePreference(language), i18n.changeLanguage(language)]);
 
       // Complete the step with language data
       onComplete({ language });
     } catch (error) {
       console.error('Failed to set language:', error);
-      
+
       // Show user-friendly error
       Alert.alert(
         t('error', 'Error'),
@@ -52,12 +49,12 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
         [
           {
             text: t('cancel', 'Cancel'),
-            style: 'cancel'
+            style: 'cancel',
           },
           {
             text: t('retry', 'Retry'),
-            onPress: () => handleLanguageSelect(language)
-          }
+            onPress: () => handleLanguageSelect(language),
+          },
         ]
       );
     }
@@ -82,9 +79,7 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             }),
           ]}
         />
-        <Text style={[styles.appTitle, { color: getTextColor() }]}>
-          Trucking Logistics Pro
-        </Text>
+        <Text style={[styles.appTitle, { color: getTextColor() }]}>Trucking Logistics Pro</Text>
         <Text style={[styles.title, { color: getTextColor() }]}>
           {t('selectLanguage', 'Choose your preferred language')}
         </Text>
@@ -99,9 +94,7 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             backgroundColor={
               context.selectedLanguage === option.code ? surfaceColor : buttonPrimaryBg
             }
-            textColor={
-              context.selectedLanguage === option.code ? getTextColor() : '#FFFFFF'
-            }
+            textColor={context.selectedLanguage === option.code ? getTextColor() : '#FFFFFF'}
             style={styles.languageButton}
           />
         ))}

@@ -17,14 +17,8 @@ const FormInput: React.FC<FormInputProps> = ({
   iconType,
   ...rest
 }) => {
-  const { 
-    themeStyles, 
-    surfaceColor, 
-    textColor, 
-    secondaryTextColor, 
-    borderColor,
-    isDarkTheme 
-  } = useAppTheme();
+  const { themeStyles, surfaceColor, textColor, secondaryTextColor, borderColor, isDarkTheme } =
+    useAppTheme();
 
   return (
     <View
@@ -49,11 +43,7 @@ const FormInput: React.FC<FormInputProps> = ({
           },
         ]}
       >
-        <AntDesign
-          name={iconType}
-          size={moderateScale(25)}
-          color={secondaryTextColor}
-        />
+        <AntDesign name={iconType} size={moderateScale(25)} color={secondaryTextColor} />
       </View>
       <TextInput
         value={labelValue}

@@ -155,7 +155,7 @@ export default function LoginScreen() {
           <SocialButton
             buttonTitle={t('continueWithGoogle', 'Continue with Google')}
             btnType="google-plus"
-            color={"#FFFF"}
+            color={'#FFFF'}
             backgroundColor={buttonPrimaryBg}
             onPress={handleGoogleLogin}
             disabled={isGoogleLoading}
