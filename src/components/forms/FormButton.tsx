@@ -1,6 +1,6 @@
-// src/components/forms/FormButton.tsx (Updated)
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, verticalScale } from '@/src/theme';
+// src/components/forms/FormButton.tsx
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { verticalScale } from '@/src/theme';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 
@@ -13,25 +13,25 @@ interface FormButtonProps extends TouchableOpacityProps {
 
 const FormButton: React.FC<FormButtonProps> = ({
   buttonTitle,
-  backgroundColor = '#004d40', // Default to your app's green
-  textColor = '#FFFFFF', // Default to white
+  backgroundColor,
+  textColor,
   disabled = false,
   style,
   ...rest
 }) => {
-  const themeStyles = getThemeStyles(useTheme().theme);
-
+  const { themeStyles, buttonPrimaryBg } = useAppTheme();
+  
   return (
     <TouchableOpacity
       style={[
         styles.buttonContainer,
         {
           height: verticalScale(50),
-          backgroundColor,
+          backgroundColor: backgroundColor || buttonPrimaryBg,
           borderRadius: themeStyles.borderRadius.md,
           marginVertical: themeStyles.spacing.md,
         },
-        style, // Apply custom styles last
+        style,
       ]}
       disabled={disabled}
       activeOpacity={0.7}
@@ -42,7 +42,7 @@ const FormButton: React.FC<FormButtonProps> = ({
           styles.buttonText,
           {
             fontSize: themeStyles.typography.fontSize.md,
-            color: textColor, // Always use the provided textColor
+            color: textColor || '#FFFFFF',
           },
         ]}
       >

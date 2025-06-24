@@ -1,6 +1,6 @@
 // src/components/forms/FormInput.tsx
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { AntDesign } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
@@ -8,7 +8,7 @@ import { StyleSheet, TextInput, TextInputProps, View } from 'react-native';
 interface FormInputProps extends TextInputProps {
   labelValue?: string;
   placeholderText?: string;
-  iconType: keyof typeof AntDesign.glyphMap; // Ensures only valid AntDesign icon names are used
+  iconType: keyof typeof AntDesign.glyphMap;
 }
 
 const FormInput: React.FC<FormInputProps> = ({
@@ -17,9 +17,14 @@ const FormInput: React.FC<FormInputProps> = ({
   iconType,
   ...rest
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { 
+    themeStyles, 
+    surfaceColor, 
+    textColor, 
+    secondaryTextColor, 
+    borderColor,
+    isDarkTheme 
+  } = useAppTheme();
 
   return (
     <View
@@ -29,8 +34,7 @@ const FormInput: React.FC<FormInputProps> = ({
           marginVertical: themeStyles.spacing.sm,
           height: verticalScale(50),
           borderRadius: themeStyles.borderRadius.md,
-          // Use theme-aware background color instead of hardcoded white
-          backgroundColor: isDarkTheme ? themeStyles.colors.surface : '#FFFFFF',
+          backgroundColor: surfaceColor,
           ...themeStyles.shadow.sm,
         },
       ]}
@@ -40,8 +44,7 @@ const FormInput: React.FC<FormInputProps> = ({
           styles.iconStyle,
           {
             padding: themeStyles.spacing.sm,
-            // Use theme-aware border color
-            borderRightColor: isDarkTheme ? themeStyles.colors.border : '#f3f3ec',
+            borderRightColor: borderColor,
             width: horizontalScale(50),
           },
         ]}
@@ -49,7 +52,7 @@ const FormInput: React.FC<FormInputProps> = ({
         <AntDesign
           name={iconType}
           size={moderateScale(25)}
-          color={themeStyles.colors.text.secondary}
+          color={secondaryTextColor}
         />
       </View>
       <TextInput
@@ -59,13 +62,11 @@ const FormInput: React.FC<FormInputProps> = ({
           {
             paddingHorizontal: themeStyles.spacing.md,
             fontSize: themeStyles.typography.fontSize.md,
-            // Use theme-aware text color
-            color: themeStyles.colors.text.primary,
+            color: textColor,
           },
         ]}
         numberOfLines={1}
         placeholder={placeholderText}
-        // Use theme-aware placeholder color
         placeholderTextColor={isDarkTheme ? '#999' : '#666'}
         {...rest}
       />
