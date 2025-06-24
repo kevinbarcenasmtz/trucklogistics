@@ -4,6 +4,9 @@ import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-si
 import { useRouter } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Alert } from 'react-native';
+import { ErrorSanitizer, SecurityError } from '../security/ErrorSanitizer';
+import { RateLimiter } from '../security/RateLimiter';
+import { SecureStorage } from '../security/SecureStorage';
 
 // React Native Firebase imports
 import auth from '@react-native-firebase/auth';
@@ -47,56 +50,14 @@ type AuthContextType = {
 };
 
 // Error handling helper
-const handleAuthError = (error: any) => {
-  console.log('Auth error:', {
-    code: error.code,
-    message: error.message,
-    fullError: JSON.stringify(error, null, 2),
+const handleAuthError = (error: any, context: string = 'auth') => {
+  ErrorSanitizer.logSecurityEvent(`${context}_error`, {
+    errorCode: error.code,
+    timestamp: Date.now(),
   });
 
-  let errorMessage = 'An error occurred during sign in';
-
-  switch (error.code) {
-    case 'auth/user-not-found':
-      errorMessage = 'No user found with this email';
-      break;
-    case 'auth/wrong-password':
-      errorMessage = 'Incorrect password';
-      break;
-    case 'auth/invalid-email':
-      errorMessage = 'Invalid email format';
-      break;
-    case 'auth/email-already-in-use':
-      errorMessage = 'Email already in use';
-      break;
-    case 'auth/weak-password':
-      errorMessage = 'Password is too weak';
-      break;
-    case 'auth/user-disabled':
-      errorMessage = 'This account has been disabled';
-      break;
-    case 'auth/too-many-requests':
-      errorMessage = 'Too many failed login attempts. Please try again later';
-      break;
-    // Google Sign-In specific errors
-    case 'auth/operation-not-allowed':
-      errorMessage = 'Operation not allowed';
-      break;
-    // Google Sign-In native errors
-    case 'SIGN_IN_CANCELLED':
-      errorMessage = 'Sign in was cancelled';
-      break;
-    case 'IN_PROGRESS':
-      errorMessage = 'Sign in is already in progress';
-      break;
-    case 'PLAY_SERVICES_NOT_AVAILABLE':
-      errorMessage = 'Google Play Services is not available';
-      break;
-    default:
-      errorMessage = error.message;
-  }
-
-  Alert.alert('Error', errorMessage);
+  const userMessage = ErrorSanitizer.sanitizeAuthError(error);
+  Alert.alert('Authentication Error', userMessage);
 };
 
 // Create auth context
@@ -170,14 +131,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const userDocData = userDoc.data();
 
           if (userDocData) {
-            setUser({
+            const userData = {
               uid: firebaseUser.uid,
               email: userDocData.email || '',
               fname: userDocData.fname || '',
               lname: userDocData.lname || '',
               createdAt: userDocData.createdAt,
-            });
+            };
 
+            setUser(userData);
             setUserData({
               email: userDocData.email,
               fname: userDocData.fname,
@@ -187,18 +149,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               city: userDocData.city,
               state: userDocData.state,
             });
+
+            await SecureStorage.storeAuthToken('authenticated'); // Replace AsyncStorage
           } else {
             setUser(null);
             setUserData(null);
+            await SecureStorage.removeAuthToken();
           }
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          ErrorSanitizer.logSecurityEvent('auth_state_error');
           setUser(null);
           setUserData(null);
+          await SecureStorage.removeAuthToken();
         }
       } else {
         setUser(null);
         setUserData(null);
+        await SecureStorage.removeAuthToken();
       }
       setLoading(false);
     });
@@ -233,10 +200,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
+
+      // Check rate limit before attempting login
+      await RateLimiter.checkRateLimit(email.toLowerCase());
+
       validateEmail(email);
       await auth().signInWithEmailAndPassword(email, password);
+
+      // Clear rate limit on successful login
+      await RateLimiter.clearRateLimit(email.toLowerCase());
+
+      // Store auth token securely
+      await SecureStorage.storeAuthToken('authenticated');
     } catch (error: any) {
-      handleAuthError(error);
+      if (error instanceof SecurityError) {
+        Alert.alert('Security Notice', error.userMessage);
+        throw error;
+      }
+
+      // Record failed attempt for rate limiting
+      await RateLimiter.recordFailedAttempt(email.toLowerCase());
+
+      handleAuthError(error, 'login');
       throw error;
     } finally {
       setLoading(false);
@@ -247,8 +232,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const register = async (email: string, password: string, fname: string, lname: string) => {
     try {
       setLoading(true);
+
+      await RateLimiter.checkRateLimit(email.toLowerCase());
+
       validateEmail(email);
-      validatePassword(password);
+
+      // No need to call validatePassword here since AuthService.validateSignupForm handles it
+      // The validation in the UI components will catch password issues before reaching here
 
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
       const newUser = {
@@ -260,8 +250,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       };
 
       await firestore().collection('users').doc(userCredential.user.uid).set(newUser);
+      await RateLimiter.clearRateLimit(email.toLowerCase());
+      await SecureStorage.storeAuthToken('authenticated');
     } catch (error: any) {
-      handleAuthError(error);
+      if (error instanceof SecurityError) {
+        Alert.alert('Security Notice', error.userMessage);
+        throw error;
+      }
+
+      await RateLimiter.recordFailedAttempt(email.toLowerCase());
+      handleAuthError(error, 'register');
       throw error;
     } finally {
       setLoading(false);
@@ -273,12 +271,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       await auth().signOut();
-      await AsyncStorage.removeItem(AUTH_STATE_KEY);
+      await SecureStorage.removeAuthToken(); // Replace AsyncStorage
       setUser(null);
       setUserData(null);
       router.replace('/(auth)/login');
     } catch (error: any) {
-      handleAuthError(error);
+      handleAuthError(error, 'logout');
       throw error;
     } finally {
       setLoading(false);
@@ -366,11 +364,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const resetPassword = async (email: string) => {
     try {
       setLoading(true);
+
+      // Apply rate limiting to password reset too
+      await RateLimiter.checkRateLimit(email.toLowerCase());
+
       validateEmail(email);
       await auth().sendPasswordResetEmail(email);
-      Alert.alert('Success', 'Password reset email has been sent');
+
+      // Clear rate limit on success
+      await RateLimiter.clearRateLimit(email.toLowerCase());
     } catch (error: any) {
-      handleAuthError(error);
+      if (error instanceof SecurityError) {
+        Alert.alert('Security Notice', error.userMessage);
+        throw error;
+      }
+
+      await RateLimiter.recordFailedAttempt(email.toLowerCase());
+      handleAuthError(error, 'reset_password');
       throw error;
     } finally {
       setLoading(false);
