@@ -241,6 +241,7 @@ const APPLICATION_STYLES = {
 // Theme styles interface
 export interface ThemeStyles {
   colors: {
+    error: string;
     primary: string;
     background: string;
     surface: string;
@@ -292,6 +293,7 @@ export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
 
   return {
     colors: {
+      error: COLORS.status.error,
       primary: isDark ? COLORS.primary.dark : COLORS.primary.light,
       background: isDark ? COLORS.background.dark : COLORS.background.light,
       surface: isDark ? COLORS.surface.dark : COLORS.surface.light,

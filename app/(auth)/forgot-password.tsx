@@ -1,5 +1,5 @@
 // app/(auth)/forgot-password.tsx
-import React, { useReducer } from 'react';
+import React from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
@@ -18,63 +19,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { AuthService } from '@/src/services/AuthService';
-
-// Simple state machine for forgot password
-type ForgotPasswordState = 
-  | { type: 'idle'; email: string }
-  | { type: 'submitting'; email: string }
-  | { type: 'success'; email: string }
-  | { type: 'error'; email: string; error: string }
-
-type ForgotPasswordEvent = 
-  | { type: 'UPDATE_EMAIL'; email: string }
-  | { type: 'SUBMIT' }
-  | { type: 'SUBMIT_SUCCESS' }
-  | { type: 'SUBMIT_ERROR'; error: string }
-  | { type: 'RESET' }
-
-const forgotPasswordMachine = (
-  state: ForgotPasswordState, 
-  event: ForgotPasswordEvent
-): ForgotPasswordState => {
-  switch (state.type) {
-    case 'idle':
-      if (event.type === 'UPDATE_EMAIL') {
-        return { ...state, email: event.email };
-      }
-      if (event.type === 'SUBMIT') {
-        return { type: 'submitting', email: state.email };
-      }
-      return state;
-
-    case 'submitting':
-      if (event.type === 'SUBMIT_SUCCESS') {
-        return { type: 'success', email: state.email };
-      }
-      if (event.type === 'SUBMIT_ERROR') {
-        return { type: 'error', email: state.email, error: event.error };
-      }
-      return state;
-
-    case 'error':
-      if (event.type === 'UPDATE_EMAIL') {
-        return { type: 'idle', email: event.email };
-      }
-      if (event.type === 'RESET') {
-        return { type: 'idle', email: state.email };
-      }
-      return state;
-
-    case 'success':
-      if (event.type === 'RESET') {
-        return { type: 'idle', email: '' };
-      }
-      return state;
-
-    default:
-      return state;
-  }
-};
+import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -83,61 +28,58 @@ export default function ForgotPasswordScreen() {
   const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles } =
     useAppTheme();
 
-  // ✅ Single state machine replaces useState
-  const [state, dispatch] = useReducer(forgotPasswordMachine, {
-    type: 'idle',
-    email: ''
-  });
+  const { state, dispatch } = useAuthFormMachine('forgot-password');
 
   // Pure calculations - no useState needed
   const isSubmitting = state.type === 'submitting';
   const hasError = state.type === 'error';
 
   const handleEmailChange = (email: string) => {
-    dispatch({ type: 'UPDATE_EMAIL', email });
+    dispatch({ type: 'UPDATE_FIELD', field: 'email', value: email });
   };
 
-const handleReset = async () => {
-  dispatch({ type: 'SUBMIT' });
+  const handleReset = async () => {
+    dispatch({ type: 'SUBMIT_CREDENTIALS' });
 
-  // Simple, safe validation
-  if (!state.email.trim()) {
-    dispatch({ type: 'SUBMIT_ERROR', error: t('pleaseEnterEmail', 'Please enter your email') });
-    Alert.alert('Error', t('pleaseEnterEmail', 'Please enter your email'));
-    return;
-  }
-
-  // Use AuthService for email format validation
-  const validation = AuthService.validateLoginForm({ email: state.email, password: 'temp' });
-  if (!validation.isValid) {
-    // Find the email-specific error safely
-    const emailError = validation.errors.find(error => 
-      error && typeof error === 'string' && error.toLowerCase().includes('email')
-    );
+    // Use dedicated validation
+    const validation = AuthService.validateForgotPasswordForm({ 
+      email: state.form.email 
+    });
     
-    if (emailError) {
-      dispatch({ type: 'SUBMIT_ERROR', error: emailError });
-      Alert.alert('Error', emailError);
+    if (!validation.isValid) {
+      dispatch({ type: 'VALIDATE_ERROR', error: validation.errors[0] });
+      Alert.alert(t('error', 'Error'), validation.errors[0]);
       return;
     }
-  }
 
-  try {
-    const sanitizedEmail = AuthService.sanitizeFormData({ email: state.email, password: '' }).email;
-    await resetPassword(sanitizedEmail);
-    
-    dispatch({ type: 'SUBMIT_SUCCESS' });
-    
-    Alert.alert(
-      t('resetEmailSent', 'Reset Email Sent'),
-      t('checkEmailForInstructions', 'Please check your email for password reset instructions'),
-      [{ text: t('ok', 'OK'), onPress: () => router.back() }]
-    );
-  } catch (error: any) {
-    dispatch({ type: 'SUBMIT_ERROR', error: error.message });
-    Alert.alert('Error', error.message);
-  }
-};
+    dispatch({ type: 'VALIDATE_SUCCESS' });
+
+    // Add haptic feedback
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+
+    try {
+      const sanitizedEmail = AuthService.sanitizeFormData({ 
+        email: state.form.email, 
+        password: '' 
+      }).email;
+      
+      await resetPassword(sanitizedEmail);
+      dispatch({ type: 'SUBMIT_SUCCESS' });
+      
+      Alert.alert(
+        t('resetEmailSent', 'Reset Email Sent'),
+        t('checkEmailForInstructions', 'Please check your email for password reset instructions'),
+        [{ text: t('ok', 'OK'), onPress: () => router.back() }]
+      );
+    } catch (error: any) {
+      dispatch({ type: 'SUBMIT_ERROR', error: error.message });
+      Alert.alert(t('error', 'Error'), error.message);
+    }
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
@@ -163,9 +105,18 @@ const handleReset = async () => {
             )}
           </Text>
 
+          {hasError && (
+            <View style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}>
+              <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
+              <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
+                {state.error}
+              </Text>
+            </View>
+          )}
+
           <View style={styles.inputContainer}>
             <FormInput
-              labelValue={state.email}
+              labelValue={state.form.email}
               onChangeText={handleEmailChange}
               placeholderText={t('enterEmail', 'Enter Your Email')}
               iconType="mail"
@@ -221,6 +172,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: verticalScale(30),
     paddingHorizontal: horizontalScale(20),
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: moderateScale(12),
+    borderRadius: moderateScale(8),
+    marginBottom: verticalScale(8),
+    gap: horizontalScale(8),
+    width: '100%',
+  },
+  errorText: {
+    fontSize: moderateScale(14),
+    flex: 1,
   },
   inputContainer: {
     width: '100%',

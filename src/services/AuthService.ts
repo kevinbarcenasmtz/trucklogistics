@@ -21,7 +21,7 @@ export class AuthService {
       errors.push('Password is required');
     }
 
-    // Basic email format check (will be enhanced later with security)
+    // Basic email format check
     if (form.email.trim() && !this.isValidEmailFormat(form.email)) {
       errors.push('Please enter a valid email address');
     }
@@ -65,17 +65,57 @@ export class AuthService {
       errors.push('Passwords do not match');
     }
 
-    // Password strength check (basic for now)
-    if (form.password && form.password.length < 6) {
-      errors.push('Password should be at least 6 characters');
+    // Password strength validation
+    const passwordErrors = this.validatePasswordStrength(form.password || '');
+    if (passwordErrors.length > 0) {
+      errors.push(...passwordErrors);
     }
 
     return { isValid: errors.length === 0, errors };
   }
 
   /**
+   * Validate forgot password form data
+   */
+  static validateForgotPasswordForm(form: { email: string }): ValidationResult {
+    const errors: string[] = [];
+
+    if (!form.email.trim()) {
+      errors.push('Email is required');
+    }
+
+    if (form.email.trim() && !this.isValidEmailFormat(form.email)) {
+      errors.push('Please enter a valid email address');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Validate password strength
+   * Matches the validation in AuthContext
+   */
+  static validatePasswordStrength(password: string): string[] {
+    const errors: string[] = [];
+    
+    if (password.length < 8) {
+      errors.push('Password must be at least 8 characters long');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('Password must contain at least one uppercase letter');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('Password must contain at least one lowercase letter');
+    }
+    if (!/[0-9]/.test(password)) {
+      errors.push('Password must contain at least one number');
+    }
+    
+    return errors;
+  }
+
+  /**
    * Basic email format validation
-   * (This will be enhanced with security patterns later)
    */
   private static isValidEmailFormat(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -89,7 +129,7 @@ export class AuthService {
     return {
       email: form.email.trim().toLowerCase(),
       password: form.password, // Don't trim passwords
-      confirmPassword: form.confirmPassword?.trim(),
+      confirmPassword: form.confirmPassword, // Don't trim passwords
       fname: form.fname?.trim(),
       lname: form.lname?.trim(),
     };

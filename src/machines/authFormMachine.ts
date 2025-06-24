@@ -71,6 +71,12 @@ const authFormMachine = (state: AuthFormState, event: AuthFormEvent): AuthFormSt
           form: { ...state.form, [event.field]: event.value },
         };
       }
+      if (event.type === 'SUBMIT_CREDENTIALS') {
+        return { type: 'validating', form: state.form };
+      }
+      if (event.type === 'SUBMIT_GOOGLE') {
+        return { type: 'submitting', form: state.form, method: 'google' };
+      }
       return state;
 
     case 'success':
@@ -87,10 +93,12 @@ const authFormMachine = (state: AuthFormState, event: AuthFormEvent): AuthFormSt
   }
 };
 
-export const useAuthFormMachine = (mode: 'login' | 'signup') => {
-  const initialForm: AuthFormData =
+export const useAuthFormMachine = (mode: 'login' | 'signup' | 'forgot-password') => {
+  const initialForm: AuthFormData = 
     mode === 'signup'
       ? { email: '', password: '', confirmPassword: '', fname: '', lname: '' }
+      : mode === 'forgot-password'
+      ? { email: '', password: '' } // password not used but keeps type consistent
       : { email: '', password: '' };
 
   const [state, dispatch] = useReducer(authFormMachine, {

@@ -23,6 +23,7 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
+import { Feather } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -33,7 +34,6 @@ export default function LoginScreen() {
     textColor,
     secondaryTextColor,
     primaryColor,
-    buttonPrimaryBg,
     themeStyles,
     isDarkTheme,
   } = useAppTheme();
@@ -138,6 +138,15 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.formContainer}>
+          {hasError && (
+            <View style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}>
+              <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
+              <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
+                {state.error}
+              </Text>
+            </View>
+          )}
+
           <FormInput
             labelValue={state.form.email}
             onChangeText={(value) => handleFieldChange('email', value)}
@@ -198,7 +207,6 @@ export default function LoginScreen() {
           backgroundColor={primaryColor}
           onPress={handleGoogleLogin}
           disabled={isGoogleLoading}
-          // style={styles.googleButton}
         />
 
         <View style={styles.footer}>
@@ -258,6 +266,18 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: verticalScale(12),
   },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: moderateScale(12),
+    borderRadius: moderateScale(8),
+    marginBottom: verticalScale(8),
+    gap: horizontalScale(8),
+  },
+  errorText: {
+    fontSize: moderateScale(14),
+    flex: 1,
+  },
   forgotPassword: {
     alignSelf: 'center',
     marginTop: verticalScale(-8),
@@ -282,9 +302,6 @@ const styles = StyleSheet.create({
   dividerText: {
     marginHorizontal: horizontalScale(8),
     fontSize: moderateScale(14),
-  },
-  googleButton: {
-    marginBottom: verticalScale(6),
   },
   footer: {
     alignItems: 'center',

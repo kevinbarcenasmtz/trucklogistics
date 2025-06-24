@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
+import { Feather } from '@expo/vector-icons';
 
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
@@ -29,7 +30,6 @@ export default function SignupScreen() {
   const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles } =
     useAppTheme();
 
-  // ✅ Single state machine replaces 6 individual useState calls
   const { state, dispatch } = useAuthFormMachine('signup');
 
   // Pure calculations - no useState needed
@@ -109,6 +109,15 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.formContainer}>
+          {hasError && (
+            <View style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}>
+              <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
+              <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
+                {state.error}
+              </Text>
+            </View>
+          )}
+
           <FormInput
             labelValue={state.form.fname || ''}
             onChangeText={(value) => handleFieldChange('fname', value)}
@@ -238,6 +247,18 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
     marginBottom: verticalScale(12),
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: moderateScale(12),
+    borderRadius: moderateScale(8),
+    marginBottom: verticalScale(8),
+    gap: horizontalScale(8),
+  },
+  errorText: {
+    fontSize: moderateScale(14),
+    flex: 1,
   },
   termsContainer: {
     marginVertical: verticalScale(2),
