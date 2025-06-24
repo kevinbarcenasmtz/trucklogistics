@@ -1,4 +1,5 @@
 // src/state/appStateMachine.ts (Updated)
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useReducer } from 'react';
 import { Platform } from 'react-native';
 import { getAvailableSteps, isOnboardingComplete } from '../onboarding/stepRegistry';
@@ -33,6 +34,12 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
 
     case 'ONBOARDING_STEP_COMPLETE': {
       if (state.type !== 'onboarding') return state;
+
+      // ✅ SAFETY CHECK: Ensure stepId is valid before adding
+      if (!action.stepId || typeof action.stepId !== 'string') {
+        console.warn('Invalid stepId provided to ONBOARDING_STEP_COMPLETE:', action.stepId);
+        return state;
+      }
 
       const updatedProgress: OnboardingProgress = {
         ...state.progress,
@@ -109,17 +116,22 @@ const initializeApp = async (): Promise<AppState> => {
     // Check if user is authenticated
     const isAuthenticated = await isAuthenticatedFromStorage();
     if (isAuthenticated) {
-      // In real app, fetch user data here
       return { type: 'authenticated', user: {} };
     }
 
-    // Get stored data
+    // CHECK: Is onboarding already marked complete?
+    const isOnboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+    if (isOnboardingCompleted === 'true') {
+      return { type: 'unauthenticated' };
+    }
+
+    // Get stored data for onboarding flow
     const [storedProgress, selectedLanguage] = await Promise.all([
       getOnboardingProgress(),
       getLanguagePreference(),
     ]);
 
-    // Build onboarding context (no permissions for now)
+    // Build onboarding context
     const context: OnboardingContext = {
       userType: storedProgress ? 'returning' : 'new',
       selectedLanguage,
@@ -139,8 +151,15 @@ const initializeApp = async (): Promise<AppState> => {
       data: {},
     };
 
-    // Check if onboarding is complete
+    // SAFETY CHECK: Filter out any undefined values from completedSteps
+    progress.completedSteps = progress.completedSteps.filter(
+      step => step !== undefined && step !== null && typeof step === 'string'
+    );
+
+    // Check if onboarding is complete (backup check)
     if (isOnboardingComplete(context, progress.completedSteps)) {
+      // Mark it as complete in storage for consistency
+      await markOnboardingComplete();
       return { type: 'unauthenticated' };
     }
 

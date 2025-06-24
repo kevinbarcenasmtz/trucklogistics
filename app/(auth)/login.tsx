@@ -1,13 +1,7 @@
 // app/(auth)/login.tsx
-import FormButton from '@/src/components/forms/FormButton';
-import FormInput from '@/src/components/forms/FormInput';
-import SocialButton from '@/src/components/forms/SocialButton';
-import { useAuth } from '@/src/context/AuthContext';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -21,29 +15,49 @@ import {
   View,
 } from 'react-native';
 
+import FormButton from '@/src/components/forms/FormButton';
+import FormInput from '@/src/components/forms/FormInput';
+import SocialButton from '@/src/components/forms/SocialButton';
+import { useAuth } from '@/src/context/AuthContext';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { useAuthFormMachine } from '@/src/machines/authFormMachine';
+import { AuthService } from '@/src/services/AuthService';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { Feather } from '@expo/vector-icons';
+
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, loading, googleLogin } = useAuth();
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { login, googleLogin } = useAuth();
   const { t } = useTranslation();
-  const {
-    backgroundColor,
-    textColor,
-    secondaryTextColor,
-    primaryColor,
-    buttonPrimaryBg,
-    themeStyles,
-    isDarkTheme,
-  } = useAppTheme();
+  const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles, isDarkTheme } =
+    useAppTheme();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // ✅ Single state machine replaces all individual useState calls
+  const { state, dispatch } = useAuthFormMachine('login');
+
+  // Pure calculations - no useState needed
+  const isSubmitting = state.type === 'submitting';
+  const hasError = state.type === 'error';
+  const isGoogleLoading = state.type === 'submitting' && state.method === 'google';
+  const isCredentialsLoading = state.type === 'submitting' && state.method === 'credentials';
+
+  const handleFieldChange = (field: keyof typeof state.form, value: string) => {
+    dispatch({ type: 'UPDATE_FIELD', field, value });
+  };
 
   const handleLogin = async () => {
-    if (!email.trim() || !password.trim()) {
-      Alert.alert(t('error', 'Error'), t('fillAllFields', 'Please fill in all fields'));
+    dispatch({ type: 'SUBMIT_CREDENTIALS' });
+
+    // Business logic separated from UI
+    const validation = AuthService.validateLoginForm(state.form);
+
+    if (!validation.isValid) {
+      dispatch({ type: 'VALIDATE_ERROR', error: validation.errors[0] });
+      Alert.alert(t('error', 'Error'), validation.errors[0]);
       return;
     }
+
+    dispatch({ type: 'VALIDATE_SUCCESS' });
 
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -52,16 +66,19 @@ export default function LoginScreen() {
     }
 
     try {
-      await login(email, password);
+      const payload = AuthService.createLoginPayload(state.form);
+      await login(payload.email, payload.password);
+
+      dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
-    } catch (error) {
-      // Error handling is done in the AuthContext
+    } catch (error: any) {
+      dispatch({ type: 'SUBMIT_ERROR', error: error.message });
       console.error('Login failed:', error);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setIsGoogleLoading(true);
+    dispatch({ type: 'SUBMIT_GOOGLE' });
 
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -71,11 +88,12 @@ export default function LoginScreen() {
 
     try {
       await googleLogin();
+
+      dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
-    } catch (error) {
+    } catch (error: any) {
+      dispatch({ type: 'SUBMIT_ERROR', error: error.message });
       console.error('Google login failed:', error);
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -96,10 +114,12 @@ export default function LoginScreen() {
                 ios: {
                   shadowColor: themeStyles.colors.black,
                   shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: isDarkTheme ? 0.4 : 0.2,
-                  shadowRadius: 5,
+                  shadowOpacity: isDarkTheme ? 0.3 : 0.1,
+                  shadowRadius: 8,
                 },
-                android: { elevation: 5 },
+                android: {
+                  elevation: 8,
+                },
               }),
             ]}
           />
@@ -107,67 +127,90 @@ export default function LoginScreen() {
             {t('welcomeBack', 'Welcome Back')}
           </Text>
           <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
-            {t('signInContinue', 'Sign in to continue to your account')}
+            {t('signInToContinue', 'Sign in to continue')}
           </Text>
         </View>
 
         <View style={styles.formContainer}>
+          {hasError && (
+            <View
+              style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}
+            >
+              <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
+              <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
+                {state.error}
+              </Text>
+            </View>
+          )}
+
           <FormInput
-            labelValue={email}
-            onChangeText={setEmail}
-            placeholderText={t('enterEmail', 'Enter your email')}
+            labelValue={state.form.email}
+            onChangeText={value => handleFieldChange('email', value)}
+            placeholderText={t('email', 'Email')}
             iconType="user"
             keyboardType="email-address"
             autoCapitalize="none"
-            autoComplete="email"
+            autoCorrect={false}
+            editable={!isSubmitting}
           />
+
           <FormInput
-            labelValue={password}
-            onChangeText={setPassword}
-            placeholderText={t('enterPassword', 'Enter your password')}
+            labelValue={state.form.password}
+            onChangeText={value => handleFieldChange('password', value)}
+            placeholderText={t('password', 'Password')}
             iconType="lock"
             secureTextEntry
-            autoComplete="password"
+            editable={!isSubmitting}
           />
+
           <TouchableOpacity
             style={styles.forgotPassword}
             onPress={() => router.push('/(auth)/forgot-password')}
+            activeOpacity={0.7}
+            disabled={isSubmitting}
           >
             <Text style={[styles.forgotPasswordText, { color: primaryColor }]}>
               {t('forgotPassword', 'Forgot Password?')}
             </Text>
           </TouchableOpacity>
+
           <FormButton
-            buttonTitle={t('signIn', 'Sign In')}
+            buttonTitle={
+              isCredentialsLoading ? t('signingIn', 'Signing In...') : t('signIn', 'Sign In')
+            }
             onPress={handleLogin}
-            disabled={loading}
-            backgroundColor={buttonPrimaryBg}
-            textColor="#FFFFFF"
+            disabled={isSubmitting}
+            backgroundColor={primaryColor}
+            textColor={themeStyles.colors.white}
             style={styles.signInButton}
           />
-          <View style={styles.dividerContainer}>
-            <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
-            <Text style={[styles.dividerText, { color: secondaryTextColor }]}>
-              {t('orContinueWith', 'Or continue with')}
-            </Text>
-            <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
-          </View>
-          <SocialButton
-            buttonTitle={t('continueWithGoogle', 'Continue with Google')}
-            btnType="google-plus"
-            color={"#FFFF"}
-            backgroundColor={buttonPrimaryBg}
-            onPress={handleGoogleLogin}
-            disabled={isGoogleLoading}
-          />
         </View>
+
+        <View style={styles.dividerContainer}>
+          <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
+          <Text style={[styles.dividerText, { color: secondaryTextColor }]}>{t('or', 'OR')}</Text>
+          <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
+        </View>
+
+        <SocialButton
+          buttonTitle={t('signInWithGoogle', 'Sign In with Google')}
+          btnType="google"
+          color={themeStyles.colors.white}
+          backgroundColor={primaryColor}
+          onPress={handleGoogleLogin}
+          disabled={isGoogleLoading}
+        />
 
         <View style={styles.footer}>
           <View style={styles.footerTextContainer}>
             <Text style={[styles.footerText, { color: secondaryTextColor }]}>
-              {t('dontHaveAccount', "Don't have an account? ")}
+              {t('dontHaveAccount', "Don't have an account?")}{' '}
             </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/signup')} activeOpacity={0.7}>
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/signup')}
+              activeOpacity={0.7}
+              disabled={isSubmitting}
+            >
               <Text style={[styles.signUpLink, { color: primaryColor }]}>
                 {t('signUp', 'Sign Up')}
               </Text>
@@ -186,8 +229,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: horizontalScale(24),
-    paddingTop: verticalScale(32),
-    paddingBottom: verticalScale(24),
+    paddingTop: verticalScale(46),
+    paddingBottom: verticalScale(56),
   },
   headerContainer: {
     alignItems: 'center',
@@ -213,7 +256,19 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     flex: 1,
-    gap: verticalScale(16),
+    gap: verticalScale(12),
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: moderateScale(12),
+    borderRadius: moderateScale(8),
+    marginBottom: verticalScale(8),
+    gap: horizontalScale(8),
+  },
+  errorText: {
+    fontSize: moderateScale(14),
+    flex: 1,
   },
   forgotPassword: {
     alignSelf: 'center',
@@ -224,7 +279,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   signInButton: {
-    marginTop: verticalScale(8),
+    marginTop: verticalScale(14),
   },
   dividerContainer: {
     flexDirection: 'row',
@@ -234,14 +289,11 @@ const styles = StyleSheet.create({
   divider: {
     flex: 1,
     height: 1,
-    opacity: 0.8,
+    opacity: 1.0,
   },
   dividerText: {
     marginHorizontal: horizontalScale(8),
     fontSize: moderateScale(14),
-  },
-  googleButton: {
-    marginBottom: verticalScale(6),
   },
   footer: {
     alignItems: 'center',

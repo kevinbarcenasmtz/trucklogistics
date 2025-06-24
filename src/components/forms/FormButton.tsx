@@ -20,7 +20,7 @@ const FormButton: React.FC<FormButtonProps> = ({
   ...rest
 }) => {
   const { themeStyles, buttonPrimaryBg } = useAppTheme();
-  
+
   return (
     <TouchableOpacity
       style={[

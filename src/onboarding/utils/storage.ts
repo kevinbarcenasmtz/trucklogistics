@@ -1,5 +1,6 @@
 // src/onboarding/utils/storage.ts
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { SecureStorage } from '../../security/SecureStorage';
 import { Language, OnboardingProgress } from '../types';
 
 const STORAGE_KEYS = {
@@ -8,6 +9,7 @@ const STORAGE_KEYS = {
   LANGUAGE_SELECTED: 'languageSelected',
   ONBOARDING_COMPLETED: 'onboardingCompleted',
   AUTH_STATE: 'auth_state',
+  ONBOARDING_KEY: 'hasSeenOnboarding',
 } as const;
 
 export const saveOnboardingProgress = async (progress: OnboardingProgress): Promise<void> => {
@@ -52,15 +54,26 @@ export const getLanguagePreference = async (): Promise<Language | null> => {
 export const markOnboardingComplete = async (): Promise<void> => {
   try {
     await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_COMPLETED, 'true');
+    await AsyncStorage.setItem(STORAGE_KEYS.ONBOARDING_KEY, 'true');
   } catch (error) {
     console.error('Failed to mark onboarding complete:', error);
   }
 };
 
+export const hasSeenOnboarding = async (): Promise<boolean> => {
+  try {
+    const value = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_KEY);
+    return value === 'true';
+  } catch (error) {
+    console.error('Failed to check onboarding state:', error);
+    return false;
+  }
+};
+
+// Updated to use SecureStorage for auth tokens
 export const isAuthenticatedFromStorage = async (): Promise<boolean> => {
   try {
-    const authState = await AsyncStorage.getItem(STORAGE_KEYS.AUTH_STATE);
-    return authState === 'true';
+    return await SecureStorage.hasAuthToken();
   } catch (error) {
     console.error('Failed to check auth state:', error);
     return false;
@@ -72,6 +85,7 @@ export const clearOnboardingData = async (): Promise<void> => {
     await AsyncStorage.multiRemove([
       STORAGE_KEYS.ONBOARDING_PROGRESS,
       STORAGE_KEYS.ONBOARDING_COMPLETED,
+      STORAGE_KEYS.ONBOARDING_KEY,
     ]);
   } catch (error) {
     console.error('Failed to clear onboarding data:', error);

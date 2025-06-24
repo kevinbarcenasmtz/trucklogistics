@@ -16,15 +16,22 @@ interface DotsProps {
 }
 
 const Dots: React.FC<DotsProps> = ({ selected }) => {
-  const { isDarkTheme, textColor, borderColor, specialTextColor, specialSecondaryTextColor } = useAppTheme();
-  
+  const { isDarkTheme, textColor, borderColor, specialTextColor, specialSecondaryTextColor } =
+    useAppTheme();
+
   // Page 1 (index 1) is the green page, pages 0 and 2 are normal
   const isOnGreenPage = globalCurrentPage === 1;
-  
-  const dotColor = selected 
-    ? (isOnGreenPage ? specialTextColor : textColor)
-    : (isOnGreenPage ? specialSecondaryTextColor : (isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)'));
-  
+
+  const dotColor = selected
+    ? isOnGreenPage
+      ? specialTextColor
+      : textColor
+    : isOnGreenPage
+      ? specialSecondaryTextColor
+      : isDarkTheme
+        ? 'rgba(255, 255, 255, 0.3)'
+        : 'rgba(0, 0, 0, 0.2)';
+
   return (
     <View
       style={[
@@ -101,15 +108,15 @@ const Done = ({ ...props }) => {
   const { t } = useTranslation();
   const { primaryColor } = useAppTheme();
   // Done button is on the last page (index 2), which should be normal theme
-  
+
   return (
     <TouchableOpacity
       style={[
-        styles.button, 
+        styles.button,
         styles.doneButton,
         {
           backgroundColor: primaryColor,
-        }
+        },
       ]}
       {...props}
       activeOpacity={0.7}
@@ -118,9 +125,15 @@ const Done = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, styles.doneButtonText, { 
-        color: '#FFFFFF' // Always white text on primary button
-      }]}>
+      <Text
+        style={[
+          styles.buttonText,
+          styles.doneButtonText,
+          {
+            color: '#FFFFFF', // Always white text on primary button
+          },
+        ]}
+      >
         {t('getStarted', 'Get Started')}
       </Text>
     </TouchableOpacity>
@@ -129,15 +142,15 @@ const Done = ({ ...props }) => {
 
 export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
   const { t } = useTranslation();
-  const { 
-    getBackgroundColor, 
-    getTextColor, 
+  const {
+    getBackgroundColor,
+    getTextColor,
     getSecondaryTextColor,
     specialBackgroundColor,
     specialTextColor,
     specialSecondaryTextColor,
-    themeStyles, 
-    isDarkTheme 
+    themeStyles,
+    isDarkTheme,
   } = useAppTheme();
 
   // Reset global page counter when component mounts
