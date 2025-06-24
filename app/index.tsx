@@ -1,86 +1,65 @@
 // app/index.tsx
-import { useAuth } from '@/src/context/AuthContext';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { OnboardingEngine } from '@/src/onboarding/OnboardingEngine';
-import { useAppStateMachine } from '@/src/state/appStateMachine';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Redirect } from 'expo-router';
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useAuth } from '@/src/context/AuthContext';
+import { useAppStateMachine } from '@/src/state/appStateMachine';
+import { AppStateRenderer, AppState } from '@/src/components/app/AppStateRenderer';
+// import AsyncStorage from '@react-native-async-storage/async-storage';
 
+// Remove the globalThis line and useEffect - we'll handle this differently later
 globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
 
 export default function Index() {
   const { user } = useAuth();
   const { state } = useAppStateMachine();
-  const { backgroundColor, textColor, primaryColor } = useAppTheme();
 
-  React.useEffect(() => {
-    if (__DEV__) {
-      AsyncStorage.multiRemove([
-        'onboarding_progress',
-        'onboardingCompleted',
-        'languageSelected',
-        'userLanguage',
-        'trucklogistics_theme',
-      ]).then(() => {
-        console.log('🔧 DEV: Cleared onboarding data + theme for testing');
-      });
-    }
-  }, []);
+  // Pure calculation - no useState or conditional logic needed
+  const appState = calculateAppState(user, state);
+  // React.useEffect(() => {
+  //   if (__DEV__) {
+  //     AsyncStorage.multiRemove([
+  //       'onboarding_progress',
+  //       'onboardingCompleted',
+  //       'languageSelected',
+  //       'userLanguage',
+  //       'trucklogistics_theme',
+  //     ]).then(() => {
+  //       console.log('🔧 DEV: Cleared onboarding data + theme for testing');
+  //     });
+  //   }
+  // }, []);
+  return <AppStateRenderer state={appState} />;
+}
 
+/**
+ * Pure function to calculate app state
+ * Easy to test and reason about
+ */
+const calculateAppState = (user: any, machineState: any): AppState => {
   // App is initializing
-  if (state.type === 'initializing') {
-    return (
-      <View style={[styles.container, { backgroundColor }]}>
-        <ActivityIndicator size="large" color={primaryColor} />
-      </View>
-    );
+  if (machineState.type === 'initializing') {
+    return { type: 'initializing' };
   }
 
   // Error state
-  if (state.type === 'error') {
-    return (
-      <View style={[styles.container, { backgroundColor }]}>
-        <Text style={[styles.errorText, { color: textColor }]}>
-          Something went wrong. Please restart the app.
-        </Text>
-      </View>
-    );
+  if (machineState.type === 'error') {
+    return { type: 'error', error: machineState.error || 'Unknown error' };
   }
 
   // User is authenticated (prioritize auth context user)
-  if (user || state.type === 'authenticated') {
-    return <Redirect href="/(app)/home" />;
+  if (user || machineState.type === 'authenticated') {
+    return { type: 'authenticated' };
   }
 
   // Onboarding needed
-  if (state.type === 'onboarding') {
-    return <OnboardingEngine />;
+  if (machineState.type === 'onboarding') {
+    return { type: 'onboarding' };
   }
 
   // Ready for authentication
-  if (state.type === 'unauthenticated') {
-    return <Redirect href="/(auth)/login" />;
+  if (machineState.type === 'unauthenticated') {
+    return { type: 'unauthenticated' };
   }
 
   // Fallback
-  return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <ActivityIndicator size="large" color={primaryColor} />
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorText: {
-    fontSize: 16,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-});
+  return { type: 'initializing' };
+};

@@ -21,7 +21,20 @@ export const saveOnboardingProgress = async (progress: OnboardingProgress): Prom
 export const getOnboardingProgress = async (): Promise<OnboardingProgress | null> => {
   try {
     const data = await AsyncStorage.getItem(STORAGE_KEYS.ONBOARDING_PROGRESS);
-    return data ? JSON.parse(data) : null;
+    if (!data) return null;
+    
+    const progress = JSON.parse(data) as OnboardingProgress;
+    
+    // ✅ SAFETY CHECK: Ensure completedSteps is valid
+    if (progress.completedSteps && Array.isArray(progress.completedSteps)) {
+      progress.completedSteps = progress.completedSteps.filter(step => 
+        step !== undefined && step !== null && typeof step === 'string'
+      );
+    } else {
+      progress.completedSteps = [];
+    }
+    
+    return progress;
   } catch (error) {
     console.error('Failed to get onboarding progress:', error);
     return null;

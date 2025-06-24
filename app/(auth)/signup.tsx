@@ -1,14 +1,5 @@
 // app/(auth)/signup.tsx
-import FormButton from '@/src/components/forms/FormButton';
-import FormInput from '@/src/components/forms/FormInput';
-import SocialButton from '@/src/components/forms/SocialButton';
-import { useAuth } from '@/src/context/AuthContext';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import React from 'react';
 import {
   Alert,
   SafeAreaView,
@@ -18,59 +9,90 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
+
+import FormButton from '@/src/components/forms/FormButton';
+import FormInput from '@/src/components/forms/FormInput';
+import SocialButton from '@/src/components/forms/SocialButton';
+import { useAuth } from '@/src/context/AuthContext';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAuthFormMachine } from '@/src/machines/authFormMachine';
+import { AuthService } from '@/src/services/AuthService';
 
 export default function SignupScreen() {
   const router = useRouter();
-  const { register, loading, googleLogin } = useAuth();
+  const { register, googleLogin } = useAuth();
   const { t } = useTranslation();
-
   const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles } =
     useAppTheme();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [fname, setFname] = useState('');
-  const [lname, setLname] = useState('');
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  // ✅ Single state machine replaces 6 individual useState calls
+  const { state, dispatch } = useAuthFormMachine('signup');
+
+  // Pure calculations - no useState needed
+  const isSubmitting = state.type === 'submitting';
+  const hasError = state.type === 'error';
+  const isGoogleLoading = state.type === 'submitting' && state.method === 'google';
+  const isSignupLoading = state.type === 'submitting' && state.method === 'credentials';
+
+  const handleFieldChange = (field: keyof typeof state.form, value: string) => {
+    dispatch({ type: 'UPDATE_FIELD', field, value });
+  };
 
   const handleSignup = async () => {
-    if (!email || !password || !confirmPassword || !fname || !lname) {
-      Alert.alert('Error', t('fillAllFields', 'Please fill in all fields'));
+    dispatch({ type: 'SUBMIT_CREDENTIALS' });
+    
+    // Business logic separated from UI
+    const validation = AuthService.validateSignupForm(state.form);
+    
+    if (!validation.isValid) {
+      dispatch({ type: 'VALIDATE_ERROR', error: validation.errors[0] });
+      Alert.alert(t('error', 'Error'), validation.errors[0]);
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert('Error', t('passwordsDoNotMatch', 'Passwords do not match'));
-      return;
-    }
-
-    if (password.length < 6) {
-      Alert.alert('Error', t('passwordTooShort', 'Password should be at least 6 characters'));
-      return;
-    }
+    dispatch({ type: 'VALIDATE_SUCCESS' });
 
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await register(email, password, fname, lname);
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+
+    try {
+      const payload = AuthService.createSignupPayload(state.form);
+      await register(payload.email, payload.password, payload.fname, payload.lname);
+      
+      dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
     } catch (error: any) {
+      dispatch({ type: 'SUBMIT_ERROR', error: error.message });
       Alert.alert('Registration Failed', error.message);
     }
   };
 
   const handleGoogleSignup = async () => {
+    dispatch({ type: 'SUBMIT_GOOGLE' });
+
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      setIsGoogleLoading(true);
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+
+    try {
       await googleLogin();
+      
+      dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
     } catch (error: any) {
+      dispatch({ type: 'SUBMIT_ERROR', error: error.message });
       if (error.message) {
         Alert.alert('Google Sign-In Failed', error.message);
       }
-    } finally {
-      setIsGoogleLoading(false);
     }
   };
 
@@ -88,47 +110,60 @@ export default function SignupScreen() {
 
         <View style={styles.formContainer}>
           <FormInput
-            labelValue={fname}
-            onChangeText={setFname}
+            labelValue={state.form.fname || ''}
+            onChangeText={(value) => handleFieldChange('fname', value)}
             placeholderText={t('firstName', 'First Name')}
             iconType="user"
             autoCorrect={false}
+            editable={!isSubmitting}
           />
+
           <FormInput
-            labelValue={lname}
-            onChangeText={setLname}
+            labelValue={state.form.lname || ''}
+            onChangeText={(value) => handleFieldChange('lname', value)}
             placeholderText={t('lastName', 'Last Name')}
             iconType="user"
             autoCorrect={false}
+            editable={!isSubmitting}
           />
+
           <FormInput
-            labelValue={email}
-            onChangeText={setEmail}
+            labelValue={state.form.email}
+            onChangeText={(value) => handleFieldChange('email', value)}
             placeholderText={t('email', 'Email')}
             iconType="user"
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
+            editable={!isSubmitting}
           />
+
           <FormInput
-            labelValue={password}
-            onChangeText={setPassword}
+            labelValue={state.form.password}
+            onChangeText={(value) => handleFieldChange('password', value)}
             placeholderText={t('password', 'Password')}
             iconType="lock"
             secureTextEntry
+            editable={!isSubmitting}
           />
+
           <FormInput
-            labelValue={confirmPassword}
-            onChangeText={setConfirmPassword}
+            labelValue={state.form.confirmPassword || ''}
+            onChangeText={(value) => handleFieldChange('confirmPassword', value)}
             placeholderText={t('confirmPassword', 'Confirm Password')}
             iconType="lock"
             secureTextEntry
+            editable={!isSubmitting}
           />
 
           <FormButton
-            buttonTitle={loading ? t('signingUp', 'Signing Up...') : t('signUp', 'Sign Up')}
+            buttonTitle={
+              isSignupLoading 
+                ? t('signingUp', 'Signing Up...') 
+                : t('signUp', 'Sign Up')
+            }
             onPress={handleSignup}
-            disabled={loading}
+            disabled={isSubmitting}
             backgroundColor={primaryColor}
             textColor={themeStyles.colors.white}
           />
@@ -156,13 +191,16 @@ export default function SignupScreen() {
           disabled={isGoogleLoading}
         />
 
-        {/* ✅ FIXED: Restructured to avoid Text nesting issue like in login */}
         <View style={styles.signInButton}>
           <View style={styles.signInTextContainer}>
             <Text style={[styles.signInText, { color: secondaryTextColor }]}>
               {t('haveAccount', 'Already have an account?')}{' '}
             </Text>
-            <TouchableOpacity onPress={() => router.push('/(auth)/login')} activeOpacity={0.6}>
+            <TouchableOpacity 
+              onPress={() => router.push('/(auth)/login')} 
+              activeOpacity={0.6}
+              disabled={isSubmitting}
+            >
               <Text style={[styles.signInLink, { color: textColor }]}>
                 {t('signInLink', 'Sign In')}
               </Text>
@@ -199,10 +237,10 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '100%',
-    marginBottom: verticalScale(24),
+    marginBottom: verticalScale(12),
   },
   termsContainer: {
-    marginVertical: verticalScale(4),
+    marginVertical: verticalScale(2),
     paddingHorizontal: horizontalScale(8),
     paddingBottom: verticalScale(4),
   },

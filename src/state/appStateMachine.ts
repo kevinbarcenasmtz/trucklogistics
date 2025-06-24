@@ -10,6 +10,7 @@ import {
   markOnboardingComplete,
   saveOnboardingProgress,
 } from '../onboarding/utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AppState =
   | { type: 'initializing' }
@@ -34,6 +35,12 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
     case 'ONBOARDING_STEP_COMPLETE': {
       if (state.type !== 'onboarding') return state;
 
+      // ✅ SAFETY CHECK: Ensure stepId is valid before adding
+      if (!action.stepId || typeof action.stepId !== 'string') {
+        console.warn('Invalid stepId provided to ONBOARDING_STEP_COMPLETE:', action.stepId);
+        return state;
+      }
+    
       const updatedProgress: OnboardingProgress = {
         ...state.progress,
         completedSteps: [...state.progress.completedSteps, action.stepId],
@@ -41,7 +48,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         lastActiveAt: new Date().toISOString(),
         data: { ...state.progress.data, ...action.data },
       };
-
+    
       // Update context with new data
       const updatedContext: OnboardingContext = {
         ...state.context,
@@ -50,10 +57,10 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
           deviceInfo: { ...state.context.deviceInfo, ...action.data.deviceInfo },
         }),
       };
-
+    
       // Save progress to storage
       saveOnboardingProgress(updatedProgress);
-
+    
       return {
         type: 'onboarding',
         context: updatedContext,
@@ -109,17 +116,22 @@ const initializeApp = async (): Promise<AppState> => {
     // Check if user is authenticated
     const isAuthenticated = await isAuthenticatedFromStorage();
     if (isAuthenticated) {
-      // In real app, fetch user data here
       return { type: 'authenticated', user: {} };
     }
 
-    // Get stored data
+    // CHECK: Is onboarding already marked complete?
+    const isOnboardingCompleted = await AsyncStorage.getItem('onboardingCompleted');
+    if (isOnboardingCompleted === 'true') {
+      return { type: 'unauthenticated' };
+    }
+
+    // Get stored data for onboarding flow
     const [storedProgress, selectedLanguage] = await Promise.all([
       getOnboardingProgress(),
       getLanguagePreference(),
     ]);
 
-    // Build onboarding context (no permissions for now)
+    // Build onboarding context
     const context: OnboardingContext = {
       userType: storedProgress ? 'returning' : 'new',
       selectedLanguage,
@@ -139,8 +151,15 @@ const initializeApp = async (): Promise<AppState> => {
       data: {},
     };
 
-    // Check if onboarding is complete
+    // SAFETY CHECK: Filter out any undefined values from completedSteps
+    progress.completedSteps = progress.completedSteps.filter(step => 
+      step !== undefined && step !== null && typeof step === 'string'
+    );
+
+    // Check if onboarding is complete (backup check)
     if (isOnboardingComplete(context, progress.completedSteps)) {
+      // Mark it as complete in storage for consistency
+      await markOnboardingComplete();
       return { type: 'unauthenticated' };
     }
 
