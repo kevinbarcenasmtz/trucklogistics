@@ -28,7 +28,6 @@ export default function LoginScreen() {
   const { t } = useTranslation();
   const {
     backgroundColor,
-    surfaceColor,
     textColor,
     secondaryTextColor,
     primaryColor,
@@ -156,7 +155,7 @@ export default function LoginScreen() {
           <SocialButton
             buttonTitle={t('continueWithGoogle', 'Continue with Google')}
             btnType="google-plus"
-            color={textColor}
+            color={"#FFFF"}
             backgroundColor={buttonPrimaryBg}
             onPress={handleGoogleLogin}
             disabled={isGoogleLoading}

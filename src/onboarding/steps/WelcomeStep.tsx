@@ -9,28 +9,33 @@ import { Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react
 import Onboarding from 'react-native-onboarding-swiper';
 import { OnboardingStepProps } from '../types';
 
+let globalCurrentPage = 0;
+
 interface DotsProps {
   selected: boolean;
 }
 
 const Dots: React.FC<DotsProps> = ({ selected }) => {
-  const { isDarkTheme, textColor, borderColor } = useAppTheme();
-
+  const { isDarkTheme, textColor, borderColor, specialTextColor, specialSecondaryTextColor } = useAppTheme();
+  
+  // Page 1 (index 1) is the green page, pages 0 and 2 are normal
+  const isOnGreenPage = globalCurrentPage === 1;
+  
+  const dotColor = selected 
+    ? (isOnGreenPage ? specialTextColor : textColor)
+    : (isOnGreenPage ? specialSecondaryTextColor : (isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.2)'));
+  
   return (
     <View
       style={[
         styles.dot,
         {
-          backgroundColor: selected
-            ? textColor
-            : isDarkTheme
-              ? 'rgba(255, 255, 255, 0.3)'
-              : 'rgba(0, 0, 0, 0.2)',
+          backgroundColor: dotColor,
           borderWidth: selected ? 0 : 1,
-          borderColor: borderColor,
+          borderColor: isOnGreenPage ? specialSecondaryTextColor : borderColor,
           ...Platform.select({
             ios: {
-              shadowColor: textColor,
+              shadowColor: isOnGreenPage ? specialTextColor : textColor,
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.2,
               shadowRadius: 1,
@@ -48,7 +53,8 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
 
 const Skip = ({ ...props }) => {
   const { t } = useTranslation();
-  const { textColor } = useAppTheme();
+  const { textColor, specialTextColor } = useAppTheme();
+  const isOnGreenPage = globalCurrentPage === 1;
 
   return (
     <TouchableOpacity
@@ -60,14 +66,17 @@ const Skip = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: textColor }]}>{t('skip', 'Skip')}</Text>
+      <Text style={[styles.buttonText, { color: isOnGreenPage ? specialTextColor : textColor }]}>
+        {t('skip', 'Skip')}
+      </Text>
     </TouchableOpacity>
   );
 };
 
 const Next = ({ ...props }) => {
   const { t } = useTranslation();
-  const { textColor } = useAppTheme();
+  const { textColor, specialTextColor } = useAppTheme();
+  const isOnGreenPage = globalCurrentPage === 1;
 
   return (
     <TouchableOpacity
@@ -75,11 +84,15 @@ const Next = ({ ...props }) => {
       {...props}
       activeOpacity={0.7}
       onPress={() => {
+        // Track page advancement
+        globalCurrentPage = Math.min(globalCurrentPage + 1, 2);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: textColor }]}>{t('next', 'Next')}</Text>
+      <Text style={[styles.buttonText, { color: isOnGreenPage ? specialTextColor : textColor }]}>
+        {t('next', 'Next')}
+      </Text>
     </TouchableOpacity>
   );
 };
@@ -87,10 +100,17 @@ const Next = ({ ...props }) => {
 const Done = ({ ...props }) => {
   const { t } = useTranslation();
   const { primaryColor } = useAppTheme();
-
+  // Done button is on the last page (index 2), which should be normal theme
+  
   return (
     <TouchableOpacity
-      style={[styles.button, styles.doneButton, { backgroundColor: primaryColor }]}
+      style={[
+        styles.button, 
+        styles.doneButton,
+        {
+          backgroundColor: primaryColor,
+        }
+      ]}
       {...props}
       activeOpacity={0.7}
       onPress={() => {
@@ -98,24 +118,35 @@ const Done = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, styles.doneButtonText]}>
+      <Text style={[styles.buttonText, styles.doneButtonText, { 
+        color: '#FFFFFF' // Always white text on primary button
+      }]}>
         {t('getStarted', 'Get Started')}
       </Text>
     </TouchableOpacity>
   );
 };
 
-export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete}) => {
+export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
   const { t } = useTranslation();
   const { 
     getBackgroundColor, 
     getTextColor, 
-    getSecondaryTextColor, 
+    getSecondaryTextColor,
+    specialBackgroundColor,
+    specialTextColor,
+    specialSecondaryTextColor,
     themeStyles, 
     isDarkTheme 
   } = useAppTheme();
 
+  // Reset global page counter when component mounts
+  React.useEffect(() => {
+    globalCurrentPage = 0;
+  }, []);
+
   const pages = [
+    // Page 0: Normal theme (white/dark background, black/white dots and text)
     {
       backgroundColor: getBackgroundColor(),
       image: (
@@ -145,40 +176,12 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete}) => {
       titleStyles: [styles.title, { color: getTextColor() }],
       subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor() }],
     },
+    // Page 1: Green theme (green background, white dots and text)
     {
-      backgroundColor: getBackgroundColor(true),
+      backgroundColor: specialBackgroundColor,
       image: (
         <Image
           source={require('@/assets/icons/logistics2.png')}
-          style={[
-            styles.image,
-            Platform.select({
-              ios: {
-                shadowColor: themeStyles.colors.black,
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: isDarkTheme ? 0.4 : 0.2,
-                shadowRadius: 5,
-              },
-              android: {
-                elevation: 5,
-              },
-            }),
-          ]}
-        />
-      ),
-      title: t('onboardingTitle2', 'Generate Insightful Reports'),
-      subtitle: t(
-        'onboardingSubtitle2',
-        'Track and analyze your performance with professional-grade reporting tools.'
-      ),
-      titleStyles: [styles.title, { color: getTextColor(true) }],
-      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor(true) }],
-    },
-    {
-      backgroundColor: getBackgroundColor(true),
-      image: (
-        <Image
-          source={require('@/assets/icons/logistics3.png')}
           style={[
             styles.image,
             Platform.select({
@@ -195,13 +198,43 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete}) => {
           ]}
         />
       ),
+      title: t('onboardingTitle2', 'Generate Insightful Reports'),
+      subtitle: t(
+        'onboardingSubtitle2',
+        'Track and analyze your performance with professional-grade reporting tools.'
+      ),
+      titleStyles: [styles.title, { color: specialTextColor }],
+      subTitleStyles: [styles.subtitle, { color: specialSecondaryTextColor }],
+    },
+    // Page 2: Back to normal theme (white/dark background, black/white dots and text)
+    {
+      backgroundColor: getBackgroundColor(),
+      image: (
+        <Image
+          source={require('@/assets/icons/logistics3.png')}
+          style={[
+            styles.image,
+            Platform.select({
+              ios: {
+                shadowColor: themeStyles.colors.black,
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: isDarkTheme ? 0.4 : 0.2,
+                shadowRadius: 5,
+              },
+              android: {
+                elevation: 5,
+              },
+            }),
+          ]}
+        />
+      ),
       title: t('onboardingTitle3', 'Stay on Track'),
       subtitle: t(
         'onboardingSubtitle3',
         'Real-time navigation and scheduling for efficient deliveries.'
       ),
-      titleStyles: [styles.title, { color: getTextColor(true) }],
-      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor(true) }],
+      titleStyles: [styles.title, { color: getTextColor() }],
+      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor() }],
     },
   ];
 
@@ -236,7 +269,7 @@ const styles = StyleSheet.create({
     borderRadius: moderateScale(8),
   },
   doneButton: {
-    // backgroundColor set dynamically
+    paddingVertical: verticalScale(14),
   },
   buttonText: {
     fontSize: moderateScale(16),
@@ -244,7 +277,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.1,
   },
   doneButtonText: {
-    color: '#FFFFFF',
+    fontWeight: '600',
   },
   dot: {
     width: moderateScale(10),
