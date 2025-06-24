@@ -1,5 +1,8 @@
 // app/(auth)/login.tsx
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Image,
@@ -11,32 +14,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import * as Haptics from 'expo-haptics';
 
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import SocialButton from '@/src/components/forms/SocialButton';
 import { useAuth } from '@/src/context/AuthContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login, googleLogin } = useAuth();
   const { t } = useTranslation();
-  const {
-    backgroundColor,
-    textColor,
-    secondaryTextColor,
-    primaryColor,
-    themeStyles,
-    isDarkTheme,
-  } = useAppTheme();
+  const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles, isDarkTheme } =
+    useAppTheme();
 
   // ✅ Single state machine replaces all individual useState calls
   const { state, dispatch } = useAuthFormMachine('login');
@@ -53,10 +47,10 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     dispatch({ type: 'SUBMIT_CREDENTIALS' });
-    
+
     // Business logic separated from UI
     const validation = AuthService.validateLoginForm(state.form);
-    
+
     if (!validation.isValid) {
       dispatch({ type: 'VALIDATE_ERROR', error: validation.errors[0] });
       Alert.alert(t('error', 'Error'), validation.errors[0]);
@@ -74,7 +68,7 @@ export default function LoginScreen() {
     try {
       const payload = AuthService.createLoginPayload(state.form);
       await login(payload.email, payload.password);
-      
+
       dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
     } catch (error: any) {
@@ -94,7 +88,7 @@ export default function LoginScreen() {
 
     try {
       await googleLogin();
-      
+
       dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
     } catch (error: any) {
@@ -139,7 +133,9 @@ export default function LoginScreen() {
 
         <View style={styles.formContainer}>
           {hasError && (
-            <View style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}>
+            <View
+              style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}
+            >
               <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
               <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
                 {state.error}
@@ -149,7 +145,7 @@ export default function LoginScreen() {
 
           <FormInput
             labelValue={state.form.email}
-            onChangeText={(value) => handleFieldChange('email', value)}
+            onChangeText={value => handleFieldChange('email', value)}
             placeholderText={t('email', 'Email')}
             iconType="user"
             keyboardType="email-address"
@@ -160,7 +156,7 @@ export default function LoginScreen() {
 
           <FormInput
             labelValue={state.form.password}
-            onChangeText={(value) => handleFieldChange('password', value)}
+            onChangeText={value => handleFieldChange('password', value)}
             placeholderText={t('password', 'Password')}
             iconType="lock"
             secureTextEntry
@@ -180,9 +176,7 @@ export default function LoginScreen() {
 
           <FormButton
             buttonTitle={
-              isCredentialsLoading 
-                ? t('signingIn', 'Signing In...') 
-                : t('signIn', 'Sign In')
+              isCredentialsLoading ? t('signingIn', 'Signing In...') : t('signIn', 'Sign In')
             }
             onPress={handleLogin}
             disabled={isSubmitting}
@@ -194,9 +188,7 @@ export default function LoginScreen() {
 
         <View style={styles.dividerContainer}>
           <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
-          <Text style={[styles.dividerText, { color: secondaryTextColor }]}>
-            {t('or', 'OR')}
-          </Text>
+          <Text style={[styles.dividerText, { color: secondaryTextColor }]}>{t('or', 'OR')}</Text>
           <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
         </View>
 
@@ -214,8 +206,8 @@ export default function LoginScreen() {
             <Text style={[styles.footerText, { color: secondaryTextColor }]}>
               {t('dontHaveAccount', "Don't have an account?")}{' '}
             </Text>
-            <TouchableOpacity 
-              onPress={() => router.push('/(auth)/signup')} 
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/signup')}
               activeOpacity={0.7}
               disabled={isSubmitting}
             >

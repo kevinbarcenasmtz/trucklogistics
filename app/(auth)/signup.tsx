@@ -1,5 +1,9 @@
 // app/(auth)/signup.tsx
+import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   SafeAreaView,
@@ -9,19 +13,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import * as Haptics from 'expo-haptics';
-import { Feather } from '@expo/vector-icons';
 
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import SocialButton from '@/src/components/forms/SocialButton';
 import { useAuth } from '@/src/context/AuthContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -44,10 +44,10 @@ export default function SignupScreen() {
 
   const handleSignup = async () => {
     dispatch({ type: 'SUBMIT_CREDENTIALS' });
-    
+
     // Business logic separated from UI
     const validation = AuthService.validateSignupForm(state.form);
-    
+
     if (!validation.isValid) {
       dispatch({ type: 'VALIDATE_ERROR', error: validation.errors[0] });
       Alert.alert(t('error', 'Error'), validation.errors[0]);
@@ -65,7 +65,7 @@ export default function SignupScreen() {
     try {
       const payload = AuthService.createSignupPayload(state.form);
       await register(payload.email, payload.password, payload.fname, payload.lname);
-      
+
       dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
     } catch (error: any) {
@@ -85,7 +85,7 @@ export default function SignupScreen() {
 
     try {
       await googleLogin();
-      
+
       dispatch({ type: 'SUBMIT_SUCCESS' });
       router.replace('/(app)/home');
     } catch (error: any) {
@@ -110,7 +110,9 @@ export default function SignupScreen() {
 
         <View style={styles.formContainer}>
           {hasError && (
-            <View style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}>
+            <View
+              style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}
+            >
               <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
               <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
                 {state.error}
@@ -120,7 +122,7 @@ export default function SignupScreen() {
 
           <FormInput
             labelValue={state.form.fname || ''}
-            onChangeText={(value) => handleFieldChange('fname', value)}
+            onChangeText={value => handleFieldChange('fname', value)}
             placeholderText={t('firstName', 'First Name')}
             iconType="user"
             autoCorrect={false}
@@ -129,7 +131,7 @@ export default function SignupScreen() {
 
           <FormInput
             labelValue={state.form.lname || ''}
-            onChangeText={(value) => handleFieldChange('lname', value)}
+            onChangeText={value => handleFieldChange('lname', value)}
             placeholderText={t('lastName', 'Last Name')}
             iconType="user"
             autoCorrect={false}
@@ -138,7 +140,7 @@ export default function SignupScreen() {
 
           <FormInput
             labelValue={state.form.email}
-            onChangeText={(value) => handleFieldChange('email', value)}
+            onChangeText={value => handleFieldChange('email', value)}
             placeholderText={t('email', 'Email')}
             iconType="user"
             keyboardType="email-address"
@@ -149,7 +151,7 @@ export default function SignupScreen() {
 
           <FormInput
             labelValue={state.form.password}
-            onChangeText={(value) => handleFieldChange('password', value)}
+            onChangeText={value => handleFieldChange('password', value)}
             placeholderText={t('password', 'Password')}
             iconType="lock"
             secureTextEntry
@@ -158,7 +160,7 @@ export default function SignupScreen() {
 
           <FormInput
             labelValue={state.form.confirmPassword || ''}
-            onChangeText={(value) => handleFieldChange('confirmPassword', value)}
+            onChangeText={value => handleFieldChange('confirmPassword', value)}
             placeholderText={t('confirmPassword', 'Confirm Password')}
             iconType="lock"
             secureTextEntry
@@ -166,11 +168,7 @@ export default function SignupScreen() {
           />
 
           <FormButton
-            buttonTitle={
-              isSignupLoading 
-                ? t('signingUp', 'Signing Up...') 
-                : t('signUp', 'Sign Up')
-            }
+            buttonTitle={isSignupLoading ? t('signingUp', 'Signing Up...') : t('signUp', 'Sign Up')}
             onPress={handleSignup}
             disabled={isSubmitting}
             backgroundColor={primaryColor}
@@ -205,8 +203,8 @@ export default function SignupScreen() {
             <Text style={[styles.signInText, { color: secondaryTextColor }]}>
               {t('haveAccount', 'Already have an account?')}{' '}
             </Text>
-            <TouchableOpacity 
-              onPress={() => router.push('/(auth)/login')} 
+            <TouchableOpacity
+              onPress={() => router.push('/(auth)/login')}
               activeOpacity={0.6}
               disabled={isSubmitting}
             >

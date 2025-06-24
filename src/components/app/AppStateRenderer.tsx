@@ -1,17 +1,17 @@
 // src/components/app/AppStateRenderer.tsx
+import { Redirect } from 'expo-router';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Redirect } from 'expo-router';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { OnboardingEngine } from '../../onboarding/OnboardingEngine';
 
 // Define the possible app states
-export type AppState = 
+export type AppState =
   | { type: 'initializing' }
   | { type: 'error'; error: string }
   | { type: 'authenticated' }
   | { type: 'onboarding' }
-  | { type: 'unauthenticated' }
+  | { type: 'unauthenticated' };
 
 interface AppStateRendererProps {
   state: AppState;
@@ -37,7 +37,7 @@ export const AppStateRenderer = ({ state }: AppStateRendererProps) => {
 // Individual state components - clean abstractions
 const InitializingView = () => {
   const { backgroundColor, primaryColor } = useAppTheme();
-  
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <ActivityIndicator size="large" color={primaryColor} />
@@ -47,7 +47,7 @@ const InitializingView = () => {
 
 const ErrorView = ({ error }: { error: string }) => {
   const { backgroundColor, textColor } = useAppTheme();
-  
+
   return (
     <View style={[styles.container, { backgroundColor }]}>
       <Text style={[styles.errorText, { color: textColor }]}>

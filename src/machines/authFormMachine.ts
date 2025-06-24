@@ -94,12 +94,12 @@ const authFormMachine = (state: AuthFormState, event: AuthFormEvent): AuthFormSt
 };
 
 export const useAuthFormMachine = (mode: 'login' | 'signup' | 'forgot-password') => {
-  const initialForm: AuthFormData = 
+  const initialForm: AuthFormData =
     mode === 'signup'
       ? { email: '', password: '', confirmPassword: '', fname: '', lname: '' }
       : mode === 'forgot-password'
-      ? { email: '', password: '' } // password not used but keeps type consistent
-      : { email: '', password: '' };
+        ? { email: '', password: '' } // password not used but keeps type consistent
+        : { email: '', password: '' };
 
   const [state, dispatch] = useReducer(authFormMachine, {
     type: 'idle',

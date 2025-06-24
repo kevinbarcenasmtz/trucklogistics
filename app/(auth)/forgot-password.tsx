@@ -1,25 +1,18 @@
 // app/(auth)/forgot-password.tsx
-import React from 'react';
-import {
-  Alert,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
 import { useAuth } from '@/src/context/AuthContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import { AuthService } from '@/src/services/AuthService';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
+import { AuthService } from '@/src/services/AuthService';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -42,10 +35,10 @@ export default function ForgotPasswordScreen() {
     dispatch({ type: 'SUBMIT_CREDENTIALS' });
 
     // Use dedicated validation
-    const validation = AuthService.validateForgotPasswordForm({ 
-      email: state.form.email 
+    const validation = AuthService.validateForgotPasswordForm({
+      email: state.form.email,
     });
-    
+
     if (!validation.isValid) {
       dispatch({ type: 'VALIDATE_ERROR', error: validation.errors[0] });
       Alert.alert(t('error', 'Error'), validation.errors[0]);
@@ -62,14 +55,14 @@ export default function ForgotPasswordScreen() {
     }
 
     try {
-      const sanitizedEmail = AuthService.sanitizeFormData({ 
-        email: state.form.email, 
-        password: '' 
+      const sanitizedEmail = AuthService.sanitizeFormData({
+        email: state.form.email,
+        password: '',
       }).email;
-      
+
       await resetPassword(sanitizedEmail);
       dispatch({ type: 'SUBMIT_SUCCESS' });
-      
+
       Alert.alert(
         t('resetEmailSent', 'Reset Email Sent'),
         t('checkEmailForInstructions', 'Please check your email for password reset instructions'),
@@ -97,7 +90,7 @@ export default function ForgotPasswordScreen() {
           <Text style={[styles.title, { color: textColor }]}>
             {t('forgotPasswordTitle', 'Forgot Password')}
           </Text>
-          
+
           <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
             {t(
               'forgotPasswordSubtitle',
@@ -106,7 +99,9 @@ export default function ForgotPasswordScreen() {
           </Text>
 
           {hasError && (
-            <View style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}>
+            <View
+              style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}
+            >
               <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
               <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
                 {state.error}

@@ -1,8 +1,8 @@
 // app/index.tsx
-import React from 'react';
+import { AppState, AppStateRenderer } from '@/src/components/app/AppStateRenderer';
 import { useAuth } from '@/src/context/AuthContext';
 import { useAppStateMachine } from '@/src/state/appStateMachine';
-import { AppStateRenderer, AppState } from '@/src/components/app/AppStateRenderer';
+import React from 'react';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Remove the globalThis line and useEffect - we'll handle this differently later

@@ -1,4 +1,5 @@
 // src/state/appStateMachine.ts (Updated)
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useReducer } from 'react';
 import { Platform } from 'react-native';
 import { getAvailableSteps, isOnboardingComplete } from '../onboarding/stepRegistry';
@@ -10,7 +11,6 @@ import {
   markOnboardingComplete,
   saveOnboardingProgress,
 } from '../onboarding/utils/storage';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AppState =
   | { type: 'initializing' }
@@ -40,7 +40,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         console.warn('Invalid stepId provided to ONBOARDING_STEP_COMPLETE:', action.stepId);
         return state;
       }
-    
+
       const updatedProgress: OnboardingProgress = {
         ...state.progress,
         completedSteps: [...state.progress.completedSteps, action.stepId],
@@ -48,7 +48,7 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
         lastActiveAt: new Date().toISOString(),
         data: { ...state.progress.data, ...action.data },
       };
-    
+
       // Update context with new data
       const updatedContext: OnboardingContext = {
         ...state.context,
@@ -57,10 +57,10 @@ const appReducer = (state: AppState, action: AppAction): AppState => {
           deviceInfo: { ...state.context.deviceInfo, ...action.data.deviceInfo },
         }),
       };
-    
+
       // Save progress to storage
       saveOnboardingProgress(updatedProgress);
-    
+
       return {
         type: 'onboarding',
         context: updatedContext,
@@ -152,8 +152,8 @@ const initializeApp = async (): Promise<AppState> => {
     };
 
     // SAFETY CHECK: Filter out any undefined values from completedSteps
-    progress.completedSteps = progress.completedSteps.filter(step => 
-      step !== undefined && step !== null && typeof step === 'string'
+    progress.completedSteps = progress.completedSteps.filter(
+      step => step !== undefined && step !== null && typeof step === 'string'
     );
 
     // Check if onboarding is complete (backup check)
