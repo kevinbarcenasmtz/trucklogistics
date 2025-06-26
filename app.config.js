@@ -77,7 +77,7 @@ module.exports = () => {
     icon: './assets/images/icon.png', // Fixed: removed leading slash
     scheme: 'trucklogistics-dev',
     userInterfaceStyle: 'automatic',
-    newArchEnabled: true,
+    newArchEnabled: false,
     ios: {
       supportsTablet: true,
       bundleIdentifier: getBundleIdentifier(),
