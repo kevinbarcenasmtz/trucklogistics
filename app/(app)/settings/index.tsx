@@ -1,7 +1,7 @@
 // app/(app)/settings/index.tsx
 import { useAuth } from '@/src/context/AuthContextMigration';
 import { useTheme } from '@/src/context/ThemeContext';
-import { useAppTheme } from '@/src/hooks/useAppTheme'; 
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';

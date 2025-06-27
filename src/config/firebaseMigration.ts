@@ -1,5 +1,5 @@
 // src/config/firebaseMigration.ts
-import { initializeApp, getApps, getApp } from '@react-native-firebase/app';
+import { getApp, getApps, initializeApp } from '@react-native-firebase/app';
 import { getAuth } from '@react-native-firebase/auth';
 import { getFirestore } from '@react-native-firebase/firestore';
 import Constants from 'expo-constants';

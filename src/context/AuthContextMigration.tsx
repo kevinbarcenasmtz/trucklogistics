@@ -9,22 +9,16 @@ import { RateLimiter } from '../security/RateLimiter';
 import { SecureStorage } from '../security/SecureStorage';
 
 // Firebase modular imports - import directly from packages
-import { 
-  onAuthStateChanged, 
-  signInWithEmailAndPassword, 
+import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
   sendPasswordResetEmail,
+  signInWithCredential,
+  signInWithEmailAndPassword,
   signOut,
-  GoogleAuthProvider,        
-  signInWithCredential   
 } from '@react-native-firebase/auth';
-import { 
-  doc, 
-  getDoc, 
-  setDoc, 
-  updateDoc, 
-  Timestamp 
-} from '@react-native-firebase/firestore';
+import { doc, getDoc, setDoc, Timestamp, updateDoc } from '@react-native-firebase/firestore';
 
 // Import the Firebase instances from config
 import { auth, firestore } from '../config/firebaseMigration';
@@ -88,17 +82,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   // Listen to auth state changes - MODULAR API
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
       if (isLoggingOut) return;
       if (firebaseUser) {
         try {
           // Get user document - MODULAR API
           const userDocRef = doc(firestore, 'users', firebaseUser.uid);
           const userDocSnap = await getDoc(userDocRef);
-          
+
           if (userDocSnap.exists()) {
             const userDocData = userDocSnap.data();
-            
+
             if (userDocData) {
               const userData = {
                 uid: firebaseUser.uid,
@@ -159,7 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       await RateLimiter.checkRateLimit(email.toLowerCase());
       validateEmail(email);
-      
+
       // Use modular API
       await signInWithEmailAndPassword(auth, email, password);
 
@@ -234,13 +228,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoggingOut(true); // Add this line
       setLoading(true);
-      
+
       await signOut(auth);
-      
+
       await SecureStorage.removeAuthToken();
       setUser(null);
       setUserData(null);
-      
+
       router.replace('/(auth)/login');
     } catch (error: any) {
       console.error('Logout error:', error);
@@ -256,37 +250,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const googleLogin = async () => {
     try {
       setLoading(true);
-      
+
       // Ensure Google Play Services are available (on Android)
       await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
-  
+
       // Sign out from any existing Google session
       await GoogleSignin.signOut();
-  
+
       // Perform Google Sign-In
       const signInResponse = await GoogleSignin.signIn();
-  
+
       // Type guard to ensure successful response
       if (signInResponse.type === 'success') {
         const { idToken, user } = signInResponse.data;
-  
+
         if (!idToken) {
           throw new Error('Failed to get ID token from Google Sign In');
         }
-  
+
         // Create Firebase credential - MODULAR API
         const googleCredential = GoogleAuthProvider.credential(idToken);
-  
+
         // Sign in to Firebase - MODULAR API
         const userCredential = await signInWithCredential(auth, googleCredential);
-  
+
         // Check/create Firestore user document - MODULAR API
         if (userCredential.user) {
           const userDocRef = doc(firestore, 'users', userCredential.user.uid);
           const userDocSnap = await getDoc(userDocRef);
-  
+
           if (!userDocSnap.exists()) {
             const newUser = {
               uid: userCredential.user.uid,
@@ -295,10 +289,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               email: user.email || '',
               createdAt: Timestamp.now(), // MODULAR API
             };
-  
+
             await setDoc(userDocRef, newUser); // MODULAR API
           }
-          
+
           await SecureStorage.storeAuthToken('authenticated');
         }
       } else {
@@ -323,7 +317,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         handleAuthError(error, 'google_login');
       }
-  
+
       throw error;
     } finally {
       setLoading(false);
@@ -353,14 +347,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const updateUserData = async (data: UserData) => {
     try {
       setLoading(true);
-  
+
       if (!user) {
         throw new Error('No user is currently logged in');
       }
-  
+
       // Create document reference
       const userDocRef = doc(firestore, 'users', user.uid);
-      
+
       // Filter out undefined/empty values
       const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
@@ -368,28 +362,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         return acc;
       }, {} as any);
-  
+
       // Prepare update data with timestamp
       const updateData = {
         ...cleanData,
         updatedAt: Timestamp.now(),
       };
-  
+
       console.log('Updating document:', userDocRef.path, 'with data:', updateData);
-  
+
       // Perform the update
       await updateDoc(userDocRef, updateData);
-  
+
       // Fetch the updated document to ensure consistency
       const updatedDocSnap = await getDoc(userDocRef);
-      
+
       if (updatedDocSnap.exists()) {
         const updatedData = updatedDocSnap.data();
-        
+
         // Type guard to ensure updatedData is defined
         if (updatedData) {
           console.log('Document successfully updated:', updatedData);
-          
+
           // Update local state with data from Firestore
           setUserData({
             email: updatedData.email || userData?.email || '',
@@ -400,7 +394,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             city: updatedData.city || '',
             state: updatedData.state || '',
           });
-  
+
           // Update user state if names changed
           if (updatedData.fname !== user.fname || updatedData.lname !== user.lname) {
             setUser({
@@ -415,7 +409,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Profile update error:', error);
-      
+
       // Provide user-friendly error messages
       if (error.code === 'permission-denied') {
         throw new Error('You do not have permission to update this profile');

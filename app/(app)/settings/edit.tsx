@@ -84,7 +84,7 @@ export default function EditScreen() {
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
-        t('success', 'Success'), 
+        t('success', 'Success'),
         t('profileUpdated', 'Your profile has been updated successfully.')
       );
       router.back();
@@ -92,14 +92,13 @@ export default function EditScreen() {
       console.error('Error updating profile:', error);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert(
-        t('error', 'Error'), 
+        t('error', 'Error'),
         error.message || t('updateFailed', 'Failed to update profile. Please try again.')
       );
     } finally {
       setIsSaving(false);
     }
   };
-
 
   const renderAvatar = () => {
     if (userData?.fname && userData?.lname) {
@@ -252,42 +251,42 @@ export default function EditScreen() {
           </View>
 
           {inputFields.map((field, index) => {
-          const IconComponent = field.iconComponent;
-          return (
-            <View
-              key={field.key}
-              style={[
-                styles.action,
-                {
-                  backgroundColor: getInputBackgroundColor(),
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: themeStyles.colors.black,
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: isDarkTheme ? 0.3 : 0.1,
-                      shadowRadius: 2,
-                    },
-                    android: {
-                      elevation: 2,
-                    },
-                  }),
-                },
-              ]}
-            >
-              <IconComponent name={field.icon} size={20} color={getIconColor()} />
-              <TextInput
-                placeholder={field.placeholder}
-                placeholderTextColor={getSecondaryTextColor()}
-                value={userData[field.key as keyof UserData]}  // Dynamic value
-                onChangeText={(text) => setUserData(prev => ({ ...prev, [field.key]: text }))}  // Dynamic key
-                style={[styles.textInput, { color: getTextColor() }]}
-                autoCapitalize={field.autoCapitalize}
-                keyboardType={field.keyboardType}
-                editable={!isSaving && field.key !== 'email'}  // Disable email editing
-              />
-            </View>
-          );
-        })}
+            const IconComponent = field.iconComponent;
+            return (
+              <View
+                key={field.key}
+                style={[
+                  styles.action,
+                  {
+                    backgroundColor: getInputBackgroundColor(),
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: themeStyles.colors.black,
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isDarkTheme ? 0.3 : 0.1,
+                        shadowRadius: 2,
+                      },
+                      android: {
+                        elevation: 2,
+                      },
+                    }),
+                  },
+                ]}
+              >
+                <IconComponent name={field.icon} size={20} color={getIconColor()} />
+                <TextInput
+                  placeholder={field.placeholder}
+                  placeholderTextColor={getSecondaryTextColor()}
+                  value={userData[field.key as keyof UserData]} // Dynamic value
+                  onChangeText={text => setUserData(prev => ({ ...prev, [field.key]: text }))} // Dynamic key
+                  style={[styles.textInput, { color: getTextColor() }]}
+                  autoCapitalize={field.autoCapitalize}
+                  keyboardType={field.keyboardType}
+                  editable={!isSaving && field.key !== 'email'} // Disable email editing
+                />
+              </View>
+            );
+          })}
 
           <FormButton
             buttonTitle={isSaving ? t('updating', 'Updating...') : t('update')}
