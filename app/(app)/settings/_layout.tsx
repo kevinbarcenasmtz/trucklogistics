@@ -1,4 +1,4 @@
-// app/(app)/settings/_layout.tsx - CLEANED UP VERSION
+// app/(app)/settings/_layout.tsx 
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 

@@ -1,5 +1,5 @@
 // app/_layout.tsx
-import { AuthProvider } from '@/src/context/AuthContext';
+import { AuthProvider } from '@/src/context/AuthContextMigration';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
@@ -9,7 +9,7 @@ import { Platform, View } from 'react-native';
 import 'react-native-gesture-handler';
 // Import i18n config to initialize it
 import '@/src/i18n';
-import '../src/config/firebase';
+import '../src/config/firebaseOld';
 
 // Theme-aware stack navigator
 function ThemedStack(): JSX.Element {

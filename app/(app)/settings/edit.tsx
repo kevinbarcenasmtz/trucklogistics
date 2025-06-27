@@ -1,6 +1,6 @@
 // app/(app)/settings/edit.tsx
 import FormButton from '@/src/components/forms/FormButton';
-import { useAuth } from '@/src/context/AuthContext';
+import { useAuth } from '@/src/context/AuthContextMigration';
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather, FontAwesome } from '@expo/vector-icons';
