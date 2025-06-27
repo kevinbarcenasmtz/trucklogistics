@@ -358,57 +358,72 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('No user is currently logged in');
       }
   
-      console.log('=== PROFILE UPDATE DEBUG ===');
-      console.log('Current user:', { uid: user.uid, fname: user.fname, lname: user.lname });
-      console.log('Data to update:', data);
-      console.log('Firestore instance:', firestore);
-  
       // Create document reference
       const userDocRef = doc(firestore, 'users', user.uid);
-      console.log('Document reference created:', userDocRef.path);
+      
+      // Filter out undefined/empty values
+      const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any);
   
-      // Prepare update data
+      // Prepare update data with timestamp
       const updateData = {
-        ...data,
+        ...cleanData,
         updatedAt: Timestamp.now(),
       };
-      console.log('Final update data:', updateData);
+  
+      console.log('Updating document:', userDocRef.path, 'with data:', updateData);
   
       // Perform the update
-      console.log('Calling updateDoc...');
       await updateDoc(userDocRef, updateData);
-      console.log('✅ updateDoc completed successfully');
   
-      // Verify the update by reading back from Firestore
-      console.log('Verifying update by reading document...');
+      // Fetch the updated document to ensure consistency
       const updatedDocSnap = await getDoc(userDocRef);
+      
       if (updatedDocSnap.exists()) {
-        console.log('✅ Document after update:', updatedDocSnap.data());
+        const updatedData = updatedDocSnap.data();
+        
+        // Type guard to ensure updatedData is defined
+        if (updatedData) {
+          console.log('Document successfully updated:', updatedData);
+          
+          // Update local state with data from Firestore
+          setUserData({
+            email: updatedData.email || userData?.email || '',
+            fname: updatedData.fname || '',
+            lname: updatedData.lname || '',
+            phone: updatedData.phone || '',
+            country: updatedData.country || '',
+            city: updatedData.city || '',
+            state: updatedData.state || '',
+          });
+  
+          // Update user state if names changed
+          if (updatedData.fname !== user.fname || updatedData.lname !== user.lname) {
+            setUser({
+              ...user,
+              fname: updatedData.fname || user.fname,
+              lname: updatedData.lname || user.lname,
+            });
+          }
+        }
       } else {
-        console.log('❌ Document does not exist after update!');
+        throw new Error('Document not found after update');
       }
-  
-      // Update local state
-      setUserData(data);
-  
-      // Update user state with name changes if applicable
-      if (data.fname !== user.fname || data.lname !== user.lname) {
-        const updatedUser = {
-          ...user,
-          fname: data.fname || user.fname,
-          lname: data.lname || user.lname,
-        };
-        console.log('Updating local user state:', updatedUser);
-        setUser(updatedUser);
-      }
-  
-      console.log('=== PROFILE UPDATE COMPLETE ===');
     } catch (error: any) {
-      console.error('=== PROFILE UPDATE ERROR ===');
-      console.error('Error details:', error);
-      console.error('Error code:', error.code);
-      console.error('Error message:', error.message);
-      throw error;
+      console.error('Profile update error:', error);
+      
+      // Provide user-friendly error messages
+      if (error.code === 'permission-denied') {
+        throw new Error('You do not have permission to update this profile');
+      } else if (error.code === 'not-found') {
+        throw new Error('User profile not found');
+      } else {
+        throw error;
+      }
     } finally {
       setLoading(false);
     }

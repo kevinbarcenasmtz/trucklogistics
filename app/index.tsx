@@ -6,7 +6,8 @@ import { useAppStateMachine } from '@/src/state/appStateMachine';
 import React from 'react';
 
 // Remove the globalThis line and useEffect - we'll handle this differently later
-globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+// globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+globalThis.RNFB_MODULAR_DEPRECATION_STRICT_MODE = true;
 
 export default function Index() {
   const { user } = useAuth();

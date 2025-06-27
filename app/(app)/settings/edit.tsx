@@ -33,35 +33,36 @@ interface UserData {
 
 export default function EditScreen() {
   const router = useRouter();
-  const { user, userData: initialUserData } = useAuth();
+  const { user, userData: initialUserData, updateUserData } = useAuth(); // Add updateUserData
   const { t } = useTranslation();
   const { theme, isDarkTheme } = useTheme();
   const themeStyles = getThemeStyles(theme);
 
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userData, setUserData] = useState<UserData>({
+    fname: '',
+    lname: '',
+    phone: '',
+    email: '',
+    country: '',
+    city: '',
+    state: '',
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    if (initialUserData) {
-      setUserData(initialUserData as UserData);
-    } else {
-      setIsLoading(true);
-      // Load user data if not already available through context
-      getUser();
+    if (initialUserData && user) {
+      setUserData({
+        fname: initialUserData.fname || '',
+        lname: initialUserData.lname || '',
+        phone: initialUserData.phone || '',
+        email: user.email || '',
+        country: initialUserData.country || '',
+        city: initialUserData.city || '',
+        state: initialUserData.state || '',
+      });
     }
-  }, [initialUserData]);
-
-  const getUser = async () => {
-    if (!user) return;
-    try {
-      // Implementation would depend on your backend
-      setIsLoading(false);
-    } catch (error) {
-      console.log('Error fetching user data:', error);
-      setIsLoading(false);
-    }
-  };
+  }, [initialUserData, user]);
 
   const handleUpdate = async () => {
     if (!user || !userData) return;
@@ -70,21 +71,35 @@ export default function EditScreen() {
     setIsSaving(true);
 
     try {
-      // Here we'd call the updateUserData function if it existed
-      // For now let's just show a success alert and go back
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API call
+      // Actually call the updateUserData function
+      await updateUserData({
+        fname: userData.fname,
+        lname: userData.lname,
+        phone: userData.phone,
+        country: userData.country,
+        city: userData.city,
+        state: userData.state,
+        // Don't update email in profile updates
+      });
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Success', t('profileUpdated', 'Your profile has been updated successfully.'));
+      Alert.alert(
+        t('success', 'Success'), 
+        t('profileUpdated', 'Your profile has been updated successfully.')
+      );
       router.back();
-    } catch (error) {
-      console.log('Error updating user profile:', error);
-      Alert.alert('Error', t('updateFailed', 'Something went wrong while updating your profile.'));
+    } catch (error: any) {
+      console.error('Error updating profile:', error);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert(
+        t('error', 'Error'), 
+        error.message || t('updateFailed', 'Failed to update profile. Please try again.')
+      );
     } finally {
       setIsSaving(false);
     }
   };
+
 
   const renderAvatar = () => {
     if (userData?.fname && userData?.lname) {
@@ -237,48 +252,42 @@ export default function EditScreen() {
           </View>
 
           {inputFields.map((field, index) => {
-            const IconComponent = field.iconComponent;
-            return (
-              <View
-                key={field.key}
-                style={[
-                  styles.action,
-                  {
-                    backgroundColor: getInputBackgroundColor(),
-                    ...Platform.select({
-                      ios: {
-                        shadowColor: themeStyles.colors.black,
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: isDarkTheme ? 0.3 : 0.1,
-                        shadowRadius: 2,
-                      },
-                      android: {
-                        elevation: 2,
-                      },
-                    }),
-                  },
-                ]}
-              >
-                <IconComponent name={field.icon} size={20} color={getIconColor()} />
-                <TextInput
-                  placeholder={field.placeholder}
-                  placeholderTextColor={getSecondaryTextColor()}
-                  value={userData?.[field.key as keyof UserData] || ''}
-                  onChangeText={txt => {
-                    if (userData) {
-                      setUserData({
-                        ...userData,
-                        [field.key]: txt,
-                      });
-                    }
-                  }}
-                  style={[styles.textInput, { color: getTextColor() }]}
-                  autoCapitalize={field.autoCapitalize}
-                  keyboardType={field.keyboardType}
-                />
-              </View>
-            );
-          })}
+          const IconComponent = field.iconComponent;
+          return (
+            <View
+              key={field.key}
+              style={[
+                styles.action,
+                {
+                  backgroundColor: getInputBackgroundColor(),
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: themeStyles.colors.black,
+                      shadowOffset: { width: 0, height: 1 },
+                      shadowOpacity: isDarkTheme ? 0.3 : 0.1,
+                      shadowRadius: 2,
+                    },
+                    android: {
+                      elevation: 2,
+                    },
+                  }),
+                },
+              ]}
+            >
+              <IconComponent name={field.icon} size={20} color={getIconColor()} />
+              <TextInput
+                placeholder={field.placeholder}
+                placeholderTextColor={getSecondaryTextColor()}
+                value={userData[field.key as keyof UserData]}  // Dynamic value
+                onChangeText={(text) => setUserData(prev => ({ ...prev, [field.key]: text }))}  // Dynamic key
+                style={[styles.textInput, { color: getTextColor() }]}
+                autoCapitalize={field.autoCapitalize}
+                keyboardType={field.keyboardType}
+                editable={!isSaving && field.key !== 'email'}  // Disable email editing
+              />
+            </View>
+          );
+        })}
 
           <FormButton
             buttonTitle={isSaving ? t('updating', 'Updating...') : t('update')}

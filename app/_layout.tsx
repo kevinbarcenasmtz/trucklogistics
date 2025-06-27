@@ -9,7 +9,7 @@ import { Platform, View } from 'react-native';
 import 'react-native-gesture-handler';
 // Import i18n config to initialize it
 import '@/src/i18n';
-import '../src/config/firebaseOld';
+import '../src/config/firebaseMigration';
 
 // Theme-aware stack navigator
 function ThemedStack(): JSX.Element {
