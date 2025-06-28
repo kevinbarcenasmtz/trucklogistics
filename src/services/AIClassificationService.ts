@@ -1,41 +1,17 @@
 // src/services/AIClassificationService.ts
-import Anthropic from '@anthropic-ai/sdk';
 import Constants from 'expo-constants';
 import { AIClassifiedReceipt } from '../types/ReceiptInterfaces';
 
 /**
- * Service to handle AI classification of receipt text
+ * Service to handle AI classification of receipt text through backend
  */
 export class AIClassificationService {
-  private static API_KEY =
-    Constants.expoConfig?.extra?.anthropicApiKey || process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-
-  private static MODEL = 'claude-3-7-sonnet-20250219'; // Use available model
-
-  /**
-   * Get Anthropic client instance
-   */
-  private static getClient(): Anthropic | null {
-    console.log('[AIClassificationService] Initializing Anthropic client');
-
-    if (!this.API_KEY || this.API_KEY.trim() === '') {
-      console.warn(
-        '[AIClassificationService] API key not configured. Check your environment variables.'
-      );
-      return null;
-    }
-
-    console.log('[AIClassificationService] API key found, creating client');
-    return new Anthropic({
-      apiKey: this.API_KEY,
-      // Add optional parameters for better reliability
-      maxRetries: 3,
-      timeout: 30000, // 30 seconds
-    });
-  }
+  private static API_URL = 
+    Constants.expoConfig?.extra?.ocrApiUrl || 
+    process.env.EXPO_PUBLIC_OCR_API_URL;
 
   /**
-   * Classify receipt text using AI
+   * Classify receipt text using AI through backend
    *
    * @param extractedText The raw text extracted from the receipt image
    * @returns Classified receipt data
@@ -52,107 +28,55 @@ export class AIClassificationService {
       return this.fallbackClassification(extractedText);
     }
 
-    const client = this.getClient();
-
-    // If no client (no API key), use fallback
-    if (!client) {
-      console.log(
-        '[AIClassificationService] No API client available - using fallback classification method'
-      );
-      return this.fallbackClassification(extractedText);
-    }
-
     try {
-      console.log('[AIClassificationService] Sending request to Anthropic API');
-      console.log(`[AIClassificationService] Using model: ${this.MODEL}`);
+      console.log('[AIClassificationService] Sending request to backend API');
+      console.log(`[AIClassificationService] API URL: ${this.API_URL}/api/classify-receipt`);
 
-      console.log(`[AIClassificationService] Using model: ${this.MODEL}`);
-
-      const message = await client.messages.create({
-        model: this.MODEL,
-        max_tokens: 1000,
-        system:
-          'You are an expert at analyzing receipt data. Extract the structured information from the provided receipt text.',
-        messages: [
-          {
-            role: 'user',
-            content: `Analyze this receipt text and extract the following information:
-              - date: The receipt date in YYYY-MM-DD format
-              - type: Either "Fuel", "Material Transportation", or "Other"
-              - amount: The total amount paid
-              - vehicle: Any vehicle identification
-              - vendorName: The name of the business
-              - location: The address if available
-              
-              Format your response as valid JSON with these exact field names.
-              
-              Raw receipt text:
-              ${extractedText}`,
-          },
-        ],
+      const response = await fetch(`${this.API_URL}/api/classify-receipt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          extractedText,
+        }),
       });
 
-      console.log('[AIClassificationService] Successfully received API response');
-
-      console.log('[AIClassificationService] Received response from Anthropic API');
-
-      // Extract the text content from the message
-      let textContent = '';
-      if (message.content && Array.isArray(message.content)) {
-        for (const block of message.content) {
-          // Type guard to check for text blocks
-          if ('type' in block && block.type === 'text' && 'text' in block) {
-            textContent += block.text;
-          }
-        }
+      if (!response.ok) {
+        throw new Error(`Backend service error: ${response.status}`);
       }
 
-      console.log('[AIClassificationService] Extracted text content from response');
-
-      // Try to parse JSON from the text response
-      try {
-        console.log('[AIClassificationService] Attempting to parse JSON from response');
-        // Find JSON in the text (Claude sometimes wraps JSON in markdown)
-        const jsonMatch =
-          textContent.match(/```json\s*([\s\S]*?)\s*```/) ||
-          textContent.match(/```\s*([\s\S]*?)\s*```/) ||
-          textContent.match(/{[\s\S]*?}/);
-
-        console.log(`[AIClassificationService] JSON match found: ${!!jsonMatch}`);
-
-        const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : textContent;
-        console.log(
-          `[AIClassificationService] Extracted JSON string: ${jsonStr.substring(0, 50)}...`
-        );
-
-        const parsedResult = JSON.parse(jsonStr.replace(/```/g, '').trim());
-        console.log('[AIClassificationService] Successfully parsed JSON result', parsedResult);
-
-        // Ensure all required fields exist with defaults if needed
-        const result = {
-          date: parsedResult.date || new Date().toISOString().split('T')[0],
-          type: this.validateReceiptType(parsedResult.type),
-          amount: this.formatAmount(parsedResult.amount),
-          vehicle: parsedResult.vehicle || 'Unknown Vehicle',
-          vendorName: parsedResult.vendorName || 'Unknown Vendor',
-          location: parsedResult.location || '',
-          confidence: 0.85,
+      const result = await response.json();
+      
+      if (result.error && result.classification) {
+        // Fallback classification was used by backend
+        console.log('[AIClassificationService] Backend used fallback classification');
+        return {
+          ...result.classification,
+          confidence: 0.6, // Lower confidence for fallback
         };
-
-        console.log('[AIClassificationService] Final classified result:', result);
-        return result;
-      } catch (parseError) {
-        console.error(
-          '[AIClassificationService] Failed to parse Claude JSON response:',
-          parseError
-        );
-        console.log('[AIClassificationService] Raw response text:', textContent);
-        return this.fallbackClassification(extractedText);
       }
+
+      console.log('[AIClassificationService] Successfully received classification from backend');
+      console.log('[AIClassificationService] Classification result:', result.classification);
+
+      // Ensure all required fields exist with defaults if needed
+      const classification = {
+        date: result.classification.date || new Date().toISOString().split('T')[0],
+        type: this.validateReceiptType(result.classification.type),
+        amount: this.formatAmount(result.classification.amount),
+        vehicle: result.classification.vehicle || 'Unknown Vehicle',
+        vendorName: result.classification.vendorName || 'Unknown Vendor',
+        location: result.classification.location || '',
+        confidence: 0.85,
+      };
+
+      console.log('[AIClassificationService] Final classified result:', classification);
+      return classification;
     } catch (error) {
-      console.error('[AIClassificationService] API error:', error);
+      console.error('[AIClassificationService] Backend API error:', error);
       console.log(
-        '[AIClassificationService] Using fallback classification method due to API error'
+        '[AIClassificationService] Using fallback classification method due to backend error'
       );
       return this.fallbackClassification(extractedText);
     }

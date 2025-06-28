@@ -162,7 +162,7 @@ module.exports = () => {
       fallbackToCacheTimeout: 0,
       url: 'https://u.expo.dev/8178d963-9b4a-44b4-ae89-042607e45d02',
     },
-    runtimeVersion: '1.0.0' + getVersionSuffix(),
+    runtimeVersion: '1.0' + getVersionSuffix(),
     owner: 'kevin14767',
   };
 

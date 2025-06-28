@@ -5,10 +5,6 @@ import * as FileSystem from 'expo-file-system';
 // Get API URL from environment variables or constants
 const API_URL = Constants.expoConfig?.extra?.ocrApiUrl || process.env.EXPO_PUBLIC_OCR_API_URL;
 
-// Get API key if it exists
-// const API_KEY =
-//   Constants.expoConfig?.extra?.ocrApiKey ||
-//   process.env.EXPO_PUBLIC_OCR_API_KEY;
 
 export class OcrService {
   /**
@@ -37,7 +33,7 @@ export class OcrService {
       // }
 
       // Send to backend
-      const response = await fetch(API_URL, {
+      const response = await fetch(`${API_URL}/api/ocr/base64`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
