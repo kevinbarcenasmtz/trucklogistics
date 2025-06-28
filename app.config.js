@@ -72,7 +72,7 @@ module.exports = () => {
   const config = {
     name: getAppName(),
     slug: 'trucklogistics',
-    version: '1.0.0' + getVersionSuffix(),
+    version: '1.0' + getVersionSuffix(),
     orientation: 'portrait',
     icon: './assets/images/icon.png', // Fixed: removed leading slash
     scheme: 'trucklogistics-dev',
