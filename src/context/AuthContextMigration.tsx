@@ -1,4 +1,4 @@
-// src/context/AuthContext.tsx
+// src/context/AuthContextMigration.tsx
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { useRouter } from 'expo-router';
@@ -8,13 +8,23 @@ import { ErrorSanitizer, SecurityError } from '../security/ErrorSanitizer';
 import { RateLimiter } from '../security/RateLimiter';
 import { SecureStorage } from '../security/SecureStorage';
 
-// React Native Firebase imports
-import auth from '@react-native-firebase/auth';
-import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+// Firebase modular imports - import directly from packages
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  signInWithCredential,
+  signInWithEmailAndPassword,
+  signOut,
+} from '@react-native-firebase/auth';
+import { doc, getDoc, setDoc, Timestamp, updateDoc } from '@react-native-firebase/firestore';
 
-// Initialize Google Sign-In (now imported from separate file)
+// Import the Firebase instances from config
+import { auth, firestore } from '../config/firebaseMigration';
+
+// Initialize Google Sign-In
 import '../config/googleSignIn';
-const AUTH_STATE_KEY = 'auth_state';
 
 // User type definitions
 type User = {
@@ -22,7 +32,7 @@ type User = {
   email: string;
   fname: string;
   lname: string;
-  createdAt: FirebaseFirestoreTypes.Timestamp;
+  createdAt: any; // Firebase Timestamp
 };
 
 type UserData = {
@@ -46,7 +56,7 @@ type AuthContextType = {
   googleLogin: () => Promise<void>;
   isOnboardingCompleted: boolean | null;
   completeOnboarding: () => Promise<void>;
-  updateUserData: (data: UserData) => Promise<void>; // Add this function
+  updateUserData: (data: UserData) => Promise<void>;
 };
 
 // Error handling helper
@@ -69,94 +79,49 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-
-  // Check onboarding status
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  // Listen to auth state changes - MODULAR API
   useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async firebaseUser => {
+    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
+      if (isLoggingOut) return;
       if (firebaseUser) {
         try {
-          const userDoc = await firestore().collection('users').doc(firebaseUser.uid).get();
-          const userDocData = userDoc.data();
+          // Get user document - MODULAR API
+          const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+          const userDocSnap = await getDoc(userDocRef);
 
-          if (userDocData) {
-            const userData = {
-              uid: firebaseUser.uid,
-              email: userDocData.email || '',
-              fname: userDocData.fname || '',
-              lname: userDocData.lname || '',
-              createdAt: userDocData.createdAt,
-            };
+          if (userDocSnap.exists()) {
+            const userDocData = userDocSnap.data();
 
-            setUser(userData);
-            setUserData({
-              email: userDocData.email,
-              fname: userDocData.fname,
-              lname: userDocData.lname,
-              phone: userDocData.phone,
-              country: userDocData.country,
-              city: userDocData.city,
-              state: userDocData.state,
-            });
+            if (userDocData) {
+              const userData = {
+                uid: firebaseUser.uid,
+                email: userDocData.email || '',
+                fname: userDocData.fname || '',
+                lname: userDocData.lname || '',
+                createdAt: userDocData.createdAt,
+              };
 
-            // Save auth state to AsyncStorage
-            await AsyncStorage.setItem(AUTH_STATE_KEY, 'true');
-          } else {
-            setUser(null);
-            setUserData(null);
-            await AsyncStorage.removeItem(AUTH_STATE_KEY);
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-          setUser(null);
-          setUserData(null);
-          await AsyncStorage.removeItem(AUTH_STATE_KEY);
-        }
-      } else {
-        setUser(null);
-        setUserData(null);
-        await AsyncStorage.removeItem(AUTH_STATE_KEY);
-      }
-      setLoading(false);
-    });
+              setUser(userData);
+              setUserData({
+                email: userDocData.email,
+                fname: userDocData.fname,
+                lname: userDocData.lname,
+                phone: userDocData.phone,
+                country: userDocData.country,
+                city: userDocData.city,
+                state: userDocData.state,
+              });
 
-    return unsubscribe;
-  }, []);
-
-  // Listen to auth state changes
-  useEffect(() => {
-    const unsubscribe = auth().onAuthStateChanged(async firebaseUser => {
-      if (firebaseUser) {
-        try {
-          const userDoc = await firestore().collection('users').doc(firebaseUser.uid).get();
-          const userDocData = userDoc.data();
-
-          if (userDocData) {
-            const userData = {
-              uid: firebaseUser.uid,
-              email: userDocData.email || '',
-              fname: userDocData.fname || '',
-              lname: userDocData.lname || '',
-              createdAt: userDocData.createdAt,
-            };
-
-            setUser(userData);
-            setUserData({
-              email: userDocData.email,
-              fname: userDocData.fname,
-              lname: userDocData.lname,
-              phone: userDocData.phone,
-              country: userDocData.country,
-              city: userDocData.city,
-              state: userDocData.state,
-            });
-
-            await SecureStorage.storeAuthToken('authenticated'); // Replace AsyncStorage
+              await SecureStorage.storeAuthToken('authenticated');
+            }
           } else {
             setUser(null);
             setUserData(null);
             await SecureStorage.removeAuthToken();
           }
         } catch (error) {
+          console.error('Error fetching user data:', error);
           ErrorSanitizer.logSecurityEvent('auth_state_error');
           setUser(null);
           setUserData(null);
@@ -171,7 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return unsubscribe;
-  }, []);
+  }, [isLoggingOut]);
 
   // Helper functions for validation
   const validateEmail = (email: string) => {
@@ -181,36 +146,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const validatePassword = (password: string) => {
-    if (password.length < 8) {
-      throw new Error('Password must be at least 8 characters long');
-    }
-    if (!/[A-Z]/.test(password)) {
-      throw new Error('Password must contain at least one uppercase letter');
-    }
-    if (!/[a-z]/.test(password)) {
-      throw new Error('Password must contain at least one lowercase letter');
-    }
-    if (!/[0-9]/.test(password)) {
-      throw new Error('Password must contain at least one number');
-    }
-  };
-
-  // Login with email and password
+  // Login with email and password - MODULAR API
   const login = async (email: string, password: string) => {
     try {
       setLoading(true);
 
-      // Check rate limit before attempting login
       await RateLimiter.checkRateLimit(email.toLowerCase());
-
       validateEmail(email);
-      await auth().signInWithEmailAndPassword(email, password);
 
-      // Clear rate limit on successful login
+      // Use modular API
+      await signInWithEmailAndPassword(auth, email, password);
+
       await RateLimiter.clearRateLimit(email.toLowerCase());
-
-      // Store auth token securely
       await SecureStorage.storeAuthToken('authenticated');
     } catch (error: any) {
       if (error instanceof SecurityError) {
@@ -218,9 +165,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw error;
       }
 
-      // Record failed attempt for rate limiting
       await RateLimiter.recordFailedAttempt(email.toLowerCase());
-
       handleAuthError(error, 'login');
       throw error;
     } finally {
@@ -228,28 +173,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Register new user
+  // Register new user - MODULAR API
   const register = async (email: string, password: string, fname: string, lname: string) => {
     try {
       setLoading(true);
 
       await RateLimiter.checkRateLimit(email.toLowerCase());
-
       validateEmail(email);
 
-      // No need to call validatePassword here since AuthService.validateSignupForm handles it
-      // The validation in the UI components will catch password issues before reaching here
+      // Create user with modular API
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-      const newUser = {
-        uid: userCredential.user.uid,
+      // Create user document - MODULAR API
+      const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+      await setDoc(userDocRef, {
         email,
         fname,
         lname,
-        createdAt: firestore.Timestamp.now(),
-      };
+        createdAt: Timestamp.now(),
+      });
 
-      await firestore().collection('users').doc(userCredential.user.uid).set(newUser);
       await RateLimiter.clearRateLimit(email.toLowerCase());
       await SecureStorage.storeAuthToken('authenticated');
     } catch (error: any) {
@@ -266,25 +210,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Logout
+  // Reset password - MODULAR API
+  const resetPassword = async (email: string) => {
+    try {
+      validateEmail(email);
+      // Use modular API
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert('Success', 'Password reset email sent!');
+    } catch (error: any) {
+      handleAuthError(error, 'reset_password');
+      throw error;
+    }
+  };
+
+  // Logout - MODULAR API
   const logout = async () => {
     try {
+      setIsLoggingOut(true); // Add this line
       setLoading(true);
-      await auth().signOut();
-      await SecureStorage.removeAuthToken(); // Replace AsyncStorage
+
+      await signOut(auth);
+
+      await SecureStorage.removeAuthToken();
       setUser(null);
       setUserData(null);
+
       router.replace('/(auth)/login');
     } catch (error: any) {
+      console.error('Logout error:', error);
       handleAuthError(error, 'logout');
       throw error;
     } finally {
       setLoading(false);
+      setIsLoggingOut(false); // Add this line
     }
   };
 
-  // Google Sign-In
-
+  // Google login - MODULAR API
   const googleLogin = async () => {
     try {
       setLoading(true);
@@ -308,27 +270,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           throw new Error('Failed to get ID token from Google Sign In');
         }
 
-        // Create Firebase credential
-        const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+        // Create Firebase credential - MODULAR API
+        const googleCredential = GoogleAuthProvider.credential(idToken);
 
-        // Sign in to Firebase
-        const userCredential = await auth().signInWithCredential(googleCredential);
+        // Sign in to Firebase - MODULAR API
+        const userCredential = await signInWithCredential(auth, googleCredential);
 
-        // Check/create Firestore user document
+        // Check/create Firestore user document - MODULAR API
         if (userCredential.user) {
-          const userDoc = await firestore().collection('users').doc(userCredential.user.uid).get();
+          const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+          const userDocSnap = await getDoc(userDocRef);
 
-          if (!userDoc.exists) {
+          if (!userDocSnap.exists()) {
             const newUser = {
               uid: userCredential.user.uid,
               fname: user.givenName || '',
               lname: user.familyName || '',
               email: user.email || '',
-              createdAt: firestore.Timestamp.now(),
+              createdAt: Timestamp.now(), // MODULAR API
             };
 
-            await firestore().collection('users').doc(userCredential.user.uid).set(newUser);
+            await setDoc(userDocRef, newUser); // MODULAR API
           }
+
+          await SecureStorage.storeAuthToken('authenticated');
         }
       } else {
         throw new Error('Google Sign-In failed');
@@ -347,40 +312,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('Google Play Services not available');
             break;
           default:
-            handleAuthError(error);
+            handleAuthError(error, 'google_login');
         }
       } else {
-        // Handle other types of errors
-        handleAuthError(error);
+        handleAuthError(error, 'google_login');
       }
 
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Reset password
-  const resetPassword = async (email: string) => {
-    try {
-      setLoading(true);
-
-      // Apply rate limiting to password reset too
-      await RateLimiter.checkRateLimit(email.toLowerCase());
-
-      validateEmail(email);
-      await auth().sendPasswordResetEmail(email);
-
-      // Clear rate limit on success
-      await RateLimiter.clearRateLimit(email.toLowerCase());
-    } catch (error: any) {
-      if (error instanceof SecurityError) {
-        Alert.alert('Security Notice', error.userMessage);
-        throw error;
-      }
-
-      await RateLimiter.recordFailedAttempt(email.toLowerCase());
-      handleAuthError(error, 'reset_password');
       throw error;
     } finally {
       setLoading(false);
@@ -390,7 +327,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Complete onboarding
   const completeOnboarding = async () => {
     try {
-      // Set both storage keys for consistency
       await AsyncStorage.multiSet([
         ['onboardingCompleted', 'true'],
         ['onboarding_progress', JSON.stringify({ completed: true })],
@@ -398,7 +334,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       setIsOnboardingCompleted(true);
 
-      // Navigate after state update
       setTimeout(() => {
         router.replace('/(auth)/login');
       }, 100);
@@ -408,6 +343,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Update user data - MODULAR API
   const updateUserData = async (data: UserData) => {
     try {
       setLoading(true);
@@ -416,29 +352,72 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         throw new Error('No user is currently logged in');
       }
 
-      // Update the user data in Firestore
-      await firestore()
-        .collection('users')
-        .doc(user.uid)
-        .update({
-          ...data,
-          updatedAt: firestore.Timestamp.now(),
-        });
+      // Create document reference
+      const userDocRef = doc(firestore, 'users', user.uid);
 
-      // Update local state
-      setUserData(data);
+      // Filter out undefined/empty values
+      const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as any);
 
-      // Update user state with name changes if applicable
-      if (data.fname !== user.fname || data.lname !== user.lname) {
-        setUser({
-          ...user,
-          fname: data.fname || user.fname,
-          lname: data.lname || user.lname,
-        });
+      // Prepare update data with timestamp
+      const updateData = {
+        ...cleanData,
+        updatedAt: Timestamp.now(),
+      };
+
+      console.log('Updating document:', userDocRef.path, 'with data:', updateData);
+
+      // Perform the update
+      await updateDoc(userDocRef, updateData);
+
+      // Fetch the updated document to ensure consistency
+      const updatedDocSnap = await getDoc(userDocRef);
+
+      if (updatedDocSnap.exists()) {
+        const updatedData = updatedDocSnap.data();
+
+        // Type guard to ensure updatedData is defined
+        if (updatedData) {
+          console.log('Document successfully updated:', updatedData);
+
+          // Update local state with data from Firestore
+          setUserData({
+            email: updatedData.email || userData?.email || '',
+            fname: updatedData.fname || '',
+            lname: updatedData.lname || '',
+            phone: updatedData.phone || '',
+            country: updatedData.country || '',
+            city: updatedData.city || '',
+            state: updatedData.state || '',
+          });
+
+          // Update user state if names changed
+          if (updatedData.fname !== user.fname || updatedData.lname !== user.lname) {
+            setUser({
+              ...user,
+              fname: updatedData.fname || user.fname,
+              lname: updatedData.lname || user.lname,
+            });
+          }
+        }
+      } else {
+        throw new Error('Document not found after update');
       }
     } catch (error: any) {
-      console.error('Error updating user data:', error);
-      throw error;
+      console.error('Profile update error:', error);
+
+      // Provide user-friendly error messages
+      if (error.code === 'permission-denied') {
+        throw new Error('You do not have permission to update this profile');
+      } else if (error.code === 'not-found') {
+        throw new Error('User profile not found');
+      } else {
+        throw error;
+      }
     } finally {
       setLoading(false);
     }
@@ -456,7 +435,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     googleLogin,
     isOnboardingCompleted,
     completeOnboarding,
-    updateUserData, // Add this line
+    updateUserData,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

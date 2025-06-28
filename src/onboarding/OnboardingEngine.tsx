@@ -1,5 +1,5 @@
 // src/onboarding/OnboardingEngine.tsx
-import { useAuth } from '@/src/context/AuthContext';
+import { useAuth } from '@/src/context/AuthContextMigration';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';

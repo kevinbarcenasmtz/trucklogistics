@@ -1,11 +1,11 @@
-// src/config/firebase.ts
-import app from '@react-native-firebase/app';
-import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore';
+// src/config/firebaseMigration.ts
+import { getApp, getApps, initializeApp } from '@react-native-firebase/app';
+import { getAuth } from '@react-native-firebase/auth';
+import { getFirestore } from '@react-native-firebase/firestore';
 import Constants from 'expo-constants';
 import { Alert } from 'react-native';
 
-// Define the FirebaseConfig interface
+// Define the FirebaseConfig interface (unchanged)
 interface FirebaseConfig {
   apiKey: string;
   authDomain: string;
@@ -16,7 +16,7 @@ interface FirebaseConfig {
   [key: string]: string | undefined;
 }
 
-// Firebase configuration using environment variables
+// Firebase configuration using environment variables (unchanged)
 const firebaseConfig: FirebaseConfig = {
   apiKey: Constants.expoConfig?.extra?.firebaseApiKey || process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain:
@@ -32,7 +32,7 @@ const firebaseConfig: FirebaseConfig = {
   appId: Constants.expoConfig?.extra?.firebaseAppId || process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validate configuration
+// Validate configuration (unchanged)
 const validateFirebaseConfig = () => {
   const requiredFields = ['apiKey', 'authDomain', 'projectId', 'appId'];
   const missingFields = requiredFields.filter(field => !firebaseConfig[field]);
@@ -55,5 +55,15 @@ const validateFirebaseConfig = () => {
 // Validate the config when the module is imported
 validateFirebaseConfig();
 
-// Export the Firebase services
-export { app, auth, firestore };
+// Initialize Firebase app using modular API
+let app;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp(); // Get default app
+}
+
+// Initialize Firebase services using modular API (without app parameter)
+export const auth = getAuth();
+export const firestore = getFirestore();
+export { app };

@@ -8,7 +8,7 @@ import { Alert, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'r
 
 import FormButton from '@/src/components/forms/FormButton';
 import FormInput from '@/src/components/forms/FormInput';
-import { useAuth } from '@/src/context/AuthContext';
+import { useAuth } from '@/src/context/AuthContextMigration';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
