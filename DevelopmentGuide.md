@@ -131,3 +131,53 @@ eas build --platform ios --profile production
 - [Expo Development Builds Documentation](https://docs.expo.dev/develop/development-builds/introduction/)
 - [Expo Application Services (EAS) Build](https://docs.expo.dev/build/introduction/)
 - [Developing for iOS](https://docs.expo.dev/workflow/ios-simulator/)
+
+---
+
+Updated commands for eas build:
+For iOS Simulator
+eas build --platform ios --profile simulator
+
+For Physical iPhone Device  
+eas build --platform ios --profile development
+
+For Preview/Beta Testing
+eas build --platform ios --profile preview
+
+For Production
+eas build --platform ios --profile production
+
+Start
+npx expo start --dev-client --scheme trucklogistics-dev
+
+Alternatively if you run "npx expo run:ios --device" the metro bundler will start with "Metro waiting on exp+trucklogistics://expo-development-client/?url=http%3A%2F%2F192.168.1.36%3A8081". Saved this url so next time I start the app it should be able to use that url.
+
+npx expo start --dev-client --scheme trucklogistics-dev
+
+- `--dev-client`: Tells Expo to expect a development build (not Expo Go)
+- `--scheme trucklogistics-dev`: Uses your app's custom scheme (matches your app.config.js)
+
+Step 2: Alternative with Specific Network Configuration
+
+If you need to force it to use your specific IP address (192.168.1.36):
+
+```bash
+npx expo start --dev-client --scheme trucklogistics-dev --lan
+```
+
+The `--lan` flag ensures Metro binds to your local network interface.
+
+Step 3: Manual URL Connection (if needed)
+
+If the automatic connection doesn't work, you can manually enter the development server URL in your development build:
+
+1. Open the TruckLogistics development app on your iPhone
+2. Shake the device to open the developer menu
+3. Tap "Configure Metro"
+4. Enter: `http://192.168.1.36:8081`
+
+Why This Works
+
+Your development build was configured with the scheme `trucklogistics-dev` (from your app.config.js), so using `--scheme trucklogistics-dev` ensures the Metro bundler generates the correct deep link URL that your development build recognizes.
+
+The URL format `exp+trucklogistics://expo-development-client/?url=...` is automatically generated when you use the `--dev-client` flag with the correct scheme.

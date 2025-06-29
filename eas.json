@@ -12,19 +12,20 @@
         "buildConfiguration": "Debug",
         "simulator": false
       },
-      "env": {
-        "APP_VARIANT": "development"
-      },
       "channel": "development",
       "android": {
         "buildType": "apk"
       }
     },
+    "simulator": {
+      "extends": "development",
+      "ios": {
+        "simulator": true
+      },
+      "channel": "development-simulator"
+    },
     "preview": {
       "distribution": "internal",
-      "env": {
-        "APP_VARIANT": "preview"
-      },
       "channel": "preview",
       "autoIncrement": true,
       "android": {
@@ -37,29 +38,11 @@
     },
     "production": {
       "autoIncrement": true,
-      "env": {
-        "APP_VARIANT": "production"
-      },
       "channel": "production"
-    },
-    "development-simulator": {
-      "developmentClient": true,
-      "distribution": "internal",
-      "ios": {
-        "simulator": true
-      },
-      "env": {
-        "APP_VARIANT": "development"
-      },
-      "channel": "development-simulator"
     }
   },
   "submit": {
     "production": {
-      "android": {
-        "serviceAccountKeyPath": "path/to/service-account.json",
-        "track": "production"
-      },
       "ios": {
         "appleId": "kevin14767@icloud.com",
         "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID",
