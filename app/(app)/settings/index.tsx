@@ -1,4 +1,5 @@
 // app/(app)/settings/index.tsx
+import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import { useAuth } from '@/src/context/AuthContextMigration';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
@@ -21,15 +22,14 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 
 import { LanguageSelector } from '@/src/components/settings/LanguageSelector';
-import { ThemeToggle } from '@/src/components/settings/ThemeToggle';
 import { NotificationSettings } from '@/src/components/settings/NotificationSettings';
+import { ThemeToggle } from '@/src/components/settings/ThemeToggle';
 
 export default function Settings() {
   const router = useRouter();
-  const { t , i18n} = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, logout, userData } = useAuth();
 
   // Theme management
@@ -80,28 +80,34 @@ export default function Settings() {
       const success = await setTheme(nextTheme);
 
       if (!success) {
-        dispatch({ 
-          type: 'OPERATION_ERROR', 
+        dispatch({
+          type: 'OPERATION_ERROR',
           error: t('themeChangeError', 'Failed to change theme. Please try again.'),
-          context: 'theme'
+          context: 'theme',
         });
-        Alert.alert(t('error', 'Error'), t('themeChangeError', 'Failed to change theme. Please try again.'));
+        Alert.alert(
+          t('error', 'Error'),
+          t('themeChangeError', 'Failed to change theme. Please try again.')
+        );
         return;
       }
 
-      dispatch({ 
-        type: 'OPERATION_SUCCESS', 
+      dispatch({
+        type: 'OPERATION_SUCCESS',
         message: t('themeChanged', 'Theme changed successfully'),
-        operation: 'theme'
+        operation: 'theme',
       });
     } catch (error) {
       console.error('Error changing theme:', error);
-      dispatch({ 
-        type: 'OPERATION_ERROR', 
+      dispatch({
+        type: 'OPERATION_ERROR',
         error: t('themeChangeError', 'Failed to change theme. Please try again.'),
-        context: 'theme'
+        context: 'theme',
       });
-      Alert.alert(t('error', 'Error'), t('themeChangeError', 'Failed to change theme. Please try again.'));
+      Alert.alert(
+        t('error', 'Error'),
+        t('themeChangeError', 'Failed to change theme. Please try again.')
+      );
     }
   };
 
@@ -121,19 +127,22 @@ export default function Settings() {
       await AsyncStorage.setItem('userLanguage', newLanguage);
       await AsyncStorage.setItem('languageSelected', 'true');
 
-      dispatch({ 
-        type: 'OPERATION_SUCCESS', 
+      dispatch({
+        type: 'OPERATION_SUCCESS',
         message: t('languageChanged', 'Language changed successfully'),
-        operation: 'language'
+        operation: 'language',
       });
     } catch (error) {
       console.error('Error changing language:', error);
-      dispatch({ 
-        type: 'OPERATION_ERROR', 
+      dispatch({
+        type: 'OPERATION_ERROR',
         error: t('languageChangeError', 'Failed to change language. Please try again.'),
-        context: 'language'
+        context: 'language',
       });
-      Alert.alert(t('error', 'Error'), t('languageChangeError', 'Failed to change language. Please try again.'));
+      Alert.alert(
+        t('error', 'Error'),
+        t('languageChangeError', 'Failed to change language. Please try again.')
+      );
     }
   };
 
@@ -157,19 +166,22 @@ export default function Settings() {
 
             try {
               await logout();
-              dispatch({ 
-                type: 'OPERATION_SUCCESS', 
+              dispatch({
+                type: 'OPERATION_SUCCESS',
                 message: t('loggedOut', 'Logged out successfully'),
-                operation: 'logout'
+                operation: 'logout',
               });
             } catch (error) {
               console.error('Logout error:', error);
-              dispatch({ 
-                type: 'OPERATION_ERROR', 
+              dispatch({
+                type: 'OPERATION_ERROR',
                 error: t('logoutError', 'Failed to logout. Please try again.'),
-                context: 'logout'
+                context: 'logout',
               });
-              Alert.alert(t('error', 'Error'), t('logoutError', 'Failed to logout. Please try again.'));
+              Alert.alert(
+                t('error', 'Error'),
+                t('logoutError', 'Failed to logout. Please try again.')
+              );
             }
           },
         },
@@ -183,9 +195,9 @@ export default function Settings() {
     } catch (error) {
       console.warn('Haptic feedback not supported:', error);
     }
-    dispatch({ 
-      type: 'UPDATE_NOTIFICATIONS', 
-      notifications: { ...state.data.notifications, email: value }
+    dispatch({
+      type: 'UPDATE_NOTIFICATIONS',
+      notifications: { ...state.data.notifications, email: value },
     });
   };
 
@@ -195,9 +207,9 @@ export default function Settings() {
     } catch (error) {
       console.warn('Haptic feedback not supported:', error);
     }
-    dispatch({ 
-      type: 'UPDATE_NOTIFICATIONS', 
-      notifications: { ...state.data.notifications, push: value }
+    dispatch({
+      type: 'UPDATE_NOTIFICATIONS',
+      notifications: { ...state.data.notifications, push: value },
     });
   };
 
@@ -344,19 +356,20 @@ export default function Settings() {
             </View>
           </Animated.View>
 
-
-          <ErrorBoundary fallback={
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
-                {t('preferences', 'Preferences')}
-              </Text>
-              <View style={[styles.sectionBody, { backgroundColor: surfaceColor, padding: 20 }]}>
-                <Text style={{ color: textColor, textAlign: 'center' }}>
-                  {t('preferencesError', 'Unable to load preferences. Please try refreshing.')}
+          <ErrorBoundary
+            fallback={
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+                  {t('preferences', 'Preferences')}
                 </Text>
+                <View style={[styles.sectionBody, { backgroundColor: surfaceColor, padding: 20 }]}>
+                  <Text style={{ color: textColor, textAlign: 'center' }}>
+                    {t('preferencesError', 'Unable to load preferences. Please try refreshing.')}
+                  </Text>
+                </View>
               </View>
-            </View>
-          }>
+            }
+          >
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
                 {t('preferences', 'Preferences')}
@@ -417,18 +430,23 @@ export default function Settings() {
           </ErrorBoundary>
 
           {/* Notifications Section - NOW WITH ERROR BOUNDARY */}
-          <ErrorBoundary fallback={
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
-                {t('notifications', 'Notifications')}
-              </Text>
-              <View style={[styles.sectionBody, { backgroundColor: surfaceColor, padding: 20 }]}>
-                <Text style={{ color: textColor, textAlign: 'center' }}>
-                  {t('notificationsError', 'Unable to load notifications. Please try refreshing.')}
+          <ErrorBoundary
+            fallback={
+              <View style={styles.section}>
+                <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+                  {t('notifications', 'Notifications')}
                 </Text>
+                <View style={[styles.sectionBody, { backgroundColor: surfaceColor, padding: 20 }]}>
+                  <Text style={{ color: textColor, textAlign: 'center' }}>
+                    {t(
+                      'notificationsError',
+                      'Unable to load notifications. Please try refreshing.'
+                    )}
+                  </Text>
+                </View>
               </View>
-            </View>
-          }>
+            }
+          >
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
                 {t('notifications', 'Notifications')}

@@ -1,9 +1,9 @@
 // src/components/settings/LanguageSelector.tsx
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 
 interface LanguageSelectorProps {
   isLoading: boolean;
@@ -17,14 +17,8 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   disabled = false,
 }) => {
   const { t, i18n } = useTranslation();
-  const {
-    textColor,
-    secondaryTextColor,
-    primaryColor,
-    borderColor,
-    themeStyles,
-    isDarkTheme,
-  } = useAppTheme();
+  const { textColor, secondaryTextColor, primaryColor, borderColor, themeStyles, isDarkTheme } =
+    useAppTheme();
 
   const renderLanguageValue = () => {
     if (isLoading) {

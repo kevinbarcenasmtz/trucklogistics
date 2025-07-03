@@ -21,7 +21,6 @@ interface ShadowImageProps {
   backgroundColor: string;
 }
 
-
 const Dots: React.FC<DotsProps> = ({ selected }) => {
   const { isDarkTheme, textColor, borderColor, specialTextColor, specialSecondaryTextColor } =
     useAppTheme();
@@ -147,7 +146,12 @@ const Done = ({ ...props }) => {
   );
 };
 
-const ShadowImage: React.FC<ShadowImageProps> = ({ source, isDarkTheme, themeStyles, backgroundColor }) => (
+const ShadowImage: React.FC<ShadowImageProps> = ({
+  source,
+  isDarkTheme,
+  themeStyles,
+  backgroundColor,
+}) => (
   <Image
     source={source}
     style={[
@@ -190,12 +194,14 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
     // Page 0: Normal theme (white/dark background, black/white dots and text)
     {
       backgroundColor: getBackgroundColor(),
-      image: <ShadowImage 
-        source={require('@/assets/icons/logistics1.png')} 
-        isDarkTheme={isDarkTheme} 
-        themeStyles={themeStyles}
-        backgroundColor={getBackgroundColor()}
-      />, 
+      image: (
+        <ShadowImage
+          source={require('@/assets/icons/logistics1.png')}
+          isDarkTheme={isDarkTheme}
+          themeStyles={themeStyles}
+          backgroundColor={getBackgroundColor()}
+        />
+      ),
       title: t('onboardingTitle1', 'Welcome to Trucking Logistics Pro'),
       subtitle: t(
         'onboardingSubtitle1',
@@ -207,12 +213,14 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
     // Page 1: Green theme (green background, white dots and text)
     {
       backgroundColor: specialBackgroundColor,
-      image: <ShadowImage 
-        source={require('@/assets/icons/logistics2.png')} 
-        isDarkTheme={isDarkTheme} 
-        themeStyles={themeStyles}
-        backgroundColor={specialBackgroundColor} 
-      />,
+      image: (
+        <ShadowImage
+          source={require('@/assets/icons/logistics2.png')}
+          isDarkTheme={isDarkTheme}
+          themeStyles={themeStyles}
+          backgroundColor={specialBackgroundColor}
+        />
+      ),
       title: t('onboardingTitle2', 'Generate Insightful Reports'),
       subtitle: t(
         'onboardingSubtitle2',
@@ -224,12 +232,14 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
     // Page 2: Back to normal theme (white/dark background, black/white dots and text)
     {
       backgroundColor: getBackgroundColor(),
-      image: <ShadowImage 
-      source={require('@/assets/icons/logistics3.png')} 
-      isDarkTheme={isDarkTheme} 
-      themeStyles={themeStyles}
-      backgroundColor={getBackgroundColor()}
-    />,
+      image: (
+        <ShadowImage
+          source={require('@/assets/icons/logistics3.png')}
+          isDarkTheme={isDarkTheme}
+          themeStyles={themeStyles}
+          backgroundColor={getBackgroundColor()}
+        />
+      ),
       title: t('onboardingTitle3', 'Stay on Track'),
       subtitle: t(
         'onboardingSubtitle3',

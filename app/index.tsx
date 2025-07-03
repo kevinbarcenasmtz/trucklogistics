@@ -14,7 +14,7 @@ export default function Index() {
 
   // Pure calculation - no useState or conditional logic needed
   const appState = calculateAppState(user, state);
-  
+
   // React.useEffect(() => {
   //   if (__DEV__) {
   //     AsyncStorage.multiRemove([

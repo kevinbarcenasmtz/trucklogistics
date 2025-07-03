@@ -26,7 +26,7 @@ export default function EditScreen() {
   const router = useRouter();
   const { user, userData: initialUserData, updateUserData } = useAuth();
   const { t } = useTranslation();
-  
+
   const {
     backgroundColor,
     surfaceColor,
@@ -91,11 +91,11 @@ export default function EditScreen() {
       });
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      dispatch({ 
-        type: 'SAVE_SUCCESS', 
-        message: t('profileUpdated', 'Your profile has been updated successfully.')
+      dispatch({
+        type: 'SAVE_SUCCESS',
+        message: t('profileUpdated', 'Your profile has been updated successfully.'),
       });
-      
+
       Alert.alert(
         t('success', 'Success'),
         t('profileUpdated', 'Your profile has been updated successfully.')
@@ -104,10 +104,11 @@ export default function EditScreen() {
     } catch (error: any) {
       console.error('Error updating profile:', error);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      
-      const errorMessage = error.message || t('updateFailed', 'Failed to update profile. Please try again.');
+
+      const errorMessage =
+        error.message || t('updateFailed', 'Failed to update profile. Please try again.');
       dispatch({ type: 'SAVE_ERROR', error: errorMessage });
-      
+
       Alert.alert(t('error', 'Error'), errorMessage);
     }
   };
@@ -225,7 +226,9 @@ export default function EditScreen() {
                   placeholder={field.placeholder}
                   placeholderTextColor={secondaryTextColor}
                   value={state.data[field.key as keyof typeof state.data]}
-                  onChangeText={text => handleFieldChange(field.key as keyof typeof state.data, text)}
+                  onChangeText={text =>
+                    handleFieldChange(field.key as keyof typeof state.data, text)
+                  }
                   style={[styles.textInput, { color: textColor }]}
                   autoCapitalize={field.autoCapitalize}
                   keyboardType={field.keyboardType}
@@ -244,11 +247,7 @@ export default function EditScreen() {
             style={[styles.updateButton, { opacity: isSaving ? 0.7 : 1 }]}
           />
           {isSaving && (
-            <ActivityIndicator
-              size="small"
-              color={primaryColor}
-              style={styles.loadingIndicator}
-            />
+            <ActivityIndicator size="small" color={primaryColor} style={styles.loadingIndicator} />
           )}
         </View>
       </ScrollView>

@@ -27,7 +27,10 @@ export type EditProfileEvent =
   | { type: 'SAVE_ERROR'; error: string }
   | { type: 'RESET_TO_IDLE' };
 
-const editProfileStateMachine = (state: EditProfileState, event: EditProfileEvent): EditProfileState => {
+const editProfileStateMachine = (
+  state: EditProfileState,
+  event: EditProfileEvent
+): EditProfileState => {
   switch (state.type) {
     case 'idle':
       if (event.type === 'UPDATE_FIELD') {

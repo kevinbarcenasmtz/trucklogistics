@@ -1,10 +1,10 @@
 // src/components/settings/NotificationSettings.tsx
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Switch, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 
 const AnimatedSwitch = Animated.createAnimatedComponent(Switch);
 
@@ -24,13 +24,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
-  const {
-    textColor,
-    borderColor,
-    primaryColor,
-    themeStyles,
-    isDarkTheme,
-  } = useAppTheme();
+  const { textColor, borderColor, primaryColor, themeStyles, isDarkTheme } = useAppTheme();
 
   const renderNotificationRow = (
     iconName: string,
@@ -40,11 +34,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
     onValueChange: (value: boolean) => void,
     isFirst: boolean = false
   ) => (
-    <View style={[
-      styles.rowWrapper, 
-      isFirst && styles.rowFirst, 
-      { borderColor }
-    ]}>
+    <View style={[styles.rowWrapper, isFirst && styles.rowFirst, { borderColor }]}>
       <View style={styles.row}>
         <View style={[styles.rowIcon, { backgroundColor }]}>
           <Feather
@@ -53,9 +43,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
             size={20}
           />
         </View>
-        <Text style={[styles.rowLabel, { color: textColor }]}>
-          {label}
-        </Text>
+        <Text style={[styles.rowLabel, { color: textColor }]}>{label}</Text>
         <View style={styles.rowSpacer} />
         <AnimatedSwitch
           entering={FadeIn}

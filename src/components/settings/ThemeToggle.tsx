@@ -1,9 +1,9 @@
 // src/components/settings/ThemeToggle.tsx
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Text, TouchableOpacity, View } from 'react-native';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 
 interface ThemeToggleProps {
   isLoading: boolean;
@@ -19,14 +19,8 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
-  const {
-    textColor,
-    secondaryTextColor,
-    primaryColor,
-    borderColor,
-    themeStyles,
-    isDarkTheme,
-  } = useAppTheme();
+  const { textColor, secondaryTextColor, primaryColor, borderColor, themeStyles, isDarkTheme } =
+    useAppTheme();
 
   const getThemeLabel = () => {
     if (isLoading) return t('changing', 'Changing...');
@@ -50,9 +44,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
     return (
       <>
-        <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
-          {getThemeLabel()}
-        </Text>
+        <Text style={[styles.rowValue, { color: secondaryTextColor }]}>{getThemeLabel()}</Text>
         <Feather color={secondaryTextColor} name="chevron-right" size={20} />
       </>
     );
@@ -73,9 +65,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
             size={20}
           />
         </View>
-        <Text style={[styles.rowLabel, { color: textColor }]}>
-          {t('theme', 'Theme')}
-        </Text>
+        <Text style={[styles.rowLabel, { color: textColor }]}>{t('theme', 'Theme')}</Text>
         <View style={styles.rowSpacer} />
         {renderThemeValue()}
       </TouchableOpacity>
