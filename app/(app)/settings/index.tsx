@@ -2,12 +2,12 @@
 import { useAuth } from '@/src/context/AuthContextMigration';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { useSettingsStateMachine } from '@/src/machines/settingsStateMachine';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -16,26 +16,26 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
+import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 
-const AnimatedSwitch = Animated.createAnimatedComponent(Switch);
-
-type SettingsState = 'idle' | 'changing-language' | 'logging-out' | 'changing-theme';
+import { LanguageSelector } from '@/src/components/settings/LanguageSelector';
+import { ThemeToggle } from '@/src/components/settings/ThemeToggle';
+import { NotificationSettings } from '@/src/components/settings/NotificationSettings';
 
 export default function Settings() {
   const router = useRouter();
-  const { t, i18n } = useTranslation();
+  const { t , i18n} = useTranslation();
   const { user, logout, userData } = useAuth();
 
   // Theme management
   const { themePreference, setTheme, isChangingTheme, themeConstants } = useTheme();
 
-  // ✅ Single hook for all theme values
+  // Single hook for all theme values
   const {
     backgroundColor,
     surfaceColor,
@@ -47,22 +47,19 @@ export default function Settings() {
     isDarkTheme,
   } = useAppTheme();
 
-  // ✅ Single state machine instead of multiple useState
-  const [settingsState, setSettingsState] = useState<SettingsState>('idle');
-
-  // ✅ Notification settings as separate state (independent business logic)
-  const [notificationSettings, setNotificationSettings] = useState({
+  const { state, dispatch } = useSettingsStateMachine({
     email: true,
     push: false,
   });
 
-  // ✅ Calculated states instead of multiple useState
-  const isLoading = settingsState !== 'idle';
-  const isLanguageLoading = settingsState === 'changing-language';
-  const isLoggingOut = settingsState === 'logging-out';
-  const isThemeChanging = settingsState === 'changing-theme' || isChangingTheme;
+  // Pure calculations from state machine
+  const isSaving = state.type === 'saving';
+  const isLoading = isSaving;
+  const isLanguageLoading = isSaving && state.operation === 'language';
+  const isLoggingOut = isSaving && state.operation === 'logout';
+  const isThemeChanging = (isSaving && state.operation === 'theme') || isChangingTheme;
 
-  // Handle theme change with error handling
+  // Simplified handlers - business logic only
   const handleThemeChange = async () => {
     try {
       await Haptics.selectionAsync();
@@ -70,10 +67,9 @@ export default function Settings() {
       console.warn('Haptic feedback not supported:', error);
     }
 
-    setSettingsState('changing-theme');
+    dispatch({ type: 'START_THEME_CHANGE' });
 
     try {
-      // Cycle through theme options: system -> light -> dark -> system
       const nextTheme =
         themePreference === themeConstants.THEME_SYSTEM
           ? themeConstants.THEME_LIGHT
@@ -84,35 +80,28 @@ export default function Settings() {
       const success = await setTheme(nextTheme);
 
       if (!success) {
-        Alert.alert(
-          t('error', 'Error'),
-          t('themeChangeError', 'Failed to change theme. Please try again.')
-        );
+        dispatch({ 
+          type: 'OPERATION_ERROR', 
+          error: t('themeChangeError', 'Failed to change theme. Please try again.'),
+          context: 'theme'
+        });
+        Alert.alert(t('error', 'Error'), t('themeChangeError', 'Failed to change theme. Please try again.'));
+        return;
       }
+
+      dispatch({ 
+        type: 'OPERATION_SUCCESS', 
+        message: t('themeChanged', 'Theme changed successfully'),
+        operation: 'theme'
+      });
     } catch (error) {
       console.error('Error changing theme:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('themeChangeError', 'Failed to change theme. Please try again.')
-      );
-    } finally {
-      setSettingsState('idle');
-    }
-  };
-
-  // Get current theme label for display
-  const getThemeLabel = () => {
-    if (isThemeChanging) return t('changing', 'Changing...');
-
-    switch (themePreference) {
-      case themeConstants.THEME_SYSTEM:
-        return t('themeSystem', 'System');
-      case themeConstants.THEME_LIGHT:
-        return t('themeLight', 'Light');
-      case themeConstants.THEME_DARK:
-        return t('themeDark', 'Dark');
-      default:
-        return t('themeSystem', 'System');
+      dispatch({ 
+        type: 'OPERATION_ERROR', 
+        error: t('themeChangeError', 'Failed to change theme. Please try again.'),
+        context: 'theme'
+      });
+      Alert.alert(t('error', 'Error'), t('themeChangeError', 'Failed to change theme. Please try again.'));
     }
   };
 
@@ -123,23 +112,28 @@ export default function Settings() {
       console.warn('Haptic feedback not supported:', error);
     }
 
-    setSettingsState('changing-language');
+    dispatch({ type: 'START_LANGUAGE_CHANGE' });
 
     try {
       const newLanguage = i18n.language === 'en' ? 'es' : 'en';
       await i18n.changeLanguage(newLanguage);
 
-      // Save language preference
       await AsyncStorage.setItem('userLanguage', newLanguage);
       await AsyncStorage.setItem('languageSelected', 'true');
+
+      dispatch({ 
+        type: 'OPERATION_SUCCESS', 
+        message: t('languageChanged', 'Language changed successfully'),
+        operation: 'language'
+      });
     } catch (error) {
       console.error('Error changing language:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('languageChangeError', 'Failed to change language. Please try again.')
-      );
-    } finally {
-      setSettingsState('idle');
+      dispatch({ 
+        type: 'OPERATION_ERROR', 
+        error: t('languageChangeError', 'Failed to change language. Please try again.'),
+        context: 'language'
+      });
+      Alert.alert(t('error', 'Error'), t('languageChangeError', 'Failed to change language. Please try again.'));
     }
   };
 
@@ -148,10 +142,7 @@ export default function Settings() {
       t('logout', 'Logout'),
       t('logoutConfirmation', 'Are you sure you want to logout?'),
       [
-        {
-          text: t('cancel', 'Cancel'),
-          style: 'cancel',
-        },
+        { text: t('cancel', 'Cancel'), style: 'cancel' },
         {
           text: t('logout', 'Logout'),
           style: 'destructive',
@@ -162,18 +153,23 @@ export default function Settings() {
               console.warn('Haptic feedback not supported:', error);
             }
 
-            setSettingsState('logging-out');
+            dispatch({ type: 'START_LOGOUT' });
 
             try {
               await logout();
+              dispatch({ 
+                type: 'OPERATION_SUCCESS', 
+                message: t('loggedOut', 'Logged out successfully'),
+                operation: 'logout'
+              });
             } catch (error) {
               console.error('Logout error:', error);
-              Alert.alert(
-                t('error', 'Error'),
-                t('logoutError', 'Failed to logout. Please try again.')
-              );
-            } finally {
-              setSettingsState('idle');
+              dispatch({ 
+                type: 'OPERATION_ERROR', 
+                error: t('logoutError', 'Failed to logout. Please try again.'),
+                context: 'logout'
+              });
+              Alert.alert(t('error', 'Error'), t('logoutError', 'Failed to logout. Please try again.'));
             }
           },
         },
@@ -181,7 +177,30 @@ export default function Settings() {
     );
   };
 
-  // ✅ Flattened helper functions - simple calculations
+  const handleEmailNotificationChange = (value: boolean) => {
+    try {
+      Haptics.selectionAsync();
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+    dispatch({ 
+      type: 'UPDATE_NOTIFICATIONS', 
+      notifications: { ...state.data.notifications, email: value }
+    });
+  };
+
+  const handlePushNotificationChange = (value: boolean) => {
+    try {
+      Haptics.selectionAsync();
+    } catch (error) {
+      console.warn('Haptic feedback not supported:', error);
+    }
+    dispatch({ 
+      type: 'UPDATE_NOTIFICATIONS', 
+      notifications: { ...state.data.notifications, push: value }
+    });
+  };
+
   const getLocation = () => {
     if (!userData) return t('unknownLocation', 'Unknown Location');
     const { city = '', state = '' } = userData;
@@ -247,6 +266,7 @@ export default function Settings() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: verticalScale(100) }}
         >
+          {/* Profile Section - Keep as is since it's already clean */}
           <Animated.View
             entering={FadeIn.duration(600)}
             style={[
@@ -324,206 +344,125 @@ export default function Settings() {
             </View>
           </Animated.View>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
-              {t('preferences', 'Preferences')}
-            </Text>
 
-            <View
-              style={[
-                styles.sectionBody,
-                {
-                  backgroundColor: surfaceColor,
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: themeStyles.colors.black,
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: isDarkTheme ? 0.2 : 0.1,
-                      shadowRadius: 2,
-                    },
-                    android: {
-                      elevation: 2,
-                    },
-                  }),
-                },
-              ]}
-            >
-              <View style={[styles.rowWrapper, styles.rowFirst, { borderColor: borderColor }]}>
-                <TouchableOpacity
-                  onPress={handleLanguageChange}
-                  style={styles.row}
-                  activeOpacity={0.6}
-                  disabled={isLoading}
-                >
-                  <View style={[styles.rowIcon, { backgroundColor: '#fe9400' }]}>
-                    <Feather
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-                      name="globe"
-                      size={20}
-                    />
-                  </View>
-                  <Text style={[styles.rowLabel, { color: textColor }]}>
-                    {t('languagePreference', 'Language')}
-                  </Text>
-                  <View style={styles.rowSpacer} />
-                  {isLanguageLoading ? (
-                    <ActivityIndicator size="small" color={primaryColor} />
-                  ) : (
-                    <>
-                      <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
-                        {i18n.language === 'en' ? t('english', 'English') : t('spanish', 'Español')}
-                      </Text>
-                      <Feather color={secondaryTextColor} name="chevron-right" size={20} />
-                    </>
-                  )}
-                </TouchableOpacity>
+          <ErrorBoundary fallback={
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+                {t('preferences', 'Preferences')}
+              </Text>
+              <View style={[styles.sectionBody, { backgroundColor: surfaceColor, padding: 20 }]}>
+                <Text style={{ color: textColor, textAlign: 'center' }}>
+                  {t('preferencesError', 'Unable to load preferences. Please try refreshing.')}
+                </Text>
               </View>
+            </View>
+          }>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+                {t('preferences', 'Preferences')}
+              </Text>
 
-              <View style={[styles.rowWrapper, { borderColor: borderColor }]}>
-                <TouchableOpacity
-                  onPress={handleThemeChange}
-                  style={styles.row}
-                  activeOpacity={0.6}
+              <View
+                style={[
+                  styles.sectionBody,
+                  {
+                    backgroundColor: surfaceColor,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: themeStyles.colors.black,
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isDarkTheme ? 0.2 : 0.1,
+                        shadowRadius: 2,
+                      },
+                      android: {
+                        elevation: 2,
+                      },
+                    }),
+                  },
+                ]}
+              >
+                <LanguageSelector
+                  isLoading={isLanguageLoading}
+                  onLanguageChange={handleLanguageChange}
                   disabled={isLoading}
-                >
-                  <View style={[styles.rowIcon, { backgroundColor: '#007AFF' }]}>
-                    <Feather
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-                      name={isDarkTheme ? 'moon' : 'sun'}
-                      size={20}
-                    />
-                  </View>
-                  <Text style={[styles.rowLabel, { color: textColor }]}>{t('theme', 'Theme')}</Text>
-                  <View style={styles.rowSpacer} />
-                  {isThemeChanging ? (
-                    <ActivityIndicator size="small" color={primaryColor} />
-                  ) : (
-                    <>
-                      <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
-                        {getThemeLabel()}
-                      </Text>
-                      <Feather color={secondaryTextColor} name="chevron-right" size={20} />
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+                />
 
-              <View style={[styles.rowWrapper, { borderColor: borderColor }]}>
-                <View style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: '#32c759' }]}>
-                    <Feather
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-                      name="navigation"
-                      size={20}
-                    />
+                <ThemeToggle
+                  isLoading={isThemeChanging}
+                  onThemeChange={handleThemeChange}
+                  themePreference={themePreference}
+                  disabled={isLoading}
+                />
+
+                <View style={[styles.rowWrapper, { borderColor }]}>
+                  <View style={styles.row}>
+                    <View style={[styles.rowIcon, { backgroundColor: '#32c759' }]}>
+                      <Feather
+                        color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
+                        name="navigation"
+                        size={20}
+                      />
+                    </View>
+                    <Text style={[styles.rowLabel, { color: textColor }]}>
+                      {t('location', 'Location')}
+                    </Text>
+                    <View style={styles.rowSpacer} />
+                    <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
+                      {getLocation()}
+                    </Text>
                   </View>
-                  <Text style={[styles.rowLabel, { color: textColor }]}>
-                    {t('location', 'Location')}
-                  </Text>
-                  <View style={styles.rowSpacer} />
-                  <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
-                    {getLocation()}
-                  </Text>
                 </View>
               </View>
             </View>
-          </View>
+          </ErrorBoundary>
 
-          <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
-              {t('notifications', 'Notifications')}
-            </Text>
-
-            <View
-              style={[
-                styles.sectionBody,
-                {
-                  backgroundColor: surfaceColor,
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: themeStyles.colors.black,
-                      shadowOffset: { width: 0, height: 1 },
-                      shadowOpacity: isDarkTheme ? 0.2 : 0.1,
-                      shadowRadius: 2,
-                    },
-                    android: {
-                      elevation: 2,
-                    },
-                  }),
-                },
-              ]}
-            >
-              <View style={[styles.rowWrapper, styles.rowFirst, { borderColor: borderColor }]}>
-                <View style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: '#38C959' }]}>
-                    <Feather
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-                      name="at-sign"
-                      size={20}
-                    />
-                  </View>
-                  <Text style={[styles.rowLabel, { color: textColor }]}>
-                    {t('emailNotifications', 'Email Notifications')}
-                  </Text>
-                  <View style={styles.rowSpacer} />
-                  <AnimatedSwitch
-                    entering={FadeIn}
-                    onValueChange={email => {
-                      try {
-                        Haptics.selectionAsync();
-                      } catch (error) {
-                        console.warn('Haptic feedback not supported:', error);
-                      }
-                      setNotificationSettings(prev => ({ ...prev, email }));
-                    }}
-                    value={notificationSettings.email}
-                    disabled={isLoading}
-                    trackColor={{
-                      false: isDarkTheme ? '#555555' : '#D0D0D0',
-                      true: primaryColor + '80',
-                    }}
-                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
-                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
-                  />
-                </View>
-              </View>
-
-              <View style={[styles.rowWrapper, { borderColor: borderColor }]}>
-                <View style={styles.row}>
-                  <View style={[styles.rowIcon, { backgroundColor: '#38C959' }]}>
-                    <Feather
-                      color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-                      name="bell"
-                      size={20}
-                    />
-                  </View>
-                  <Text style={[styles.rowLabel, { color: textColor }]}>
-                    {t('pushNotifications', 'Push Notifications')}
-                  </Text>
-                  <View style={styles.rowSpacer} />
-                  <AnimatedSwitch
-                    entering={FadeIn}
-                    onValueChange={push => {
-                      try {
-                        Haptics.selectionAsync();
-                      } catch (error) {
-                        console.warn('Haptic feedback not supported:', error);
-                      }
-                      setNotificationSettings(prev => ({ ...prev, push }));
-                    }}
-                    value={notificationSettings.push}
-                    disabled={isLoading}
-                    trackColor={{
-                      false: isDarkTheme ? '#555555' : '#D0D0D0',
-                      true: primaryColor + '80',
-                    }}
-                    thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
-                    ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}
-                  />
-                </View>
+          {/* Notifications Section - NOW WITH ERROR BOUNDARY */}
+          <ErrorBoundary fallback={
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+                {t('notifications', 'Notifications')}
+              </Text>
+              <View style={[styles.sectionBody, { backgroundColor: surfaceColor, padding: 20 }]}>
+                <Text style={{ color: textColor, textAlign: 'center' }}>
+                  {t('notificationsError', 'Unable to load notifications. Please try refreshing.')}
+                </Text>
               </View>
             </View>
-          </View>
+          }>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: secondaryTextColor }]}>
+                {t('notifications', 'Notifications')}
+              </Text>
+
+              <View
+                style={[
+                  styles.sectionBody,
+                  {
+                    backgroundColor: surfaceColor,
+                    ...Platform.select({
+                      ios: {
+                        shadowColor: themeStyles.colors.black,
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: isDarkTheme ? 0.2 : 0.1,
+                        shadowRadius: 2,
+                      },
+                      android: {
+                        elevation: 2,
+                      },
+                    }),
+                  },
+                ]}
+              >
+                <NotificationSettings
+                  emailNotifications={state.data.notifications.email}
+                  pushNotifications={state.data.notifications.push}
+                  onEmailChange={handleEmailNotificationChange}
+                  onPushChange={handlePushNotificationChange}
+                  disabled={isLoading}
+                />
+              </View>
+            </View>
+          </ErrorBoundary>
         </ScrollView>
       </View>
     </SafeAreaView>
@@ -628,9 +567,6 @@ const styles = StyleSheet.create({
   rowWrapper: {
     borderTopWidth: 1,
     backdropFilter: 'blur(10px)',
-  },
-  rowFirst: {
-    borderTopWidth: 0,
   },
   rowLabel: {
     fontSize: moderateScale(16),

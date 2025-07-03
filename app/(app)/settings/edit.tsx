@@ -1,12 +1,13 @@
 // app/(app)/settings/edit.tsx
 import FormButton from '@/src/components/forms/FormButton';
 import { useAuth } from '@/src/context/AuthContextMigration';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { useEditProfileStateMachine } from '@/src/machines/editProfileStateMachine';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather, FontAwesome } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
@@ -21,24 +22,23 @@ import {
   View,
 } from 'react-native';
 
-interface UserData {
-  fname: string;
-  lname: string;
-  phone: string;
-  email: string;
-  country: string;
-  city: string;
-  state: string;
-}
-
 export default function EditScreen() {
   const router = useRouter();
-  const { user, userData: initialUserData, updateUserData } = useAuth(); // Add updateUserData
+  const { user, userData: initialUserData, updateUserData } = useAuth();
   const { t } = useTranslation();
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  
+  const {
+    backgroundColor,
+    surfaceColor,
+    textColor,
+    secondaryTextColor,
+    primaryColor,
+    themeStyles,
+    isDarkTheme,
+  } = useAppTheme();
 
-  const [userData, setUserData] = useState<UserData>({
+  // Replace multiple useState with single state machine
+  const { state, dispatch } = useEditProfileStateMachine({
     fname: '',
     lname: '',
     phone: '',
@@ -47,42 +47,55 @@ export default function EditScreen() {
     city: '',
     state: '',
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
+  const isSaving = state.type === 'saving';
+
+  // Initialize form data when user data loads
   useEffect(() => {
     if (initialUserData && user) {
-      setUserData({
-        fname: initialUserData.fname || '',
-        lname: initialUserData.lname || '',
-        phone: initialUserData.phone || '',
-        email: user.email || '',
-        country: initialUserData.country || '',
-        city: initialUserData.city || '',
-        state: initialUserData.state || '',
+      dispatch({
+        type: 'UPDATE_ALL_FIELDS',
+        data: {
+          fname: initialUserData.fname || '',
+          lname: initialUserData.lname || '',
+          phone: initialUserData.phone || '',
+          email: user.email || '',
+          country: initialUserData.country || '',
+          city: initialUserData.city || '',
+          state: initialUserData.state || '',
+        },
       });
     }
-  }, [initialUserData, user]);
+  }, [initialUserData, user, dispatch]);
 
+  // Simplified field update handler
+  const handleFieldChange = (field: keyof typeof state.data, value: string) => {
+    dispatch({ type: 'UPDATE_FIELD', field, value });
+  };
+
+  // Simplified update handler
   const handleUpdate = async () => {
-    if (!user || !userData) return;
+    if (!user) return;
 
     await Haptics.selectionAsync();
-    setIsSaving(true);
+    dispatch({ type: 'START_SAVING' });
 
     try {
-      // Actually call the updateUserData function
       await updateUserData({
-        fname: userData.fname,
-        lname: userData.lname,
-        phone: userData.phone,
-        country: userData.country,
-        city: userData.city,
-        state: userData.state,
-        // Don't update email in profile updates
+        fname: state.data.fname,
+        lname: state.data.lname,
+        phone: state.data.phone,
+        country: state.data.country,
+        city: state.data.city,
+        state: state.data.state,
       });
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      dispatch({ 
+        type: 'SAVE_SUCCESS', 
+        message: t('profileUpdated', 'Your profile has been updated successfully.')
+      });
+      
       Alert.alert(
         t('success', 'Success'),
         t('profileUpdated', 'Your profile has been updated successfully.')
@@ -91,162 +104,96 @@ export default function EditScreen() {
     } catch (error: any) {
       console.error('Error updating profile:', error);
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      Alert.alert(
-        t('error', 'Error'),
-        error.message || t('updateFailed', 'Failed to update profile. Please try again.')
-      );
-    } finally {
-      setIsSaving(false);
+      
+      const errorMessage = error.message || t('updateFailed', 'Failed to update profile. Please try again.');
+      dispatch({ type: 'SAVE_ERROR', error: errorMessage });
+      
+      Alert.alert(t('error', 'Error'), errorMessage);
     }
   };
 
-  const renderAvatar = () => {
-    if (userData?.fname && userData?.lname) {
-      const initials = `${userData.fname[0]}${userData.lname[0]}`.toUpperCase();
-      return (
-        <View
-          style={[
-            styles.avatar,
-            {
-              backgroundColor: themeStyles.colors.greenThemeColor,
-              ...Platform.select({
-                ios: {
-                  shadowColor: themeStyles.colors.black,
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 4,
-                },
-                android: {
-                  elevation: 5,
-                },
-              }),
-            },
-          ]}
-        >
-          <Text style={[styles.avatarText, { color: themeStyles.colors.white }]}>{initials}</Text>
-        </View>
-      );
-    }
-    return (
-      <View
-        style={[
-          styles.avatar,
-          {
-            backgroundColor: themeStyles.colors.greenThemeColor,
-            ...Platform.select({
-              ios: {
-                shadowColor: themeStyles.colors.black,
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.3,
-                shadowRadius: 4,
-              },
-              android: {
-                elevation: 5,
-              },
-            }),
-          },
-        ]}
-      >
-        <Text style={[styles.avatarText, { color: themeStyles.colors.white }]}>JD</Text>
-      </View>
-    );
-  };
-
-  // Get background color based on theme
-  const getBackgroundColor = () =>
-    isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.background;
-
-  // Get input background color based on theme
-  const getInputBackgroundColor = () =>
-    isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface;
-
-  // Get text color based on theme
-  const getTextColor = () =>
-    isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary;
-
-  // Get secondary text color based on theme
-  const getSecondaryTextColor = () =>
-    isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary;
-
-  // Get icon color based on theme
-  const getIconColor = () => (isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.primary);
-
-  if (isLoading) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  // Define input field configurations
+  // Keep your original input fields configuration
   const inputFields = [
     {
       key: 'fname',
-      icon: 'user-o' as const,
-      iconComponent: FontAwesome,
-      placeholder: t('firstName'),
+      placeholder: t('firstName', 'First Name'),
+      icon: 'user',
+      iconComponent: Feather,
       autoCapitalize: 'words' as const,
+      keyboardType: 'default' as const,
     },
     {
       key: 'lname',
-      icon: 'user-o' as const,
-      iconComponent: FontAwesome,
-      placeholder: t('lastName'),
+      placeholder: t('lastName', 'Last Name'),
+      icon: 'user',
+      iconComponent: Feather,
       autoCapitalize: 'words' as const,
+      keyboardType: 'default' as const,
     },
     {
       key: 'phone',
-      icon: 'phone' as const,
-      iconComponent: FontAwesome,
-      placeholder: t('phone'),
+      placeholder: t('phoneNumber', 'Phone Number'),
+      icon: 'phone',
+      iconComponent: Feather,
+      autoCapitalize: 'none' as const,
       keyboardType: 'phone-pad' as const,
     },
     {
       key: 'email',
-      icon: 'envelope-o' as const,
+      placeholder: t('email', 'Email'),
+      icon: 'envelope',
       iconComponent: FontAwesome,
-      placeholder: t('email'),
-      keyboardType: 'email-address' as const,
       autoCapitalize: 'none' as const,
+      keyboardType: 'email-address' as const,
     },
     {
       key: 'country',
-      icon: 'globe' as const,
-      iconComponent: FontAwesome,
-      placeholder: t('country'),
+      placeholder: t('country', 'Country'),
+      icon: 'globe',
+      iconComponent: Feather,
       autoCapitalize: 'words' as const,
+      keyboardType: 'default' as const,
     },
     {
       key: 'city',
-      icon: 'map-pin' as const,
+      placeholder: t('city', 'City'),
+      icon: 'map-pin',
       iconComponent: Feather,
-      placeholder: t('city'),
       autoCapitalize: 'words' as const,
+      keyboardType: 'default' as const,
     },
     {
       key: 'state',
-      icon: 'map' as const,
+      placeholder: t('state', 'State'),
+      icon: 'map',
       iconComponent: Feather,
-      placeholder: t('state'),
       autoCapitalize: 'words' as const,
+      keyboardType: 'default' as const,
     },
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
-      <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.7}>
-        <Feather name="arrow-left" size={25} color={getTextColor()} />
-      </TouchableOpacity>
+    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: surfaceColor }]}
+            activeOpacity={0.7}
+          >
+            <Feather name="arrow-left" size={20} color={textColor} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: textColor }]}>
+            {t('editProfile', 'Edit Profile')}
+          </Text>
+        </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.contentContainer}>
-          <View style={styles.profileSection}>
-            <View style={styles.imageContainer}>{renderAvatar()}</View>
-            <Text style={[styles.userName, { color: getTextColor() }]}>
-              {userData ? `${userData.fname || ''} ${userData.lname || ''}` : ''}
+        <View style={styles.form}>
+          <View style={styles.profileInfo}>
+            <Text style={[styles.fullName, { color: textColor }]}>
+              {state.data.fname && state.data.lname
+                ? `${state.data.fname} ${state.data.lname}`
+                : user?.email || ''}
             </Text>
           </View>
 
@@ -258,7 +205,7 @@ export default function EditScreen() {
                 style={[
                   styles.action,
                   {
-                    backgroundColor: getInputBackgroundColor(),
+                    backgroundColor: surfaceColor,
                     ...Platform.select({
                       ios: {
                         shadowColor: themeStyles.colors.black,
@@ -273,28 +220,36 @@ export default function EditScreen() {
                   },
                 ]}
               >
-                <IconComponent name={field.icon} size={20} color={getIconColor()} />
+                <IconComponent name={field.icon as any} size={20} color={secondaryTextColor} />
                 <TextInput
                   placeholder={field.placeholder}
-                  placeholderTextColor={getSecondaryTextColor()}
-                  value={userData[field.key as keyof UserData]} // Dynamic value
-                  onChangeText={text => setUserData(prev => ({ ...prev, [field.key]: text }))} // Dynamic key
-                  style={[styles.textInput, { color: getTextColor() }]}
+                  placeholderTextColor={secondaryTextColor}
+                  value={state.data[field.key as keyof typeof state.data]}
+                  onChangeText={text => handleFieldChange(field.key as keyof typeof state.data, text)}
+                  style={[styles.textInput, { color: textColor }]}
                   autoCapitalize={field.autoCapitalize}
                   keyboardType={field.keyboardType}
-                  editable={!isSaving && field.key !== 'email'} // Disable email editing
+                  editable={!isSaving && field.key !== 'email'}
                 />
               </View>
             );
           })}
 
           <FormButton
-            buttonTitle={isSaving ? t('updating', 'Updating...') : t('update')}
+            buttonTitle={isSaving ? t('saving', 'Saving...') : t('updateProfile', 'Update Profile')}
             onPress={handleUpdate}
             disabled={isSaving}
-            backgroundColor={themeStyles.colors.greenThemeColor}
+            backgroundColor={primaryColor}
             textColor={themeStyles.colors.white}
+            style={[styles.updateButton, { opacity: isSaving ? 0.7 : 1 }]}
           />
+          {isSaving && (
+            <ActivityIndicator
+              size="small"
+              color={primaryColor}
+              style={styles.loadingIndicator}
+            />
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -305,57 +260,56 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  content: {
+    paddingHorizontal: horizontalScale(24),
+    paddingVertical: verticalScale(16),
+  },
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  contentContainer: {
-    padding: horizontalScale(24),
-    paddingBottom: verticalScale(48),
+    marginBottom: verticalScale(24),
   },
   backButton: {
-    padding: verticalScale(16),
-    marginLeft: horizontalScale(8),
-  },
-  profileSection: {
-    alignItems: 'center',
-    marginBottom: verticalScale(24),
-  },
-  imageContainer: {
+    width: moderateScale(40),
+    height: moderateScale(40),
+    borderRadius: moderateScale(20),
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: horizontalScale(16),
   },
-  avatar: {
-    height: moderateScale(120),
-    width: moderateScale(120),
-    borderRadius: moderateScale(60),
-    justifyContent: 'center',
+  title: {
+    fontSize: moderateScale(24),
+    fontWeight: '700',
+    flex: 1,
+  },
+  form: {
+    flex: 1,
+  },
+  profileInfo: {
     alignItems: 'center',
+    marginBottom: verticalScale(32),
   },
-  avatarText: {
-    fontSize: moderateScale(28),
-    fontWeight: '700',
-  },
-  userName: {
-    marginTop: verticalScale(16),
-    fontSize: moderateScale(18),
-    fontWeight: '700',
-    marginBottom: verticalScale(24),
+  fullName: {
+    fontSize: moderateScale(20),
+    fontWeight: '600',
   },
   action: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: verticalScale(8),
-    borderRadius: moderateScale(8),
-    padding: moderateScale(16),
+    paddingHorizontal: horizontalScale(16),
+    paddingVertical: verticalScale(16),
+    borderRadius: moderateScale(12),
+    marginBottom: verticalScale(16),
   },
   textInput: {
     flex: 1,
-    paddingLeft: horizontalScale(16),
     fontSize: moderateScale(16),
+    marginLeft: horizontalScale(12),
+  },
+  updateButton: {
+    marginTop: verticalScale(24),
+  },
+  loadingIndicator: {
+    marginTop: verticalScale(16),
   },
 });
