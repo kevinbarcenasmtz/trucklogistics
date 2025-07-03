@@ -1,6 +1,5 @@
 // src/components/app/AppStateRenderer.tsx
 import { Redirect } from 'expo-router';
-import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { OnboardingEngine } from '../../onboarding/OnboardingEngine';

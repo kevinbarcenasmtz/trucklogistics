@@ -3,7 +3,6 @@ import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Receipt } from '@/src/types/ReceiptInterfaces';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SectionContainer } from './CameraUIComponents';
 

@@ -1,7 +1,6 @@
 // src/theme/ThemeToggle.tsx
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import React from 'react';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { ThemePreference, useTheme } from '../context/ThemeContext';
 import { getThemeStyles } from '../theme';

@@ -4,7 +4,7 @@ import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import 'react-native-gesture-handler';
 // Import i18n config to initialize it

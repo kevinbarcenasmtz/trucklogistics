@@ -14,6 +14,13 @@ let globalCurrentPage = 0;
 interface DotsProps {
   selected: boolean;
 }
+interface ShadowImageProps {
+  source: any;
+  isDarkTheme: boolean;
+  themeStyles: any;
+  backgroundColor: string;
+}
+
 
 const Dots: React.FC<DotsProps> = ({ selected }) => {
   const { isDarkTheme, textColor, borderColor, specialTextColor, specialSecondaryTextColor } =
@@ -140,6 +147,27 @@ const Done = ({ ...props }) => {
   );
 };
 
+const ShadowImage: React.FC<ShadowImageProps> = ({ source, isDarkTheme, themeStyles, backgroundColor }) => (
+  <Image
+    source={source}
+    style={[
+      styles.image,
+      { backgroundColor },
+      Platform.select({
+        ios: {
+          shadowColor: themeStyles.colors.black,
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: isDarkTheme ? 0.4 : 0.2,
+          shadowRadius: 5,
+        },
+        android: {
+          elevation: 5,
+        },
+      }),
+    ]}
+  />
+);
+
 export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
   const { t } = useTranslation();
   const {
@@ -162,25 +190,12 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
     // Page 0: Normal theme (white/dark background, black/white dots and text)
     {
       backgroundColor: getBackgroundColor(),
-      image: (
-        <Image
-          source={require('@/assets/icons/logistics1.png')}
-          style={[
-            styles.image,
-            Platform.select({
-              ios: {
-                shadowColor: themeStyles.colors.black,
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: isDarkTheme ? 0.4 : 0.2,
-                shadowRadius: 5,
-              },
-              android: {
-                elevation: 5,
-              },
-            }),
-          ]}
-        />
-      ),
+      image: <ShadowImage 
+        source={require('@/assets/icons/logistics1.png')} 
+        isDarkTheme={isDarkTheme} 
+        themeStyles={themeStyles}
+        backgroundColor={getBackgroundColor()}
+      />, 
       title: t('onboardingTitle1', 'Welcome to Trucking Logistics Pro'),
       subtitle: t(
         'onboardingSubtitle1',
@@ -192,25 +207,12 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
     // Page 1: Green theme (green background, white dots and text)
     {
       backgroundColor: specialBackgroundColor,
-      image: (
-        <Image
-          source={require('@/assets/icons/logistics2.png')}
-          style={[
-            styles.image,
-            Platform.select({
-              ios: {
-                shadowColor: themeStyles.colors.black,
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.4,
-                shadowRadius: 5,
-              },
-              android: {
-                elevation: 5,
-              },
-            }),
-          ]}
-        />
-      ),
+      image: <ShadowImage 
+        source={require('@/assets/icons/logistics2.png')} 
+        isDarkTheme={isDarkTheme} 
+        themeStyles={themeStyles}
+        backgroundColor={specialBackgroundColor} 
+      />,
       title: t('onboardingTitle2', 'Generate Insightful Reports'),
       subtitle: t(
         'onboardingSubtitle2',
@@ -222,25 +224,12 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
     // Page 2: Back to normal theme (white/dark background, black/white dots and text)
     {
       backgroundColor: getBackgroundColor(),
-      image: (
-        <Image
-          source={require('@/assets/icons/logistics3.png')}
-          style={[
-            styles.image,
-            Platform.select({
-              ios: {
-                shadowColor: themeStyles.colors.black,
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: isDarkTheme ? 0.4 : 0.2,
-                shadowRadius: 5,
-              },
-              android: {
-                elevation: 5,
-              },
-            }),
-          ]}
-        />
-      ),
+      image: <ShadowImage 
+      source={require('@/assets/icons/logistics3.png')} 
+      isDarkTheme={isDarkTheme} 
+      themeStyles={themeStyles}
+      backgroundColor={getBackgroundColor()}
+    />,
       title: t('onboardingTitle3', 'Stay on Track'),
       subtitle: t(
         'onboardingSubtitle3',

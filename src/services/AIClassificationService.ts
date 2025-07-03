@@ -6,9 +6,8 @@ import { AIClassifiedReceipt } from '../types/ReceiptInterfaces';
  * Service to handle AI classification of receipt text through backend
  */
 export class AIClassificationService {
-  private static API_URL = 
-    Constants.expoConfig?.extra?.ocrApiUrl || 
-    process.env.EXPO_PUBLIC_OCR_API_URL;
+  private static API_URL =
+    Constants.expoConfig?.extra?.ocrApiUrl || process.env.EXPO_PUBLIC_OCR_API_URL;
 
   /**
    * Classify receipt text using AI through backend
@@ -47,7 +46,7 @@ export class AIClassificationService {
       }
 
       const result = await response.json();
-      
+
       if (result.error && result.classification) {
         // Fallback classification was used by backend
         console.log('[AIClassificationService] Backend used fallback classification');

@@ -67,7 +67,10 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
           source={require('@/assets/icons/logo.jpg')}
           style={[
             styles.logo,
-            { borderRadius: themeStyles.borderRadius.circle(120) },
+            {
+              borderRadius: themeStyles.borderRadius.circle(120),
+              backgroundColor: getBackgroundColor(),
+            },
             Platform.select({
               ios: {
                 shadowColor: themeStyles.colors.black,

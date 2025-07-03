@@ -1,6 +1,6 @@
 // src/components/ErrorBoundary.tsx
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import React, { Component, ReactNode } from 'react';
+import { Component, ReactNode } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface Props {

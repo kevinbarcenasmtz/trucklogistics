@@ -5,7 +5,6 @@ import * as FileSystem from 'expo-file-system';
 // Get API URL from environment variables or constants
 const API_URL = Constants.expoConfig?.extra?.ocrApiUrl || process.env.EXPO_PUBLIC_OCR_API_URL;
 
-
 export class OcrService {
   /**
    * Uploads an image to the backend for OCR processing

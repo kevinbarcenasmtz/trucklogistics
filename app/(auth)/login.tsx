@@ -1,7 +1,6 @@
 // app/(auth)/login.tsx
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Alert,
@@ -109,7 +108,9 @@ export default function LoginScreen() {
             source={require('@/assets/icons/logo.jpg')}
             style={[
               styles.logo,
-              { borderRadius: themeStyles.borderRadius.circle(120) },
+              { borderRadius: themeStyles.borderRadius.circle(120),
+                backgroundColor: backgroundColor,
+               },
               Platform.select({
                 ios: {
                   shadowColor: themeStyles.colors.black,

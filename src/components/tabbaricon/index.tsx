@@ -1,7 +1,6 @@
 // src/components/TabBarIcon.tsx
 import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 interface TabBarIconProps {

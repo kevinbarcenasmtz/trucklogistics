@@ -5,7 +5,7 @@ import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@
 import { Receipt } from '@/src/types/ReceiptInterfaces';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   ActivityIndicator,
