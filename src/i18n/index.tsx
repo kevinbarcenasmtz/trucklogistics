@@ -27,7 +27,7 @@ i18n
     resources,
     lng: deviceLanguage, // language to use if no language is detected
     fallbackLng: 'en', // fallback language
-    compatibilityJSON: 'v3', // required for React Native
+    compatibilityJSON: 'v4', // required for React Native
     interpolation: {
       escapeValue: false, // not needed for React
     },
