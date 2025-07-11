@@ -1,7 +1,7 @@
 // src/components/TabBarIcon.tsx
-import { useTheme } from '@/src/context/ThemeContext';
 import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { useTheme } from '../../context/ThemeContext';
 
 interface TabBarIconProps {
   focused: boolean;
