@@ -72,7 +72,7 @@ export const AIClassificationSchema = z.object({
 export function validateReceipt(data: unknown): {
   success: boolean;
   data?: z.infer<typeof ReceiptSchema>;
-  errors?: Array<{ field: string; message: string }>;
+  errors?: { field: string; message: string }[];
 } {
   try {
     const validated = ReceiptSchema.parse(data);
@@ -81,7 +81,7 @@ export function validateReceipt(data: unknown): {
     if (error instanceof z.ZodError) {
       return {
         success: false,
-        errors: error.errors.map(e => ({
+        errors: error.issues.map(e => ({
           field: e.path.join('.'),
           message: e.message,
         })),
