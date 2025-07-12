@@ -1,5 +1,5 @@
 // src/hooks/useAppTheme.ts
-import { useTheme } from '@/src/context/ThemeContext';
+import { useTheme } from "../context/ThemeContext";
 import { getThemeStyles } from '@/src/theme';
 
 export interface AppThemeColors {
