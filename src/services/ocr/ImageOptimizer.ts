@@ -1,7 +1,7 @@
 // src/services/ocr/ImageOptimizer.ts
 
-import * as ImageManipulator from 'expo-image-manipulator';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { OptimizationMetrics } from '../../state/ocr/types';
 
 /**
@@ -51,7 +51,9 @@ interface ImageValidationResult {
 /**
  * Type guard for FileInfo with size property
  */
-function hasSize(fileInfo: FileSystem.FileInfo): fileInfo is FileSystem.FileInfo & { size: number } {
+function hasSize(
+  fileInfo: FileSystem.FileInfo
+): fileInfo is FileSystem.FileInfo & { size: number } {
   return fileInfo.exists && 'size' in fileInfo;
 }
 
@@ -80,7 +82,7 @@ export class ImageOptimizer {
     options?: ImageOptimizationOptions
   ): Promise<ImageOptimizationResult> {
     const config = { ...this.DEFAULT_OPTIONS, ...options };
-    
+
     try {
       // step 1: Validate the input image
       const validation = await this.validateImage(imageUri);
@@ -95,7 +97,6 @@ export class ImageOptimizer {
       const result = await this.applyOptimizations(imageUri, strategy, validation);
 
       return result;
-
     } catch (error) {
       console.error('Image optimization failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -152,7 +153,6 @@ export class ImageOptimizer {
         width = result.width;
         height = result.height;
         format = 'jpeg';
-
       } catch {
         issues.push('Invalid image format or corrupted file');
       }
@@ -183,7 +183,6 @@ export class ImageOptimizer {
         format,
         issues,
       };
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
       issues.push(`Validation error: ${errorMessage}`);
@@ -210,8 +209,7 @@ export class ImageOptimizer {
     const actions: ImageManipulator.Action[] = [];
 
     // Calculate if resizing is needed
-    const needsResize = validation.width > config.maxWidth || 
-                       validation.height > config.maxHeight;
+    const needsResize = validation.width > config.maxWidth || validation.height > config.maxHeight;
 
     if (needsResize) {
       // Calculate new dimensions maintaining aspect ratio
@@ -258,15 +256,11 @@ export class ImageOptimizer {
   ): Promise<ImageOptimizationResult> {
     try {
       // Apply optimizations using ImageManipulator
-      const result = await ImageManipulator.manipulateAsync(
-        imageUri,
-        actions,
-        {
-          compress: 0.8, // Good balance between quality and size for OCR
-          format: ImageManipulator.SaveFormat.JPEG,
-          base64: false, // We don't need base64, just the file
-        }
-      );
+      const result = await ImageManipulator.manipulateAsync(imageUri, actions, {
+        compress: 0.8, // Good balance between quality and size for OCR
+        format: ImageManipulator.SaveFormat.JPEG,
+        base64: false, // We don't need base64, just the file
+      });
 
       // Get file size information
       const originalInfo = await FileSystem.getInfoAsync(imageUri);
@@ -274,9 +268,8 @@ export class ImageOptimizer {
 
       const originalSize = hasSize(originalInfo) ? originalInfo.size : 0;
       const optimizedSize = hasSize(optimizedInfo) ? optimizedInfo.size : 0;
-      const reductionPercentage = originalSize > 0 
-        ? ((originalSize - optimizedSize) / originalSize) * 100 
-        : 0;
+      const reductionPercentage =
+        originalSize > 0 ? ((originalSize - optimizedSize) / originalSize) * 100 : 0;
 
       return {
         uri: result.uri,
@@ -290,7 +283,6 @@ export class ImageOptimizer {
         },
         reductionPercentage: Math.max(0, reductionPercentage),
       };
-
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown manipulation error';
       throw new Error(`Image manipulation failed: ${errorMessage}`);
@@ -346,12 +338,12 @@ export class ImageOptimizer {
     try {
       const fileInfo = await FileSystem.getInfoAsync(imageUri);
       const fileSize = hasSize(fileInfo) ? fileInfo.size : 0;
-      
+
       // Base time: 500ms
       // Additional time based on file size: ~100ms per MB
       const baseTime = 500;
       const sizeTime = (fileSize / (1024 * 1024)) * 100;
-      
+
       return Math.round(baseTime + sizeTime);
     } catch {
       return 1000; // Default estimate
@@ -389,12 +381,12 @@ export class ImageOptimizer {
     onProgress?: (completed: number, total: number) => void
   ): Promise<ImageOptimizationResult[]> {
     const results: ImageOptimizationResult[] = [];
-    
+
     for (let i = 0; i < imageUris.length; i++) {
       try {
         const result = await this.optimizeImage(imageUris[i], options);
         results.push(result);
-        
+
         if (onProgress) {
           onProgress(i + 1, imageUris.length);
         }
@@ -403,7 +395,7 @@ export class ImageOptimizer {
         // Continue with other images
       }
     }
-    
+
     return results;
   }
 }

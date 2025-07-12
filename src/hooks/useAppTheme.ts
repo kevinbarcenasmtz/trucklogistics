@@ -1,6 +1,6 @@
 // src/hooks/useAppTheme.ts
-import { useTheme } from "../context/ThemeContext";
 import { getThemeStyles } from '@/src/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export interface AppThemeColors {
   // Core UI colors - calculated once

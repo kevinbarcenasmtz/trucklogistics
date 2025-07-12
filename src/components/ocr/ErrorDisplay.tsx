@@ -1,12 +1,11 @@
 // src/components/ocr/ErrorDisplay.tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { ActionButton } from '../camera/CameraUIComponents';
+import { StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { moderateScale, verticalScale, horizontalScale } from '../../theme';
 import type { OCRError } from '../../state/ocr/types';
+import { horizontalScale, moderateScale, verticalScale } from '../../theme';
+import { ActionButton } from '../camera/CameraUIComponents';
 
 interface ErrorDisplayProps {
   error: OCRError;
@@ -16,48 +15,39 @@ interface ErrorDisplayProps {
 
 export function ErrorDisplay({ error, onRetry, onDismiss }: ErrorDisplayProps) {
   const { t } = useTranslation();
-  const { 
-    textColor, 
-    secondaryTextColor, 
-    errorColor, 
-    primaryColor, 
-    getSurfaceColor 
-  } = useAppTheme();
+  const { textColor, secondaryTextColor, errorColor, primaryColor, getSurfaceColor } =
+    useAppTheme();
 
   return (
-    <View style={[
-      styles.container, 
-      { 
-        backgroundColor: 'rgba(255, 59, 48, 0.1)',
-        borderColor: 'rgba(255, 59, 48, 0.2)',
-      }
-    ]}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: 'rgba(255, 59, 48, 0.1)',
+          borderColor: 'rgba(255, 59, 48, 0.2)',
+        },
+      ]}
+    >
       <View style={styles.header}>
-        <MaterialIcons 
-          name="error"
-          size={24} 
-          color={errorColor} 
-        />
+        <MaterialIcons name="error" size={24} color={errorColor} />
         <Text style={[styles.title, { color: textColor }]}>
           {t('processingError', 'Processing Error')}
         </Text>
       </View>
-      
-      <Text style={[styles.message, { color: secondaryTextColor }]}>
-        {error.userMessage}
-      </Text>
-      
+
+      <Text style={[styles.message, { color: secondaryTextColor }]}>{error.userMessage}</Text>
+
       <View style={styles.buttonContainer}>
         {onRetry && error.retryable && (
           <ActionButton
             title={t('retry', 'Retry')}
-            icon="refresh" 
+            icon="refresh"
             onPress={onRetry}
             backgroundColor={primaryColor}
             style={styles.button}
           />
         )}
-        
+
         <ActionButton
           title={t('cancel', 'Cancel')}
           icon="cancel" // Changed from "x" to valid MaterialIcons name

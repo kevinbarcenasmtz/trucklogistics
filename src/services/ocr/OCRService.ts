@@ -1,15 +1,15 @@
 // src/services/ocr/OCRService.ts
 
 import * as FileSystem from 'expo-file-system';
-import { generateCorrelationId } from '../../utils/correlation';
-import { 
-  OCRAction, 
-  OCRError, 
-  OptimizationMetrics, 
+import {
+  ERROR_CODES,
+  OCRAction,
+  OCRError,
+  OptimizationMetrics,
   ProcessedReceipt,
-  ERROR_CODES 
 } from '../../state/ocr/types';
 import { AIClassifiedReceipt } from '../../types/ReceiptInterfaces';
+import { generateCorrelationId } from '../../utils/correlation';
 
 /**
  * Configuration for OCR service
@@ -65,7 +65,9 @@ interface JobStatusResponse {
 /**
  * Type guard for FileInfo with size property
  */
-function hasSize(fileInfo: FileSystem.FileInfo): fileInfo is FileSystem.FileInfo & { size: number } {
+function hasSize(
+  fileInfo: FileSystem.FileInfo
+): fileInfo is FileSystem.FileInfo & { size: number } {
   return fileInfo.exists && 'size' in fileInfo;
 }
 
@@ -107,7 +109,7 @@ export class OCRService {
       // Step 1: Optimize image (0-20%)
       onProgress({ type: 'OPTIMIZE_START' });
       const optimizationResult = await this.optimizeImage(imageUri, onProgress);
-      
+
       onProgress({
         type: 'OPTIMIZE_COMPLETE',
         optimizedUri: optimizationResult.optimizedUri,
@@ -115,11 +117,7 @@ export class OCRService {
       });
 
       // Step 2: Upload image (20-50%)
-      const uploadId = await this.uploadImage(
-        optimizationResult.optimizedUri,
-        corrId,
-        onProgress
-      );
+      const uploadId = await this.uploadImage(optimizationResult.optimizedUri, corrId, onProgress);
 
       onProgress({ type: 'UPLOAD_COMPLETE' });
 
@@ -140,7 +138,6 @@ export class OCRService {
         processedAt: new Date().toISOString(),
         confidence: result.confidence,
       };
-
     } catch (error) {
       this.handleError(error, onProgress);
       throw error;
@@ -169,7 +166,7 @@ export class OCRService {
     try {
       // Import ImageOptimizer dynamically to avoid circular dependencies
       const { ImageOptimizer } = await import('./ImageOptimizer');
-      
+
       const startTime = Date.now();
       onProgress({ type: 'OPTIMIZE_PROGRESS', progress: 0.1 });
 
@@ -211,13 +208,8 @@ export class OCRService {
         optimizedUri: optimizedResult.uri,
         metrics,
       };
-
     } catch (error) {
-      throw this.createError(
-        'OPTIMIZATION_FAILED',
-        'Failed to optimize image',
-        error
-      );
+      throw this.createError('OPTIMIZATION_FAILED', 'Failed to optimize image', error);
     }
   }
 
@@ -235,39 +227,26 @@ export class OCRService {
   ): Promise<string> {
     try {
       // Create upload session
-      const sessionResponse = await this.makeRequest<UploadSessionResponse>(
-        '/api/ocr/upload',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Correlation-ID': correlationId,
-          },
-          body: JSON.stringify({
-            filename: imageUri.split('/').pop(),
-            correlationId,
-          }),
-        }
-      );
+      const sessionResponse = await this.makeRequest<UploadSessionResponse>('/api/ocr/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Correlation-ID': correlationId,
+        },
+        body: JSON.stringify({
+          filename: imageUri.split('/').pop(),
+          correlationId,
+        }),
+      });
 
       onProgress({ type: 'UPLOAD_START', uploadId: sessionResponse.uploadId });
 
       // Upload in chunks
-      await this.uploadInChunks(
-        imageUri,
-        sessionResponse.uploadId,
-        correlationId,
-        onProgress
-      );
+      await this.uploadInChunks(imageUri, sessionResponse.uploadId, correlationId, onProgress);
 
       return sessionResponse.uploadId;
-
     } catch (error) {
-      throw this.createError(
-        'UPLOAD_FAILED',
-        'Failed to upload image',
-        error
-      );
+      throw this.createError('UPLOAD_FAILED', 'Failed to upload image', error);
     }
   }
 
@@ -293,7 +272,7 @@ export class OCRService {
 
       const start = chunkIndex * this.config.chunkSize;
       const end = Math.min(start + this.config.chunkSize, fileSize);
-      
+
       // Read chunk
       const chunkData = await FileSystem.readAsStringAsync(fileUri, {
         encoding: 'base64',
@@ -328,34 +307,23 @@ export class OCRService {
    * @param correlationId Correlation ID
    * @returns Job ID
    */
-  private async startProcessing(
-    uploadId: string,
-    correlationId: string
-  ): Promise<string> {
+  private async startProcessing(uploadId: string, correlationId: string): Promise<string> {
     try {
-      const response = await this.makeRequest<{ jobId: string }>(
-        '/api/ocr/process',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Correlation-ID': correlationId,
-          },
-          body: JSON.stringify({
-            uploadId,
-            correlationId,
-          }),
-        }
-      );
+      const response = await this.makeRequest<{ jobId: string }>('/api/ocr/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Correlation-ID': correlationId,
+        },
+        body: JSON.stringify({
+          uploadId,
+          correlationId,
+        }),
+      });
 
       return response.jobId;
-
     } catch (error) {
-      throw this.createError(
-        'PROCESS_START_FAILED',
-        'Failed to start OCR processing',
-        error
-      );
+      throw this.createError('PROCESS_START_FAILED', 'Failed to start OCR processing', error);
     }
   }
 
@@ -387,20 +355,17 @@ export class OCRService {
       }
 
       try {
-        const status = await this.makeRequest<JobStatusResponse>(
-          `/api/ocr/status/${jobId}`,
-          {
-            method: 'GET',
-            headers: {
-              'X-Correlation-ID': correlationId,
-            },
-          }
-        );
+        const status = await this.makeRequest<JobStatusResponse>(`/api/ocr/status/${jobId}`, {
+          method: 'GET',
+          headers: {
+            'X-Correlation-ID': correlationId,
+          },
+        });
 
         // Handle different stages
         if (status.stage && status.stage !== lastStage) {
           lastStage = status.stage;
-          
+
           if (status.stage === 'extracting') {
             // Transition from processing to extracting
             onProgress({
@@ -417,7 +382,7 @@ export class OCRService {
                 confidence: status.result.confidence,
               });
             }
-            
+
             onProgress({ type: 'CLASSIFY_START' });
           }
         }
@@ -458,12 +423,11 @@ export class OCRService {
 
         // Wait before next poll
         await this.sleep(this.config.pollInterval);
-
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           throw error;
         }
-        
+
         // Handle polling errors
         console.warn('Job polling error:', error);
         await this.sleep(this.config.pollInterval);
@@ -477,12 +441,9 @@ export class OCRService {
    * @param options Fetch options
    * @returns Response data
    */
-  private async makeRequest<T>(
-    endpoint: string,
-    options: RequestInit
-  ): Promise<T> {
+  private async makeRequest<T>(endpoint: string, options: RequestInit): Promise<T> {
     const url = `${this.config.apiUrl}${endpoint}`;
-    
+
     const response = await fetch(url, {
       ...options,
       signal: this.abortController?.signal,
@@ -507,13 +468,8 @@ export class OCRService {
    * @param details Additional error details
    * @returns OCRError
    */
-  private createError(
-    code: string,
-    message: string,
-    details?: any
-  ): OCRError {
-    const userMessage = ERROR_CODES[code as keyof typeof ERROR_CODES] || 
-                       ERROR_CODES.UNKNOWN;
+  private createError(code: string, message: string, details?: any): OCRError {
+    const userMessage = ERROR_CODES[code as keyof typeof ERROR_CODES] || ERROR_CODES.UNKNOWN;
 
     const error: OCRError = {
       code,
@@ -532,13 +488,8 @@ export class OCRService {
    * @returns True if retryable
    */
   private isRetryableError(code: string): boolean {
-    const retryableCodes = [
-      'NETWORK_ERROR',
-      'TIMEOUT',
-      'SERVER_ERROR',
-      'RATE_LIMITED',
-    ];
-    
+    const retryableCodes = ['NETWORK_ERROR', 'TIMEOUT', 'SERVER_ERROR', 'RATE_LIMITED'];
+
     return retryableCodes.includes(code);
   }
 
@@ -558,18 +509,12 @@ export class OCRService {
         // Operation was cancelled
         return;
       }
-      
-      ocrError = this.createError(
-        'UNKNOWN',
-        error.message,
-        { originalError: error }
-      );
+
+      ocrError = this.createError('UNKNOWN', error.message, { originalError: error });
     } else {
-      ocrError = this.createError(
-        'UNKNOWN',
-        'An unexpected error occurred',
-        { originalError: error }
-      );
+      ocrError = this.createError('UNKNOWN', 'An unexpected error occurred', {
+        originalError: error,
+      });
     }
 
     onProgress({ type: 'ERROR', error: ocrError });
