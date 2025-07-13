@@ -277,35 +277,55 @@ export class OCRService {
       const start = chunkIndex * this.config.chunkSize;
       const end = Math.min(start + this.config.chunkSize, fileSize);
   
-      // Read chunk as base64
-      const chunkData = await FileSystem.readAsStringAsync(fileUri, {
-        encoding: FileSystem.EncodingType.Base64,
-        position: start,
-        length: end - start,
-      });
+      // Create a temporary file for this chunk
+      const tempChunkUri = `${FileSystem.cacheDirectory}chunk-${uploadId}-${chunkIndex}.jpg`;
   
-      // Create form data for React Native
-      const formData = new FormData();
-      formData.append('uploadId', uploadId);
-      formData.append('chunkIndex', chunkIndex.toString());
-      formData.append('totalChunks', totalChunks.toString());
-      
-      // In React Native, we need to create a proper file object
-      formData.append('chunk', {
-        uri: `data:image/jpeg;base64,${chunkData}`,
-        type: 'image/jpeg',
-        name: `chunk-${chunkIndex}.jpg`,
-      } as any);
+      try {
+        // Read chunk as base64
+        const chunkData = await FileSystem.readAsStringAsync(fileUri, {
+          encoding: FileSystem.EncodingType.Base64,
+          position: start,
+          length: end - start,
+        });
   
-      // Use the makeRequest method instead of importing NetworkClient
-      await this.makeRequest('/api/ocr/chunk', {
-        method: 'POST',
-        headers: {
-          'X-Correlation-ID': correlationId,
-          // Don't set Content-Type - let FormData set it
-        },
-        body: formData,
-      });
+        // Write chunk data to temporary file
+        await FileSystem.writeAsStringAsync(tempChunkUri, chunkData, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+  
+        // Create form data for React Native
+        const formData = new FormData();
+        formData.append('uploadId', uploadId);
+        formData.append('chunkIndex', chunkIndex.toString());
+        formData.append('totalChunks', totalChunks.toString());
+
+        // Use Blob for React Native (requires react-native-blob-util or similar)
+        const blob = {
+          uri: `data:image/jpeg;base64,${chunkData}`,
+          type: 'image/jpeg',
+          name: `chunk-${chunkIndex}.jpg`,
+        };
+
+        formData.append('chunk', blob as any);
+  
+        // Upload the chunk
+        await this.makeRequest('/api/ocr/chunk', {
+          method: 'POST',
+          headers: {
+            'X-Correlation-ID': correlationId,
+            // Don't set Content-Type - let FormData set it with boundaries
+          },
+          body: formData,
+        });
+  
+        // Clean up temporary chunk file
+        await FileSystem.deleteAsync(tempChunkUri, { idempotent: true });
+  
+      } catch (error) {
+        // Clean up temporary file on error
+        await FileSystem.deleteAsync(tempChunkUri, { idempotent: true });
+        throw error;
+      }
   
       // Update progress (20-50% range)
       const progress = (chunkIndex + 1) / totalChunks;
