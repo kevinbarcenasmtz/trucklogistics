@@ -227,16 +227,20 @@ export class OCRService {
   ): Promise<string> {
     try {
       // Create upload session
+      const fileInfo = await FileSystem.getInfoAsync(imageUri);
+      const fileSize = hasSize(fileInfo) ? fileInfo.size : 0;
+
       const sessionResponse = await this.makeRequest<UploadSessionResponse>('/api/ocr/upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Correlation-ID': correlationId,
-        },
-        body: JSON.stringify({
-          filename: imageUri.split('/').pop(),
-          correlationId,
-        }),
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Correlation-ID': correlationId,
+      },
+      body: JSON.stringify({
+        filename: imageUri.split('/').pop() || 'image.jpg',
+        fileSize,
+        chunkSize: this.config.chunkSize,
+      }),
       });
 
       onProgress({ type: 'UPLOAD_START', uploadId: sessionResponse.uploadId });
@@ -266,35 +270,43 @@ export class OCRService {
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     const fileSize = hasSize(fileInfo) ? fileInfo.size : 0;
     const totalChunks = Math.ceil(fileSize / this.config.chunkSize);
-
+  
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       this.checkAborted();
-
+  
       const start = chunkIndex * this.config.chunkSize;
       const end = Math.min(start + this.config.chunkSize, fileSize);
-
-      // Read chunk
+  
+      // Read chunk as base64
       const chunkData = await FileSystem.readAsStringAsync(fileUri, {
-        encoding: 'base64',
+        encoding: FileSystem.EncodingType.Base64,
         position: start,
         length: end - start,
       });
-
-      // Upload chunk
+  
+      // Create form data for React Native
+      const formData = new FormData();
+      formData.append('uploadId', uploadId);
+      formData.append('chunkIndex', chunkIndex.toString());
+      formData.append('totalChunks', totalChunks.toString());
+      
+      // In React Native, we need to create a proper file object
+      formData.append('chunk', {
+        uri: `data:image/jpeg;base64,${chunkData}`,
+        type: 'image/jpeg',
+        name: `chunk-${chunkIndex}.jpg`,
+      } as any);
+  
+      // Use the makeRequest method instead of importing NetworkClient
       await this.makeRequest('/api/ocr/chunk', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
           'X-Correlation-ID': correlationId,
+          // Don't set Content-Type - let FormData set it
         },
-        body: JSON.stringify({
-          uploadId,
-          chunkIndex,
-          totalChunks,
-          data: chunkData,
-        }),
+        body: formData,
       });
-
+  
       // Update progress (20-50% range)
       const progress = (chunkIndex + 1) / totalChunks;
       onProgress({ type: 'UPLOAD_PROGRESS', progress });

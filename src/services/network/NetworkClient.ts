@@ -186,8 +186,15 @@ export class NetworkClient {
     formData.append('uploadId', uploadId);
     formData.append('chunkIndex', chunkIndex.toString());
     formData.append('totalChunks', totalChunks.toString());
-    formData.append('chunk', chunkData);
-
+    
+    // Convert base64 to blob for React Native
+    // React Native FormData expects an object with uri, type, and name
+    formData.append('chunk', {
+      uri: `data:image/jpeg;base64,${chunkData}`,
+      type: 'image/jpeg',
+      name: `chunk-${chunkIndex}.jpg`,
+    } as any);
+  
     await this.postFormData('/api/ocr/chunk', formData, {
       correlationId,
       signal,

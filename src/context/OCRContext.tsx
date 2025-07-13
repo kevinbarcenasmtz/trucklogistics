@@ -68,7 +68,6 @@ export function OCRProvider({ children }: { children: React.ReactNode }) {
         .then(result => {
           // Processing complete - the result is already in state via dispatched actions
           // The CLASSIFY_COMPLETE action should trigger the transition to reviewing state
-          dispatch({ type: 'ENTER_REVIEW' });
         })
         .catch(error => {
           // Error is already handled by dispatch in processImage
