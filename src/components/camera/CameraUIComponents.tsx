@@ -6,10 +6,10 @@ import * as Haptics from 'expo-haptics';
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-// Get the MaterialIcons icon name type
+// get the MaterialIcons icon name type
 type MaterialIconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
-// Screen header with back button
+// screen header with back button
 export const ScreenHeader = ({
   title,
   onBack,

@@ -1,6 +1,6 @@
 // src/components/camera/VerificationComponents.tsx
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,27 +21,12 @@ const { width, height } = Dimensions.get('window');
 // Info Card Component
 export const InfoCard = () => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { getSurfaceColor, textColor, primaryColor } = useAppTheme();
 
   return (
-    <View
-      style={[
-        styles.infoCard,
-        {
-          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-          ...themeStyles.shadow.sm,
-        },
-      ]}
-    >
-      <MaterialIcons name="info-outline" size={20} color={themeStyles.colors.greenThemeColor} />
-      <Text
-        style={[
-          styles.infoText,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
-      >
+    <View style={[styles.infoCard, { backgroundColor: getSurfaceColor() }]}>
+      <MaterialIcons name="info-outline" size={20} color={primaryColor} />
+      <Text style={[styles.infoText, { color: textColor }]}>
         {t('verifyInstructions', 'Review and correct any information below before continuing.')}
       </Text>
     </View>
@@ -57,19 +42,13 @@ export const ReceiptImagePreview = ({
   onPress: () => void;
 }) => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
 
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={[styles.imageContainer, { ...themeStyles.shadow.sm }]}
-      activeOpacity={0.8}
-    >
+    <TouchableOpacity onPress={onPress} style={styles.imageContainer} activeOpacity={0.8}>
       <Image source={{ uri: imageUri }} style={styles.imagePreview} resizeMode="cover" />
       <View style={styles.imageOverlay}>
-        <MaterialIcons name="zoom-in" size={20} color={themeStyles.colors.white} />
-        <Text style={[styles.imageOverlayText, { color: themeStyles.colors.white }]}>
+        <MaterialIcons name="zoom-in" size={20} color="#FFFFFF" />
+        <Text style={[styles.imageOverlayText, { color: '#FFFFFF' }]}>
           {t('tapToEnlarge', 'Tap to enlarge')}
         </Text>
       </View>
@@ -99,117 +78,43 @@ export const EditField = ({
   placeholder: string;
   keyboardType?: 'default' | 'decimal-pad' | 'email-address' | 'numeric' | 'phone-pad';
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { getSurfaceColor, textColor, secondaryTextColor, primaryColor } = useAppTheme();
 
   return (
-    <View
-      style={[
-        styles.formField,
-        {
-          backgroundColor: isDarkTheme
-            ? themeStyles.colors.black_grey
-            : themeStyles.colors.background,
-          ...themeStyles.shadow.sm,
-        },
-        isActive && {
-          borderColor: themeStyles.colors.greenThemeColor,
-          borderWidth: 1,
-          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-        },
-      ]}
-    >
+    <View style={[styles.formField, { backgroundColor: getSurfaceColor() }]}>
       <View style={styles.fieldIconContainer}>
-        <MaterialIcons
-          name={icon}
-          size={20}
-          color={
-            isActive
-              ? themeStyles.colors.greenThemeColor
-              : isDarkTheme
-                ? themeStyles.colors.grey
-                : themeStyles.colors.text.secondary
-          }
-        />
+        <MaterialIcons name={icon as any} size={20} color={primaryColor} />
       </View>
       <View style={styles.fieldContent}>
-        <Text
-          style={[
-            styles.fieldLabel,
-            { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
-          ]}
-        >
-          {label}
-        </Text>
+        <Text style={[styles.fieldLabel, { color: secondaryTextColor }]}>{label}</Text>
         <TextInput
-          style={[
-            styles.fieldInput,
-            { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-          ]}
-          value={value || ''}
+          style={[styles.fieldInput, { color: textColor }]}
+          value={value}
           onChangeText={onChange}
           placeholder={placeholder}
-          placeholderTextColor={
-            isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.disabled
-          }
-          onFocus={onActivate}
+          placeholderTextColor={secondaryTextColor}
           keyboardType={keyboardType}
+          onFocus={onActivate}
+          multiline={field === 'notes'}
+          numberOfLines={field === 'notes' ? 3 : 1}
         />
       </View>
       <TouchableOpacity style={styles.editButton} onPress={onActivate}>
-        <Feather
-          name="edit-2"
-          size={16}
-          color={
-            isActive
-              ? themeStyles.colors.greenThemeColor
-              : isDarkTheme
-                ? themeStyles.colors.grey
-                : themeStyles.colors.text.secondary
-          }
-        />
+        <MaterialIcons name="edit" size={16} color={primaryColor} />
       </TouchableOpacity>
     </View>
   );
 };
 
 // Form Container Component
-export const FormContainer = ({
-  children,
-  title,
-}: {
-  children: React.ReactNode;
-  title: string;
-}) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+export const FormContainer = ({ title, children }: { title: string; children: React.ReactNode }) => {
+  const { getSurfaceColor, textColor, borderColor } = useAppTheme();
 
   return (
-    <View
-      style={[
-        styles.formContainer,
-        {
-          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-          ...themeStyles.shadow.sm,
-        },
-      ]}
-    >
-      <Text
-        style={[
-          styles.formTitle,
-          {
-            color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary,
-            borderBottomColor: isDarkTheme
-              ? themeStyles.colors.black_grey
-              : themeStyles.colors.border,
-          },
-        ]}
-      >
+    <View style={[styles.formContainer, { backgroundColor: getSurfaceColor() }]}>
+      <Text style={[styles.formTitle, { color: textColor, borderBottomColor: borderColor }]}>
         {title}
       </Text>
-
       <View style={styles.formFieldsContainer}>{children}</View>
     </View>
   );
@@ -218,35 +123,51 @@ export const FormContainer = ({
 // View Raw OCR Button Component
 export const ViewRawTextButton = ({ onPress }: { onPress: () => void }) => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { getSurfaceColor, secondaryTextColor } = useAppTheme();
 
   return (
     <TouchableOpacity
-      style={[
-        styles.extractedTextButton,
-        {
-          backgroundColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.surface,
-          ...themeStyles.shadow.sm,
-        },
-      ]}
+      style={[styles.extractedTextButton, { backgroundColor: getSurfaceColor() }]}
       onPress={onPress}
     >
-      <Feather
-        name="file-text"
-        size={16}
-        color={isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary}
-      />
-      <Text
-        style={[
-          styles.extractedTextButtonText,
-          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
-        ]}
-      >
-        {t('viewRawText', 'View Raw OCR Text')}
+      <Feather name="file-text" size={16} color={secondaryTextColor} />
+      <Text style={[styles.extractedTextButtonText, { color: secondaryTextColor }]}>
+        {t('viewExtractedText', 'View extracted text')}
       </Text>
     </TouchableOpacity>
+  );
+};
+
+// Save Button Component
+export const SaveButton = ({
+  onPress,
+  isLoading = false,
+}: {
+  onPress: () => void;
+  isLoading?: boolean;
+}) => {
+  const { t } = useTranslation();
+  const { primaryColor, borderColor } = useAppTheme();
+
+  return (
+    <View style={[styles.footer, { borderTopColor: borderColor }]}>
+      <TouchableOpacity
+        style={[styles.footerButton, { backgroundColor: primaryColor }]}
+        onPress={onPress}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <>
+            <Text style={[styles.footerButtonText, { color: '#FFFFFF' }]}>
+              {t('saveReceipt', 'Save Receipt')}
+            </Text>
+            <MaterialIcons name="save" size={20} color="#FFFFFF" />
+          </>
+        )}
+      </TouchableOpacity>
+    </View>
   );
 };
 
@@ -260,134 +181,70 @@ export const ImagePreviewModal = ({
   imageUri: string;
   onClose: () => void;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { primaryColor } = useAppTheme();
 
   return (
-    <Modal visible={visible} transparent={true} animationType="fade" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <TouchableOpacity
-          style={[styles.closeButton, { backgroundColor: themeStyles.colors.darkGrey }]}
-          onPress={onClose}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="close" size={24} color={themeStyles.colors.white} />
+        <TouchableOpacity style={[styles.closeButton, { backgroundColor: primaryColor }]} onPress={onClose}>
+          <MaterialIcons name="close" size={24} color="#FFFFFF" />
         </TouchableOpacity>
-
         <Image source={{ uri: imageUri }} style={styles.fullScreenImage} resizeMode="contain" />
-
-        <View style={styles.modalControls}>
-          <TouchableOpacity
-            style={[styles.modalButton, { backgroundColor: themeStyles.colors.darkGrey }]}
-          >
-            <Feather name="download" size={24} color={themeStyles.colors.white} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.modalButton, { backgroundColor: themeStyles.colors.darkGrey }]}
-          >
-            <Feather name="share" size={24} color={themeStyles.colors.white} />
-          </TouchableOpacity>
-        </View>
       </View>
     </Modal>
   );
 };
 
-// Save Button Component
-export const SaveButton = ({ onPress, isSaving }: { onPress: () => void; isSaving: boolean }) => {
-  const { t } = useTranslation();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
-
-  return (
-    <View
-      style={[
-        styles.footer,
-        {
-          backgroundColor: isDarkTheme
-            ? themeStyles.colors.black_grey
-            : themeStyles.colors.background,
-          borderTopColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.border,
-          ...themeStyles.shadow.lg,
-        },
-      ]}
-    >
-      <TouchableOpacity
-        style={[
-          styles.footerButton,
-          {
-            backgroundColor: themeStyles.colors.greenThemeColor,
-            ...themeStyles.shadow.md,
-          },
-          isSaving && { opacity: 0.6 },
-        ]}
-        onPress={onPress}
-        disabled={isSaving}
-        activeOpacity={0.7}
-      >
-        {isSaving ? (
-          <ActivityIndicator size="small" color={themeStyles.colors.white} />
-        ) : (
-          <>
-            <Text style={[styles.footerButtonText, { color: themeStyles.colors.white }]}>
-              {t('saveAndContinue', 'Save and Continue')}
-            </Text>
-            <MaterialIcons name="check-circle" size={20} color={themeStyles.colors.white} />
-          </>
-        )}
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-// Helper functions for field data
-export const getFieldIcon = (field: string) => {
+// Helper functions for field configuration
+export const getFieldIcon = (field: string): string => {
   switch (field) {
     case 'date':
-      return 'calendar-today';
-    case 'type':
-      return 'category';
+      return 'event';
     case 'amount':
       return 'attach-money';
+    case 'type':
+      return 'category';
     case 'vehicle':
-      return 'local-shipping';
+      return 'directions-car';
     case 'vendorName':
       return 'store';
     case 'location':
-      return 'place';
+      return 'location-on';
+    case 'notes':
+      return 'note';
     default:
-      return 'edit';
+      return 'info';
   }
 };
 
-export const getFieldPlaceholder = (field: string, t: any) => {
+export const getFieldPlaceholder = (field: string): string => {
   switch (field) {
     case 'date':
       return 'YYYY-MM-DD';
     case 'amount':
       return '$0.00';
     case 'type':
-      return 'Fuel, Maintenance, or Other';
+      return 'Select type';
     case 'vehicle':
-      return 'Vehicle ID or description';
+      return 'Vehicle information';
     case 'vendorName':
-      return 'Business name';
+      return 'Vendor name';
     case 'location':
-      return 'Address';
+      return 'Location';
+    case 'notes':
+      return 'Add notes...';
     default:
-      return `Enter ${t(field.toLowerCase(), field)}`;
+      return 'Enter value';
   }
 };
 
-// Styles
 const styles = StyleSheet.create({
   infoCard: {
-    borderRadius: moderateScale(12),
-    padding: horizontalScale(16),
-    marginBottom: verticalScale(16),
     flexDirection: 'row',
     alignItems: 'center',
+    padding: horizontalScale(16),
+    marginBottom: verticalScale(16),
+    borderRadius: moderateScale(12),
   },
   infoText: {
     fontSize: moderateScale(14),
@@ -508,14 +365,5 @@ const styles = StyleSheet.create({
     width: width * 0.9,
     height: height * 0.6,
     borderRadius: moderateScale(12),
-  },
-  modalControls: {
-    flexDirection: 'row',
-    marginTop: verticalScale(16),
-    gap: horizontalScale(16),
-  },
-  modalButton: {
-    padding: moderateScale(16),
-    borderRadius: moderateScale(20),
   },
 });

@@ -20,5 +20,5 @@ export interface AIClassifiedReceipt {
   vehicle: string;
   vendorName: string;
   location?: string;
-  confidence: number;
+  confidence?: { [key: string]: number };
 }

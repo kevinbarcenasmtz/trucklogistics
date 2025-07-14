@@ -1,7 +1,7 @@
 // app/(app)/camera/index.tsx
 import { ActionButton } from '@/src/components/camera/CameraUIComponents';
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,9 +13,9 @@ import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-na
 export default function CameraScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const router = useRouter();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
   const { t } = useTranslation();
+
+  const { backgroundColor, textColor, primaryColor, getSurfaceColor } = useAppTheme();
 
   // Use useCameraPermissions hook for camera permissions
   const [cameraPermissionStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
@@ -122,16 +122,16 @@ export default function CameraScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
+    <View style={[styles.container, { backgroundColor }]}>
       {selectedImage ? (
         // Show selected image and process button
         <>
           <Image source={{ uri: selectedImage }} style={styles.imagePreview} resizeMode="contain" />
           <TouchableOpacity
             onPress={handleRetake}
-            style={[styles.retakeButton, { backgroundColor: themeStyles.colors.greenThemeColor }]}
+            style={[styles.retakeButton, { backgroundColor: primaryColor }]}
           >
-            <MaterialIcons name="refresh" size={24} color={themeStyles.colors.white} />
+            <MaterialIcons name="refresh" size={24} color="#FFFFFF" />
           </TouchableOpacity>
 
           <View style={styles.buttonContainer}>
@@ -139,7 +139,7 @@ export default function CameraScreen() {
               title={t('processImage', 'Process Image')}
               icon="arrow-forward"
               onPress={handleProcess}
-              backgroundColor={themeStyles.colors.greenThemeColor}
+              backgroundColor={primaryColor}
               style={styles.processImage}
             />
           </View>
@@ -148,8 +148,8 @@ export default function CameraScreen() {
         // Show camera and gallery options
         <View style={styles.bottomButtonsContainer}>
           <View style={styles.instructionContainer}>
-            <MaterialIcons name="receipt" size={40} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.instructionText, { color: themeStyles.colors.white }]}>
+            <MaterialIcons name="receipt" size={40} color={primaryColor} />
+            <Text style={[styles.instructionText, { color: textColor }]}>
               {t(
                 'selectOrTakePhoto',
                 'Take a photo of your receipt or select from your photo library'
@@ -162,7 +162,7 @@ export default function CameraScreen() {
               title={t('openCamera', 'Open Camera')}
               icon="camera-alt"
               onPress={handleOpenCamera}
-              backgroundColor={themeStyles.colors.greenThemeColor}
+              backgroundColor={primaryColor}
               style={styles.actionButton}
             />
 
@@ -170,7 +170,7 @@ export default function CameraScreen() {
               title={t('gallery', 'Gallery')}
               icon="photo-library"
               onPress={handleSelectImage}
-              backgroundColor={themeStyles.colors.greenThemeColor}
+              backgroundColor={primaryColor}
               style={styles.actionButton}
             />
           </View>
