@@ -4,30 +4,13 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { generateCorrelationId } from '../utils/correlation';
 import { ProcessedReceipt } from '../state/ocr/types';
 import { Receipt } from '../types/ReceiptInterfaces';
-
-export type CameraFlowStep = 'capture' | 'processing' | 'review' | 'verification' | 'report';
-
-export interface CameraFlow {
-  readonly id: string;
-  readonly imageUri: string;
-  readonly currentStep: CameraFlowStep;
-  readonly timestamp: number;
-  
-  // Optional data that accumulates through the flow
-  readonly ocrResult?: ProcessedReceipt;
-  readonly receiptDraft?: Partial<Receipt>;
-  readonly isComplete: boolean;
-  
-  // Navigation history for back button behavior
-  readonly stepHistory: CameraFlowStep[];
-  
-  // Error recovery
-  readonly lastError?: {
-    step: CameraFlowStep;
-    message: string;
-    timestamp: number;
-  };
-}
+import { 
+  CameraFlow, 
+  CameraFlowStep, 
+  FlowTransition, 
+  FlowError, 
+  FlowMetrics 
+} from '../types/cameraFlow';
 
 interface CameraFlowState {
   // Current active flow (only one at a time)
@@ -39,6 +22,8 @@ interface CameraFlowState {
   // Actions
   startFlow: (imageUri: string) => CameraFlow;
   updateFlow: (updates: Partial<Pick<CameraFlow, 'currentStep' | 'ocrResult' | 'receiptDraft' | 'lastError'>>) => void;
+  addTransition: (from: CameraFlowStep, to: CameraFlowStep, reason: FlowTransition['reason']) => void;
+  addError: (error: FlowError) => void;
   completeFlow: () => void;
   cancelFlow: () => void;
   canNavigateToStep: (step: CameraFlowStep) => boolean;
@@ -51,13 +36,23 @@ export const useCameraFlowStore = create<CameraFlowState>()(
     flowHistory: [],
 
     startFlow: (imageUri: string) => {
+      const now = Date.now();
       const flow: CameraFlow = {
         id: generateCorrelationId(),
         imageUri,
         currentStep: 'capture',
-        timestamp: Date.now(),
+        timestamp: now,
         isComplete: false,
         stepHistory: ['capture'],
+        transitions: [],
+        errorHistory: [],
+        metrics: {
+          stepDurations: {},
+          totalDuration: 0,
+          retryCount: 0,
+          errorCount: 0,
+          completionRate: 0,
+        },
       };
 
       set({ activeFlow: flow });
@@ -71,12 +66,67 @@ export const useCameraFlowStore = create<CameraFlowState>()(
         return;
       }
 
+      const now = Date.now();
+      let newTransitions = activeFlow.transitions;
+      let newStepHistory = activeFlow.stepHistory;
+
+      // Handle step change
+      if (updates.currentStep && updates.currentStep !== activeFlow.currentStep) {
+        const transition: FlowTransition = {
+          from: activeFlow.currentStep,
+          to: updates.currentStep,
+          reason: 'user_action',
+          timestamp: now,
+        };
+        newTransitions = [...activeFlow.transitions, transition];
+        newStepHistory = [...activeFlow.stepHistory, updates.currentStep];
+      }
+
       const updatedFlow: CameraFlow = {
         ...activeFlow,
         ...updates,
-        stepHistory: updates.currentStep && updates.currentStep !== activeFlow.currentStep
-          ? [...activeFlow.stepHistory, updates.currentStep]
-          : activeFlow.stepHistory,
+        stepHistory: newStepHistory,
+        transitions: newTransitions,
+        metrics: {
+          ...activeFlow.metrics,
+          totalDuration: now - activeFlow.timestamp,
+        },
+      };
+
+      set({ activeFlow: updatedFlow });
+    },
+
+    addTransition: (from, to, reason) => {
+      const { activeFlow } = get();
+      if (!activeFlow) return;
+
+      const transition: FlowTransition = {
+        from,
+        to,
+        reason,
+        timestamp: Date.now(),
+      };
+
+      const updatedFlow: CameraFlow = {
+        ...activeFlow,
+        transitions: [...activeFlow.transitions, transition],
+      };
+
+      set({ activeFlow: updatedFlow });
+    },
+
+    addError: (error) => {
+      const { activeFlow } = get();
+      if (!activeFlow) return;
+
+      const updatedFlow: CameraFlow = {
+        ...activeFlow,
+        lastError: error,
+        errorHistory: [...activeFlow.errorHistory, error],
+        metrics: {
+          ...activeFlow.metrics,
+          errorCount: activeFlow.metrics.errorCount + 1,
+        },
       };
 
       set({ activeFlow: updatedFlow });
@@ -161,6 +211,8 @@ export const useCameraFlow = () => {
     activeFlow: store.activeFlow,
     startFlow: store.startFlow,
     updateFlow: store.updateFlow,
+    addTransition: store.addTransition,
+    addError: store.addError,
     completeFlow: store.completeFlow,
     cancelFlow: store.cancelFlow,
     canNavigateToStep: store.canNavigateToStep,
