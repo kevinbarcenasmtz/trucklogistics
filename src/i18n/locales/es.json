@@ -57,7 +57,11 @@
   "settings": "AJUSTES",
 
   "languagePreference": "Preferencia de Idioma",
+  "theme": "Tema",
+  "themeSystem": "Sistema",
   "save": "Guardar",
+  "themeLight": "Tema Claro",
+  "themeDark": "Tema Oscuro",
   "cancel": "Cancelar",
   "manageAccount": "Administra la configuración de tu cuenta.",
   "preferences": "Preferencias",
@@ -67,7 +71,7 @@
   "location": "Ubicación",
   "emailNotifications": "Notificaciones por Correo",
   "pushNotifications": "Notificaciones Push",
-
+  "updateProfile": "Actualizar Perfil",
   "welcomeTitle": "¡Bienvenido a Truck Logistics Pro!",
   "welcomeSubtitle": "Tu aplicación todo en uno para gestionar la logística de camiones.",
   "recentActivity": "Actividad Reciente",
@@ -116,5 +120,12 @@
   "state": "Estado",
   "update": "Actualizar",
   "profileUpdated": "Tu perfil ha sido actualizado exitosamente.",
-  "updateFailed": "Algo salió mal al actualizar tu perfil."
+  "updateFailed": "Algo salió mal al actualizar tu perfil.",
+
+  "selectOrTakePhoto": "Selecciona o Toma una Foto",
+  "openCamera": "Abrir Cámara",
+  "gallery": "Galería",
+  "logout": "Cerrar Sesión",
+  "logoutConfirmation": "¿Estás seguro de que quieres cerrar sesión?",
+  "signInToContinue": "Inicia sesión para continuar"
 }

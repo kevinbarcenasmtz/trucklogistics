@@ -2,6 +2,8 @@
 import { AppState, AppStateRenderer } from '@/src/components/app/AppStateRenderer';
 import { useAuth } from '@/src/context/AuthContextMigration';
 import { useAppStateMachine } from '@/src/state/appStateMachine';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
 // import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Remove the globalThis line and useEffect - we'll handle this differently later

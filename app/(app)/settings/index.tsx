@@ -278,7 +278,7 @@ export default function Settings() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: verticalScale(100) }}
         >
-          {/* Profile Section - Keep as is since it's already clean */}
+          {/* Profile Section */}
           <Animated.View
             entering={FadeIn.duration(600)}
             style={[
