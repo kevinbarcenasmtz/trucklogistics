@@ -30,7 +30,8 @@ export default function CameraScreen() {
     activeFlow, 
     startFlow, 
     updateFlow, 
-    hasActiveFlow 
+    hasActiveFlow,
+    cancelFlow
   } = useCameraFlow();
 
   // Use useCameraPermissions hook for camera permissions
@@ -62,6 +63,10 @@ export default function CameraScreen() {
             style: 'destructive',
             onPress: () => {
               // Will start new flow when image is selected
+              // Cancel the existing flow completely
+              cancelFlow();
+              // Clear any selected image
+              setSelectedImage(null);
             },
           },
           {

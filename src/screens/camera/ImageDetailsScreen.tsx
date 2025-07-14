@@ -199,11 +199,19 @@ export default function ImageDetailsScreen() {
 
   // Component rendering logic
   const renderContent = () => {
-    // Invalid navigation - let guard handle it
+    // Invalid navigation or no image - redirect to capture
     if (!isValidNavigation || !imageUri) {
+      router.replace('/camera');
       return null;
     }
 
+    // If we have an image but no flow, create one
+    if (imageUri && !activeFlow) {  
+      console.log('Creating new flow for image:', imageUri);
+      // This should not happen with proper flow management
+      router.replace('/camera');
+      return null;
+    }
     // Handle initial capture
     if (needsImageCapture) {
       return (
@@ -288,7 +296,7 @@ export default function ImageDetailsScreen() {
   };
 
   // Determine the current step for navigation guard
-  const currentStep = isProcessing ? 'processing' : 'review';
+  const currentStep = needsImageCapture || isProcessing ? 'processing' : 'review';
 
   return (
     <CameraNavigationGuard targetStep={currentStep}>

@@ -1,5 +1,5 @@
 // src/components/camera/workflow/CameraNavigationGuard.tsx
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -31,21 +31,7 @@ export function CameraNavigationGuard({
   const router = useRouter();
   const { activeFlow, canNavigateToStep, updateFlow } = useCameraFlow();
 
-  useEffect(() => {
-    const guardResult = validateNavigation(targetStep, activeFlow);
-    
-    if (!guardResult.allowed) {
-      handleNavigationBlocked(guardResult);
-      return;
-    }
-
-    // Navigation is allowed - update current step if needed
-    if (activeFlow && activeFlow.currentStep !== targetStep) {
-      updateFlow({ currentStep: targetStep });
-    }
-  }, [targetStep, activeFlow]);
-
-  const validateNavigation = (
+  const validateNavigation = useCallback((
     step: CameraFlowStep, 
     flow: typeof activeFlow
   ): NavigationGuardResult => {
@@ -104,9 +90,9 @@ export function CameraNavigationGuard({
     }
 
     return { allowed: true };
-  };
+  }, [canNavigateToStep, t]);
 
-  const validateStepSpecificRequirements = (
+  const validateStepSpecificRequirements = useCallback((
     step: CameraFlowStep,
     flow: NonNullable<typeof activeFlow>
   ): NavigationGuardResult => {
@@ -129,6 +115,7 @@ export function CameraNavigationGuard({
         return { allowed: true };
 
       case 'review':
+        // Only require OCR result for review step, not processing step
         if (!FlowTypeGuards.hasOCRResult(flow)) {
           return {
             allowed: false,
@@ -180,9 +167,9 @@ export function CameraNavigationGuard({
           },
         };
     }
-  };
+  }, [t]);
 
-  const getMissingRequirements = (
+  const getMissingRequirements = useCallback((
     step: CameraFlowStep,
     flow: NonNullable<typeof activeFlow>
   ): string[] => {
@@ -207,9 +194,9 @@ export function CameraNavigationGuard({
     }
 
     return missing;
-  };
+  }, []);
 
-  const getRequiredStep = (missingData: string): CameraFlowStep => {
+  const getRequiredStep = useCallback((missingData: string): CameraFlowStep => {
     switch (missingData) {
       case 'imageUri':
         return 'capture';
@@ -220,9 +207,9 @@ export function CameraNavigationGuard({
       default:
         return 'capture';
     }
-  };
+  }, []);
 
-  const handleNavigationBlocked = (result: NavigationGuardResult) => {
+  const handleNavigationBlocked = useCallback((result: NavigationGuardResult) => {
     console.warn('Navigation blocked:', result);
 
     // Call optional callback
@@ -322,7 +309,18 @@ export function CameraNavigationGuard({
         );
         break;
     }
-  };
+  }, [router, t, onNavigationBlocked]);
+
+  useEffect(() => {
+    const guardResult = validateNavigation(targetStep, activeFlow);
+    
+    if (!guardResult.allowed) {
+      handleNavigationBlocked(guardResult);
+      return;
+    }
+    
+    // Don't automatically update flow step - let screens handle this themselves
+  }, [targetStep, activeFlow?.id, activeFlow?.currentStep, validateNavigation, handleNavigationBlocked]);
 
   // Only render children if navigation is allowed
   const guardResult = validateNavigation(targetStep, activeFlow);
@@ -342,7 +340,7 @@ export function CameraNavigationGuard({
 export function useNavigationValidation() {
   const { activeFlow, canNavigateToStep } = useCameraFlow();
 
-  const validateNavigation = (targetStep: CameraFlowStep): NavigationGuardResult => {
+  const validateNavigation = useCallback((targetStep: CameraFlowStep): NavigationGuardResult => {
     if (!activeFlow) {
       return {
         allowed: targetStep === 'capture',
@@ -354,11 +352,11 @@ export function useNavigationValidation() {
       allowed: canNavigateToStep(targetStep),
       reason: canNavigateToStep(targetStep) ? undefined : 'Navigation requirements not met',
     };
-  };
+  }, [activeFlow, canNavigateToStep]);
 
-  const canNavigate = (targetStep: CameraFlowStep): boolean => {
+  const canNavigate = useCallback((targetStep: CameraFlowStep): boolean => {
     return validateNavigation(targetStep).allowed;
-  };
+  }, [validateNavigation]);
 
   return {
     validateNavigation,
