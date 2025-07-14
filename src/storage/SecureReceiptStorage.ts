@@ -1,5 +1,5 @@
-import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
+import * as SecureStore from 'expo-secure-store';
 import { Receipt } from '../types/ReceiptInterfaces';
 
 interface EncryptedReceipt {
@@ -36,12 +36,9 @@ export class SecureReceiptStorage {
   static async initialize(): Promise<void> {
     const existingKey = await SecureStore.getItemAsync(this.ENCRYPTION_KEY);
     if (!existingKey) {
-    const randomBytes = await Crypto.getRandomBytesAsync(32);   
+      const randomBytes = await Crypto.getRandomBytesAsync(32);
       const key = Buffer.from(randomBytes).toString('base64');
-      await SecureStore.setItemAsync(
-        this.ENCRYPTION_KEY,
-        key
-      );
+      await SecureStore.setItemAsync(this.ENCRYPTION_KEY, key);
     }
   }
 
@@ -50,18 +47,14 @@ export class SecureReceiptStorage {
    */
   static async saveReceipt(receipt: Receipt): Promise<void> {
     await this.initialize();
-    
+
     // Encrypt sensitive fields
     const encrypted = await this.encryptReceipt(receipt);
-    
+
     // Save encrypted data
-    await SecureStore.setItemAsync(
-      `receipt_${receipt.id}`,
-      JSON.stringify(encrypted),
-      {
-        keychainAccessible: SecureStore.WHEN_UNLOCKED,
-      }
-    );
+    await SecureStore.setItemAsync(`receipt_${receipt.id}`, JSON.stringify(encrypted), {
+      keychainAccessible: SecureStore.WHEN_UNLOCKED,
+    });
 
     // Update search index (non-sensitive data only)
     await this.updateIndex(receipt);
@@ -123,7 +116,7 @@ export class SecureReceiptStorage {
 
     const index: ReceiptIndex[] = JSON.parse(indexStr);
     const filtered = index.filter(item => item.vehicle === vehicle);
-    
+
     const receipts: Receipt[] = [];
     for (const indexItem of filtered) {
       const receipt = await this.getReceipt(indexItem.id);
@@ -148,10 +141,9 @@ export class SecureReceiptStorage {
 
     for (const field of sensitiveFields) {
       if (receipt[field]) {
-        const data = typeof receipt[field] === 'string' 
-          ? receipt[field] 
-          : JSON.stringify(receipt[field]);
-        
+        const data =
+          typeof receipt[field] === 'string' ? receipt[field] : JSON.stringify(receipt[field]);
+
         // Simple XOR encryption with key (for expo compatibility)
         encrypted[field] = this.simpleEncrypt(data, key);
       }
@@ -225,9 +217,9 @@ export class SecureReceiptStorage {
     // Get existing index
     const indexStr = await SecureStore.getItemAsync(this.INDEX_KEY);
     const index: ReceiptIndex[] = indexStr ? JSON.parse(indexStr) : [];
-    
+
     // Update or add entry
-    const existingIndex = index.findIndex((item) => item.id === receipt.id);
+    const existingIndex = index.findIndex(item => item.id === receipt.id);
     if (existingIndex >= 0) {
       index[existingIndex] = indexData;
     } else {
@@ -245,7 +237,7 @@ export class SecureReceiptStorage {
     const indexStr = await SecureStore.getItemAsync(this.INDEX_KEY);
     if (indexStr) {
       const index: ReceiptIndex[] = JSON.parse(indexStr);
-      
+
       // Delete each receipt
       for (const item of index) {
         await SecureStore.deleteItemAsync(`receipt_${item.id}`);

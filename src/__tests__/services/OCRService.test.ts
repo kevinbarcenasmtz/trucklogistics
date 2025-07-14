@@ -1,9 +1,9 @@
 // src/__tests__/services/OCRService.test.ts
 
-import { OCRService } from '../../services/ocr/OCRService';
-import { ImageOptimizer } from '../../services/ocr/ImageOptimizer';
 import { NetworkClient } from '../../services/network/NetworkClient';
-import { ProcessedReceipt, OCRAction } from '../../state/ocr/types';
+import { ImageOptimizer } from '../../services/ocr/ImageOptimizer';
+import { OCRService } from '../../services/ocr/OCRService';
+import { ProcessedReceipt } from '../../state/ocr/types';
 
 // Mock dependencies
 jest.mock('../../services/ocr/ImageOptimizer');
@@ -57,7 +57,7 @@ describe('OCRService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
+
     service = new OCRService({
       maxRetries: 3,
       timeout: 30000,
@@ -66,7 +66,7 @@ describe('OCRService', () => {
 
     mockNetworkClient = new MockedNetworkClient() as jest.Mocked<NetworkClient>;
     (service as any).networkClient = mockNetworkClient;
-    
+
     mockProgressCallback = jest.fn();
 
     // Default successful mocks
@@ -154,7 +154,7 @@ describe('OCRService', () => {
           stage: 'processing',
         })
         .mockResolvedValueOnce({
-          status: 'active', 
+          status: 'active',
           progress: 50,
           stage: 'extracting',
         })
@@ -198,7 +198,7 @@ describe('OCRService', () => {
       });
 
       expect(mockProgressCallback).toHaveBeenCalledWith({
-        type: 'CLASSIFY_PROGRESS', 
+        type: 'CLASSIFY_PROGRESS',
         progress: 0.8,
       });
     });
@@ -209,9 +209,9 @@ describe('OCRService', () => {
       MockedImageOptimizer.optimizeImage.mockRejectedValue(optimizationError);
 
       // Act & Assert
-      await expect(
-        service.processImage(testImageUri, mockProgressCallback)
-      ).rejects.toThrow('Image optimization failed');
+      await expect(service.processImage(testImageUri, mockProgressCallback)).rejects.toThrow(
+        'Image optimization failed'
+      );
 
       expect(mockProgressCallback).toHaveBeenCalledWith({
         type: 'ERROR',
@@ -224,14 +224,12 @@ describe('OCRService', () => {
 
     it('should handle network upload errors', async () => {
       // Arrange
-      mockNetworkClient.uploadFileChunked.mockRejectedValue(
-        new Error('Network upload failed')
-      );
+      mockNetworkClient.uploadFileChunked.mockRejectedValue(new Error('Network upload failed'));
 
       // Act & Assert
-      await expect(
-        service.processImage(testImageUri, mockProgressCallback)
-      ).rejects.toThrow('Network upload failed');
+      await expect(service.processImage(testImageUri, mockProgressCallback)).rejects.toThrow(
+        'Network upload failed'
+      );
 
       expect(mockProgressCallback).toHaveBeenCalledWith({
         type: 'ERROR',
@@ -254,9 +252,9 @@ describe('OCRService', () => {
       });
 
       // Act & Assert
-      await expect(
-        service.processImage(testImageUri, mockProgressCallback)
-      ).rejects.toThrow('Could not extract text from image');
+      await expect(service.processImage(testImageUri, mockProgressCallback)).rejects.toThrow(
+        'Could not extract text from image'
+      );
 
       expect(mockProgressCallback).toHaveBeenCalledWith({
         type: 'ERROR',
@@ -275,11 +273,7 @@ describe('OCRService', () => {
         });
       });
 
-      const promise = service.processImage(
-        testImageUri,
-        mockProgressCallback,
-        testCorrelationId
-      );
+      const promise = service.processImage(testImageUri, mockProgressCallback, testCorrelationId);
 
       // Act - Cancel immediately
       service.cancel();
@@ -328,9 +322,7 @@ describe('OCRService', () => {
       const invalidUri = 'invalid://not-a-file';
 
       // Act & Assert
-      await expect(
-        service.processImage(invalidUri, mockProgressCallback)
-      ).rejects.toThrow();
+      await expect(service.processImage(invalidUri, mockProgressCallback)).rejects.toThrow();
     });
 
     it('should handle classification with low confidence', async () => {
@@ -411,18 +403,16 @@ describe('OCRService', () => {
 
   describe('error handling', () => {
     const testImageUri = 'file://test-receipt.jpg';
-  
+
     it('should create appropriate error objects', async () => {
       // Test OPTIMIZATION_FAILED
-      MockedImageOptimizer.optimizeImage.mockRejectedValueOnce(
-        new Error('Optimization failed')
+      MockedImageOptimizer.optimizeImage.mockRejectedValueOnce(new Error('Optimization failed'));
+
+      await expect(service.processImage(testImageUri, mockProgressCallback)).rejects.toThrow(
+        'Optimization failed'
       );
-      
-      await expect(
-        service.processImage(testImageUri, mockProgressCallback)
-      ).rejects.toThrow('Optimization failed');
     });
-  
+
     it('should handle network errors as retryable', async () => {
       // Reset to default successful mocks first
       MockedImageOptimizer.optimizeImage.mockResolvedValue(mockOptimizationResult);
@@ -431,25 +421,21 @@ describe('OCRService', () => {
         chunkSize: 1024 * 1024,
         maxChunks: 10,
       });
-      
+
       // Then make upload fail
-      mockNetworkClient.uploadFileChunked.mockRejectedValueOnce(
-        new Error('Network error')
+      mockNetworkClient.uploadFileChunked.mockRejectedValueOnce(new Error('Network error'));
+
+      await expect(service.processImage(testImageUri, mockProgressCallback)).rejects.toThrow(
+        'Network error'
       );
-      
-      await expect(
-        service.processImage(testImageUri, mockProgressCallback)
-      ).rejects.toThrow('Network error');
     });
-  
+
     it('should handle validation errors as non-retryable', async () => {
-      MockedImageOptimizer.optimizeImage.mockRejectedValueOnce(
-        new Error('Invalid file format')
+      MockedImageOptimizer.optimizeImage.mockRejectedValueOnce(new Error('Invalid file format'));
+
+      await expect(service.processImage(testImageUri, mockProgressCallback)).rejects.toThrow(
+        'Invalid file format'
       );
-      
-      await expect(
-        service.processImage(testImageUri, mockProgressCallback)
-      ).rejects.toThrow('Invalid file format');
     });
   });
 });

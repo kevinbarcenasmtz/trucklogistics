@@ -231,16 +231,16 @@ export class OCRService {
       const fileSize = hasSize(fileInfo) ? fileInfo.size : 0;
 
       const sessionResponse = await this.makeRequest<UploadSessionResponse>('/api/ocr/upload', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Correlation-ID': correlationId,
-      },
-      body: JSON.stringify({
-        filename: imageUri.split('/').pop() || 'image.jpg',
-        fileSize,
-        chunkSize: this.config.chunkSize,
-      }),
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Correlation-ID': correlationId,
+        },
+        body: JSON.stringify({
+          filename: imageUri.split('/').pop() || 'image.jpg',
+          fileSize,
+          chunkSize: this.config.chunkSize,
+        }),
       });
 
       onProgress({ type: 'UPLOAD_START', uploadId: sessionResponse.uploadId });
@@ -270,16 +270,16 @@ export class OCRService {
     const fileInfo = await FileSystem.getInfoAsync(fileUri);
     const fileSize = hasSize(fileInfo) ? fileInfo.size : 0;
     const totalChunks = Math.ceil(fileSize / this.config.chunkSize);
-  
+
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       this.checkAborted();
-  
+
       const start = chunkIndex * this.config.chunkSize;
       const end = Math.min(start + this.config.chunkSize, fileSize);
-  
+
       // Create a temporary file for this chunk
       const tempChunkUri = `${FileSystem.cacheDirectory}chunk-${uploadId}-${chunkIndex}.jpg`;
-  
+
       try {
         // Read chunk as base64
         const chunkData = await FileSystem.readAsStringAsync(fileUri, {
@@ -287,12 +287,12 @@ export class OCRService {
           position: start,
           length: end - start,
         });
-  
+
         // Write chunk data to temporary file
         await FileSystem.writeAsStringAsync(tempChunkUri, chunkData, {
           encoding: FileSystem.EncodingType.Base64,
         });
-  
+
         // Create form data for React Native
         const formData = new FormData();
         formData.append('uploadId', uploadId);
@@ -307,7 +307,7 @@ export class OCRService {
         };
 
         formData.append('chunk', blob as any);
-  
+
         // Upload the chunk
         await this.makeRequest('/api/ocr/chunk', {
           method: 'POST',
@@ -317,16 +317,15 @@ export class OCRService {
           },
           body: formData,
         });
-  
+
         // Clean up temporary chunk file
         await FileSystem.deleteAsync(tempChunkUri, { idempotent: true });
-  
       } catch (error) {
         // Clean up temporary file on error
         await FileSystem.deleteAsync(tempChunkUri, { idempotent: true });
         throw error;
       }
-  
+
       // Update progress (20-50% range)
       const progress = (chunkIndex + 1) / totalChunks;
       onProgress({ type: 'UPLOAD_PROGRESS', progress });

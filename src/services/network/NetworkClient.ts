@@ -157,14 +157,7 @@ export class NetworkClient {
       });
 
       // Upload chunk with retry
-      await this.uploadChunk(
-        uploadId,
-        chunkIndex,
-        chunkData,
-        totalChunks,
-        correlationId,
-        signal
-      );
+      await this.uploadChunk(uploadId, chunkIndex, chunkData, totalChunks, correlationId, signal);
 
       uploadedBytes += chunkSize;
       onProgress?.(uploadedBytes, fileSize);
@@ -186,7 +179,7 @@ export class NetworkClient {
     formData.append('uploadId', uploadId);
     formData.append('chunkIndex', chunkIndex.toString());
     formData.append('totalChunks', totalChunks.toString());
-    
+
     // Convert base64 to blob for React Native
     // React Native FormData expects an object with uri, type, and name
     formData.append('chunk', {
@@ -194,7 +187,7 @@ export class NetworkClient {
       type: 'image/jpeg',
       name: `chunk-${chunkIndex}.jpg`,
     } as any);
-  
+
     await this.postFormData('/api/ocr/chunk', formData, {
       correlationId,
       signal,
@@ -226,10 +219,10 @@ export class NetworkClient {
     correlationId?: string,
     signal?: AbortSignal
   ): Promise<JobStatusResponse> {
-    const response = await this.get<JobStatusResponse>(
-      `/api/ocr/status/${jobId}`,
-      { correlationId, signal }
-    );
+    const response = await this.get<JobStatusResponse>(`/api/ocr/status/${jobId}`, {
+      correlationId,
+      signal,
+    });
 
     return response.data;
   }
@@ -237,10 +230,7 @@ export class NetworkClient {
   /**
    * Generic GET request
    */
-  async get<T>(
-    endpoint: string,
-    options: RequestOptions = {}
-  ): Promise<NetworkResponse<T>> {
+  async get<T>(endpoint: string, options: RequestOptions = {}): Promise<NetworkResponse<T>> {
     return this.request<T>('GET', endpoint, undefined, options);
   }
 
@@ -285,7 +275,7 @@ export class NetworkClient {
   ): Promise<NetworkResponse<T>> {
     const url = `${this.config.baseUrl}${endpoint}`;
     const correlationId = options.correlationId || generateCorrelationId();
-    
+
     const headers: Record<string, string> = {
       'X-Correlation-ID': correlationId,
       ...options.headers,
@@ -306,7 +296,10 @@ export class NetworkClient {
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), options.timeout || this.config.timeout);
+        const timeoutId = setTimeout(
+          () => controller.abort(),
+          options.timeout || this.config.timeout
+        );
 
         // Combine timeout signal with user signal
         const combinedSignal = this.combineSignals([controller.signal, options.signal]);
@@ -323,7 +316,7 @@ export class NetworkClient {
         if (!response.ok) {
           const isRetryable = response.status >= 500 || response.status === 429;
           const errorText = await response.text();
-          
+
           throw new NetworkError(
             `HTTP ${response.status}: ${errorText}`,
             response.status,
@@ -368,16 +361,16 @@ export class NetworkClient {
    */
   private combineSignals(signals: (AbortSignal | undefined)[]): AbortSignal {
     const controller = new AbortController();
-    
+
     for (const signal of signals) {
       if (signal?.aborted) {
         controller.abort();
         break;
       }
-      
+
       signal?.addEventListener('abort', () => controller.abort());
     }
-    
+
     return controller.signal;
   }
 
