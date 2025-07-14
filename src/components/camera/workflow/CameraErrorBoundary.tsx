@@ -71,9 +71,8 @@ export class CameraErrorBoundary extends Component<Props, State> {
 
   private addErrorToFlow = (error: Error) => {
     try {
-      // We can't use hooks in class component, so we'll handle this via a callback
       const flowError: FlowError = {
-        step: 'capture', // Default step, will be updated by actual flow
+        step: 'capture',
         code: 'WORKFLOW_ERROR',
         message: error.message,
         userMessage: 'An unexpected error occurred in the camera workflow',
@@ -85,11 +84,12 @@ export class CameraErrorBoundary extends Component<Props, State> {
           retryCount: this.retryCount,
         },
       };
-
-      // Dispatch custom event for flow store to handle
-      window.dispatchEvent(new CustomEvent('cameraFlowError', { 
-        detail: flowError 
-      }));
+  
+      // Use global reference to addError function
+      const addErrorFn = (global as any).cameraFlowAddError;
+      if (addErrorFn) {
+        addErrorFn(flowError);
+      }
     } catch (e) {
       console.warn('Could not add error to flow:', e);
     }
@@ -316,18 +316,20 @@ function CameraErrorFallback({
  * This should be used in a component that can access hooks
  */
 export function useCameraErrorHandler() {
-  const { addError } = useCameraFlow();
-
-  React.useEffect(() => {
-    const handleFlowError = (event: any) => {
-      const flowError = event.detail as FlowError;
-      addError(flowError);
-    };
-
-    window.addEventListener('cameraFlowError', handleFlowError);
-    return () => window.removeEventListener('cameraFlowError', handleFlowError);
-  }, [addError]);
-}
+    const { addError } = useCameraFlow();
+  
+    // Return the addError function so the error boundary can use it directly
+    React.useEffect(() => {
+      // Store the addError function globally for the error boundary to access
+      (global as any).cameraFlowAddError = addError;
+      
+      return () => {
+        delete (global as any).cameraFlowAddError;
+      };
+    }, [addError]);
+  
+    return { addError };
+  }
 
 const styles = StyleSheet.create({
   container: {
