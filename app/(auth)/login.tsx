@@ -31,7 +31,7 @@ export default function LoginScreen() {
   const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles, isDarkTheme } =
     useAppTheme();
 
-  // ✅ Single state machine replaces all individual useState calls
+  // Single state machine replaces all individual useState calls
   const { state, dispatch } = useAuthFormMachine('login');
 
   // Pure calculations - no useState needed
