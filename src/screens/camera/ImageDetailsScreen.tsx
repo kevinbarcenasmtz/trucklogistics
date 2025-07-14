@@ -1,280 +1,291 @@
-// src/screens/camera/ImageDetailsScreen.tsx
-import { ActionButton, ScreenHeader } from '@/src/components/camera/CameraUIComponents';
+// src/screens/camera/ImageDetailsScreen.refactored.tsx
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useCallback, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { ActionButton, ScreenHeader } from '../../components/camera/CameraUIComponents';
 import {
-  AnalyzingIndicator,
   ClassificationDisplay,
   ImagePreview,
   RecognizedTextDisplay,
-} from '@/src/components/camera/ImageDetailComponents';
-import { useTheme } from '@/src/context/ThemeContext';
-import { AIClassificationService } from '@/src/services/AIClassificationService';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import { AIClassifiedReceipt, Receipt } from '@/src/types/ReceiptInterfaces';
-import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import OCRProcessor from './OCRprocessor';
+} from '../../components/camera/ImageDetailComponents';
+import { ErrorDisplay } from '../../components/ocr/ErrorDisplay';
+import { OCRProgress } from '../../components/ocr/OCRProgress';
+import { useOCR } from '../../context/OCRContext';
+import { useAppTheme } from '../../hooks/useAppTheme';
+import { OCRSelectors, OCRState, OCRStateGuards } from '../../state/ocr/types';
+import { horizontalScale, moderateScale, verticalScale } from '../../theme';
+import type { Receipt } from '../../types/ReceiptInterfaces';
+
+// Separate component for results view
+function ResultsView({
+  state,
+  imageUri,
+  onContinue,
+  onRetake,
+  formatCurrency,
+  getConfidenceColor,
+  safeGetProperty,
+  fadeAnim,
+  slideAnim,
+}: {
+  state: OCRState;
+  imageUri: string;
+  onContinue: () => void;
+  onRetake: () => void;
+  formatCurrency: (amount?: string) => string;
+  getConfidenceColor: (confidence: number) => string;
+  safeGetProperty: <T>(obj: any, property: string, defaultValue: T) => T;
+  fadeAnim: Animated.Value;
+  slideAnim: Animated.Value;
+}) {
+  const { t } = useTranslation();
+
+  if (state.status !== 'reviewing' || !state.data) {
+    return null;
+  }
+
+  const { extractedText, classification } = state.data;
+
+  return (
+    <>
+      <RecognizedTextDisplay text={extractedText} fadeAnim={fadeAnim} slideAnim={slideAnim} />
+
+      <ClassificationDisplay
+        data={classification}
+        formatCurrency={formatCurrency}
+        getConfidenceColor={getConfidenceColor}
+        safeGetProperty={safeGetProperty}
+      />
+
+      <View style={styles.buttonContainer}>
+        <ActionButton
+          title={t('continue', 'Continue')}
+          icon="arrow-forward"
+          onPress={onContinue}
+          backgroundColor="#4CAF50"
+          style={styles.button}
+        />
+
+        <ActionButton
+          title={t('retake', 'Retake Photo')}
+          icon="camera-alt"
+          onPress={onRetake}
+          backgroundColor="#757575"
+          style={styles.button}
+        />
+      </View>
+    </>
+  );
+}
 
 export default function ImageDetailsScreen() {
   const { uri } = useLocalSearchParams();
-  const router = useRouter();
-  const [recognizedText, setRecognizedText] = useState<string>('');
-  const [showOCR, setShowOCR] = useState<boolean>(false);
-  const [isClassifying, setIsClassifying] = useState<boolean>(false);
-  const [classifiedData, setClassifiedData] = useState<AIClassifiedReceipt | null>(null);
+  const { state, dispatch } = useOCR();
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const {
+    backgroundColor,
+    textColor,
+    secondaryTextColor,
+    primaryColor,
+    errorColor,
+    successColor,
+    getButtonBackground,
+  } = useAppTheme();
 
-  // Animation values
+  // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  const [ocrError, setOcrError] = useState<string | null>(null);
+  // ✅ Derive all state from the state machine
+  const currentState = state.state;
+  const context = state.context;
+  const progress = useMemo(() => OCRSelectors.getProgress(state), [state]);
+  const isProcessing = useMemo(() => OCRStateGuards.isProcessing(currentState), [currentState]);
+  const canRetry = useMemo(() => OCRSelectors.canRetry(state), [state]);
+  const isError = currentState.status === 'error';
+  const isReviewing = currentState.status === 'reviewing';
+  const needsImageCapture = currentState.status === 'idle' && uri;
 
-  // Handle OCR recognition completion
-  const handleTextRecognized = async (text: string) => {
-    setOcrError(null);
-    setRecognizedText(text);
-    setShowOCR(false);
+  // ✅ Memoized helper functions
+  const formatCurrency = useCallback((amount?: string): string => {
+    if (!amount) return '$0.00';
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(numAmount || 0);
+  }, []);
 
-    // Animate in the text container
+  const getConfidenceColor = useCallback(
+    (confidence: number): string => {
+      if (confidence >= 0.8) return successColor;
+      if (confidence >= 0.6) return '#FF9800';
+      return errorColor;
+    },
+    [successColor, errorColor]
+  );
+
+  const safeGetProperty = useCallback(<T,>(obj: any, property: string, defaultValue: T): T => {
+    return obj && obj[property] !== undefined ? obj[property] : defaultValue;
+  }, []);
+
+  // ✅ Start animations when entering review state
+  const startAnimations = useCallback(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 400,
+        duration: 800,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
-        duration: 400,
+        duration: 600,
         useNativeDriver: true,
       }),
     ]).start();
+  }, [fadeAnim, slideAnim]);
 
-    // Provide haptic feedback for completion
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  // ✅ Handle initial image capture (no useEffect!)
+  const handleImageCapture = useCallback(() => {
+    if (uri && currentState.status === 'idle') {
+      // Start the OCR process
+      dispatch({ type: 'START_CAPTURE', source: 'gallery' });
+      dispatch({ type: 'IMAGE_CAPTURED', uri: uri as string });
 
-    // Automatically start AI classification
-    await classifyText(text);
-  };
-
-  // Function to classify recognized text
-  const classifyText = async (text: string) => {
-    setIsClassifying(true);
-    try {
-      const classified = await AIClassificationService.classifyReceipt(text);
-
-      // Ensure all required fields exist
-      const validatedClassification: AIClassifiedReceipt = {
-        date: classified?.date || new Date().toISOString().split('T')[0],
-        type: classified?.type || 'Other',
-        amount: classified?.amount || '$0.00',
-        vehicle: classified?.vehicle || 'Unknown Vehicle',
-        vendorName: classified?.vendorName || 'Unknown Vendor',
-        location: classified?.location || '',
-        confidence: classified?.confidence || 0.5,
-      };
-
-      setClassifiedData(validatedClassification);
-
-      // Haptic feedback for classification completion
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      console.error('Error classifying text:', error);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsClassifying(false);
+      // The OCRContext will handle the actual processing
+      // through side effects managed in the context
     }
-  };
+  }, [uri, currentState.status, dispatch]);
 
-  // Start OCR processing
-  const startOCR = () => {
-    setShowOCR(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  };
-
-  const handleOcrError = (errorMessage: string) => {
-    setOcrError(errorMessage);
-    setShowOCR(false);
-
-    // Show error to user
-    try {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } catch (error) {
-      console.warn('Haptic feedback not supported', error);
-    }
-  };
-
-  // Then in the JSX:
-  {
-    showOCR && (
-      <OCRProcessor
-        imageUri={uri as string}
-        onTextRecognized={handleTextRecognized}
-        onError={handleOcrError}
-      />
-    );
-  }
-
-  // Navigate to verification screen
-  const handleContinue = () => {
-    if (!recognizedText) {
-      alert(t('extractTextFirst', 'Please extract the text first'));
+  // ✅ Action handlers
+  const handleContinue = useCallback(() => {
+    if (currentState.status !== 'reviewing' || !currentState.data) {
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    // Create default values for missing fields
-    const defaultReceipt: Partial<Receipt> = {
+    const receiptData: Partial<Receipt> = {
       id: Date.now().toString(),
-      date: new Date().toISOString().split('T')[0],
-      type: 'Other',
-      amount: '$0.00',
-      vehicle: 'Unknown Vehicle',
+      date: currentState.data.classification.date || new Date().toISOString().split('T')[0],
+      type: currentState.data.classification.type || 'Other',
+      amount: currentState.data.classification.amount || '$0.00',
+      vehicle: currentState.data.classification.vehicle || 'Unknown Vehicle',
+      vendorName: currentState.data.classification.vendorName || 'Unknown Vendor',
+      location: currentState.data.classification.location || '',
       status: 'Pending',
-      extractedText: recognizedText,
-      imageUri: uri as string,
+      extractedText: currentState.data.extractedText,
+      imageUri: currentState.data.imageUri,
       timestamp: new Date().toISOString(),
     };
 
-    // Merge with classified data (if available)
-    const receiptData = classifiedData ? { ...defaultReceipt, ...classifiedData } : defaultReceipt;
-
-    // Navigate to verification screen with receipt data and image URI
     router.push({
       pathname: '/camera/verification',
       params: {
         receipt: JSON.stringify(receiptData),
-        uri: uri as string,
+        imageUri: currentState.data.imageUri,
       },
     });
-  };
+  }, [currentState]);
 
-  // Start OCR automatically when screen loads
-  useEffect(() => {
-    if (uri && !recognizedText) {
-      // Add a small delay for better UX
-      const timer = setTimeout(() => {
-        startOCR();
-      }, 500);
-      return () => clearTimeout(timer);
+  const handleRetry = useCallback(() => {
+    dispatch({ type: 'RETRY' });
+  }, [dispatch]);
+
+  const handleCancel = useCallback(() => {
+    dispatch({ type: 'CANCEL' });
+    router.back();
+  }, [dispatch]);
+
+  const handleRetake = useCallback(() => {
+    dispatch({ type: 'RESET' });
+    router.back();
+  }, [dispatch]);
+
+  // ✅ Trigger animations when entering review state
+  React.useEffect(() => {
+    if (isReviewing) {
+      startAnimations();
     }
-  }, [uri]);
+  }, [isReviewing, startAnimations]);
 
-  // Format currency amount with proper formatting
-  const formatCurrency = (amount: string | undefined) => {
-    // Handle undefined or empty string
-    if (!amount) return '$0.00';
-
-    try {
-      // If it already has a currency symbol, return as is
-      if (amount.includes('$') || amount.includes('€') || amount.includes('£')) {
-        return amount;
-      }
-
-      // Otherwise, format as USD
-      const amountNum = parseFloat(amount.replace(/,/g, ''));
-      if (isNaN(amountNum)) return '$0.00';
-
-      return `$${amountNum.toFixed(2)}`;
-    } catch (error) {
-      console.error('Error formatting currency:', error);
-      return '$0.00';
+  // ✅ Component-based conditional rendering
+  const renderContent = () => {
+    // Handle initial capture
+    if (needsImageCapture) {
+      return (
+        <View style={styles.centerContainer}>
+          <ImagePreview uri={uri as string} onScanPress={handleImageCapture} />
+        </View>
+      );
     }
-  };
 
-  // Get confidence level color
-  const getConfidenceColor = (confidence: number = 0) => {
-    if (confidence >= 0.8) return themeStyles.colors.status.success;
-    if (confidence >= 0.6) return themeStyles.colors.status.warning;
-    return themeStyles.colors.status.error;
-  };
+    // Error state
+    if (isError) {
+      return (
+        <ErrorDisplay
+          error={currentState.error}
+          onRetry={canRetry ? handleRetry : undefined}
+          onDismiss={handleCancel}
+        />
+      );
+    }
 
-  // Safe way to get properties with default values
-  const safeGetProperty = <T,>(obj: any, property: string, defaultValue: T): T => {
-    if (!obj) return defaultValue;
-    return obj[property] !== undefined && obj[property] !== null ? obj[property] : defaultValue;
+    // Processing states - Use the OCRProgress component
+    if (isProcessing) {
+      return <OCRProgress state={state} onCancel={handleCancel} />;
+    }
+
+    // Review state with results
+    if (isReviewing) {
+      return (
+        <ResultsView
+          state={currentState}
+          imageUri={uri as string}
+          onContinue={handleContinue}
+          onRetake={handleRetake}
+          formatCurrency={formatCurrency}
+          getConfidenceColor={getConfidenceColor}
+          safeGetProperty={safeGetProperty}
+          fadeAnim={fadeAnim}
+          slideAnim={slideAnim}
+        />
+      );
+    }
+
+    // Idle or other states
+    return (
+      <View style={styles.centerContainer}>
+        <Text style={[styles.statusText, { color: secondaryTextColor }]}>
+          {t('readyToScan', 'Ready to scan')}
+        </Text>
+      </View>
+    );
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
-      <ScreenHeader title={t('receiptScanner', 'Receipt Scanner')} onBack={() => router.back()} />
+    <View style={[styles.container, { backgroundColor }]}>
+      <ScreenHeader title={t('receiptScanner', 'Receipt Scanner')} onBack={handleCancel} />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.contentContainer}>
-          {/* Image Container */}
-          {!recognizedText ? (
-            <ImagePreview uri={uri as string} onScanPress={startOCR} />
-          ) : (
-            <View
-              style={[
-                styles.imageContainer,
-                {
-                  backgroundColor: themeStyles.colors.darkGrey,
-                  ...themeStyles.shadow.md,
-                },
-              ]}
-            >
-              <TouchableOpacity onPress={startOCR}>
-                <View style={styles.rescanContainer}>
-                  <Text style={[styles.rescanText, { color: themeStyles.colors.white }]}>
-                    {t('scanned', 'Scanned')}
-                  </Text>
-                  <Feather
-                    name="refresh-cw"
-                    size={16}
-                    color={themeStyles.colors.white}
-                    style={{ marginLeft: horizontalScale(4) }}
-                  />
-                </View>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Text Recognition Results */}
-          {recognizedText && (
-            <RecognizedTextDisplay
-              text={recognizedText}
-              fadeAnim={fadeAnim}
-              slideAnim={slideAnim}
-            />
-          )}
-
-          {/* Classification Results */}
-          {classifiedData && (
-            <ClassificationDisplay
-              data={classifiedData}
-              formatCurrency={formatCurrency}
-              getConfidenceColor={getConfidenceColor}
-              safeGetProperty={safeGetProperty}
-            />
-          )}
-
-          {/* Classification Loading */}
-          {isClassifying && <AnalyzingIndicator />}
-
-          {/* Continue Button */}
-          {recognizedText && !isClassifying && (
-            <View style={styles.buttonWrapper}>
-              <ActionButton
-                title={t('continue', 'Continue')}
-                icon="arrow-forward"
-                onPress={handleContinue}
-                backgroundColor={themeStyles.colors.greenThemeColor}
-                style={styles.continueButton}
-              />
-            </View>
-          )}
-        </View>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.contentContainer}>{renderContent()}</View>
       </ScrollView>
 
-      {/* OCR Processing Component */}
-      {showOCR && <OCRProcessor imageUri={uri as string} onTextRecognized={handleTextRecognized} />}
+      {/* Debug info in development */}
+      {__DEV__ && (
+        <View style={[styles.debugContainer, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
+          <Text style={styles.debugText}>
+            Status: {currentState.status} | Progress: {Math.round(progress * 100)}%
+          </Text>
+          {context.correlationId && (
+            <Text style={styles.debugText}>Correlation: {context.correlationId.slice(-8)}</Text>
+          )}
+        </View>
+      )}
     </View>
   );
 }
@@ -286,33 +297,42 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
-  buttonWrapper: {
-    marginTop: verticalScale(24),
-    marginBottom: verticalScale(48),
-    paddingHorizontal: horizontalScale(16),
+  scrollContent: {
+    flexGrow: 1,
   },
   contentContainer: {
+    flex: 1,
     padding: horizontalScale(16),
   },
-  imageContainer: {
-    width: '100%',
-    height: verticalScale(60),
-    borderRadius: moderateScale(12),
-    marginBottom: verticalScale(16),
+  centerContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: verticalScale(32),
   },
-  rescanContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: moderateScale(8),
+  buttonContainer: {
+    gap: verticalScale(12),
+    marginTop: verticalScale(24),
+    marginBottom: verticalScale(32),
   },
-  rescanText: {
-    fontSize: moderateScale(14),
-    fontWeight: '500',
-  },
-  continueButton: {
+  button: {
     borderWidth: 0,
+  },
+  statusText: {
+    fontSize: moderateScale(16),
+    marginTop: verticalScale(16),
+    textAlign: 'center',
+  },
+  debugContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: horizontalScale(8),
+  },
+  debugText: {
+    color: 'white',
+    fontSize: moderateScale(10),
+    fontFamily: 'monospace',
   },
 });
