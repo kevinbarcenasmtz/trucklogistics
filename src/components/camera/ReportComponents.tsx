@@ -26,7 +26,7 @@ export const ReceiptHeader = ({
     <View style={styles.receiptHeader}>
       <View style={styles.receiptType}>
         <MaterialIcons
-          name={getReceiptTypeIcon(receipt.type)}
+          name={getReceiptTypeIcon(receipt.type) as any}
           size={24}
           color={themeStyles.colors.greenThemeColor}
         />

@@ -1,4 +1,18 @@
 // src/screens/camera/ReportScreen.tsx
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Animated,
+  ScrollView,
+  Share,
+  StyleSheet,
+  View,
+} from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useTranslation } from 'react-i18next';
+import * as Haptics from 'expo-haptics';
+
 import { ScreenHeader, StatusBanner } from '@/src/components/camera/CameraUIComponents';
 import {
   ActionCard,
@@ -9,40 +23,24 @@ import {
   ReceiptContent,
   ReceiptHeader,
 } from '@/src/components/camera/ReportComponents';
-import { useTheme } from '@/src/context/ThemeContext';
+import { CameraNavigationGuard } from '@/src/components/camera/workflow/CameraNavigationGuard';
+import { useCameraFlow } from '../../store/cameraFlowStore';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { DocumentStorage } from '@/src/services/DocumentStorage';
-import { getThemeStyles, horizontalScale, verticalScale } from '@/src/theme';
+import { horizontalScale, verticalScale, moderateScale } from '@/src/theme';
 import { Receipt } from '@/src/types/ReceiptInterfaces';
-import { Feather } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  ScrollView,
-  Share,
-  StyleSheet,
-  TouchableOpacity,
-  useColorScheme,
-  View,
-} from 'react-native';
+import { RouteTypeGuards } from '@/src/types/camera_navigation';
 
 export default function ReportScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { t } = useTranslation();
-  const { theme, themePreference, setTheme } = useTheme(); // Get full theme context
-  const themeStyles = getThemeStyles(theme);
-  const systemColorScheme = useColorScheme(); // Get system color scheme
+  const { backgroundColor } = useAppTheme();
 
-  // Parse the receipt data
-  const [receipt, setReceipt] = useState<Receipt | null>(
-    params.receipt ? JSON.parse(params.receipt as string) : null
-  );
+  // Camera flow state
+  const { activeFlow, completeFlow } = useCameraFlow();
 
+  // Local component state
   const [isStatusUpdating, setIsStatusUpdating] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
   const [showFullText, setShowFullText] = useState(false);
@@ -51,16 +49,63 @@ export default function ReportScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // Listen for system theme changes if using system theme
-  useEffect(() => {
-    if (themePreference === 'system') {
-      // Only update if system theme changes and we're using system preference
-      const newTheme = systemColorScheme === 'dark' ? 'dark' : 'light';
-      if (theme !== newTheme) {
-        setTheme('system'); // This will apply the system theme
+  // Parse receipt data from flow or legacy params
+  const { receipt, flowId, isValidNavigation } = useMemo(() => {
+    // Check if we have a flow ID (new navigation)
+    if (RouteTypeGuards.hasFlowId(params) && activeFlow?.id === params.flowId) {
+      const flow = activeFlow;
+      
+      if (!flow.receiptDraft) {
+        console.warn('Flow found but no receipt draft available');
+        return {
+          receipt: null,
+          flowId: flow.id,
+          isValidNavigation: false,
+        };
+      }
+
+      return {
+        receipt: flow.receiptDraft as Receipt,
+        flowId: flow.id,
+        isValidNavigation: true,
+      };
+    }
+
+    // Check for legacy parameters
+    if (RouteTypeGuards.hasLegacyReceipt(params)) {
+      try {
+        const legacyReceipt = JSON.parse(params.receipt) as Receipt;
+        
+        return {
+          receipt: legacyReceipt,
+          flowId: null,
+          isValidNavigation: true,
+        };
+      } catch (error) {
+        console.error('Failed to parse legacy receipt data:', error);
+        return {
+          receipt: null,
+          flowId: null,
+          isValidNavigation: false,
+        };
       }
     }
-  }, [systemColorScheme, themePreference]);
+
+    // Check if we have an active flow without params (direct navigation)
+    if (activeFlow?.receiptDraft) {
+      return {
+        receipt: activeFlow.receiptDraft as Receipt,
+        flowId: activeFlow.id,
+        isValidNavigation: true,
+      };
+    }
+
+    return {
+      receipt: null,
+      flowId: null,
+      isValidNavigation: false,
+    };
+  }, [params, activeFlow]);
 
   // Animate components in on mount
   useEffect(() => {
@@ -78,284 +123,197 @@ export default function ReportScreen() {
     ]).start();
   }, []);
 
-  // Toggle theme function - can be connected to a button
-  const toggleTheme = useCallback(() => {
-    try {
-      setTheme(theme === 'dark' ? 'light' : 'dark');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (error) {
-      console.warn('Haptic feedback not supported', error);
-    }
-  }, [theme, setTheme]);
-
   // Format date for display
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '';
-
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return t('noDate', 'No date');
     try {
-      // Try to parse as ISO date first
       const date = new Date(dateString);
-
-      // Check if valid date
-      if (isNaN(date.getTime())) {
-        // If not valid ISO date, just return as is
-        return dateString;
-      }
-
-      return date.toLocaleDateString(undefined, {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
-    } catch (e) {
+      return date.toLocaleDateString();
+    } catch {
       return dateString;
     }
   };
 
   // Format time for display
-  const formatTime = (dateString?: string) => {
-    if (!dateString) return '';
-
+  const formatTime = (timestamp?: string): string => {
+    if (!timestamp) return '';
     try {
-      const date = new Date(dateString);
-
-      // Check if valid date
-      if (isNaN(date.getTime())) {
-        return '';
-      }
-
-      return date.toLocaleTimeString(undefined, {
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    } catch (e) {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
       return '';
     }
   };
 
-  // Handle approval of the document
-  const handleApproveDocument = async () => {
-    if (!receipt?.id) return;
-
-    setIsStatusUpdating(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    try {
-      const updated = await DocumentStorage.updateReceiptStatus(receipt.id, 'Approved');
-      if (updated) {
-        setReceipt(updated);
-
-        // Success feedback
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-        Alert.alert(
-          t('success', 'Success'),
-          t('receiptApproved', 'Receipt has been approved successfully')
-        );
-      }
-    } catch (error) {
-      console.error('Error approving document:', error);
-
-      // Error feedback
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-      Alert.alert(t('error', 'Error'), t('errorUpdatingStatus', 'Failed to update receipt status'));
-    } finally {
-      setIsStatusUpdating(false);
-    }
-  };
-
-  // Toggle full text display
-  const toggleFullText = () => {
-    setShowFullText(!showFullText);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  };
-
-  // Share document content
-  const handleShareDocument = async () => {
-    if (!receipt) return;
-
-    setShareLoading(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
-    try {
-      // Create a simple text representation
-      const textContent = `
-📝 Receipt Report
------------------------
-🏢 Vendor: ${receipt.vendorName || 'Unknown'}
-💰 Amount: ${receipt.amount}
-📅 Date: ${formatDate(receipt.date)}
-🚚 Vehicle: ${receipt.vehicle}
-🔤 Type: ${receipt.type}
-📍 Location: ${receipt.location || 'Not specified'}
-📋 Status: ${receipt.status}
------------------------
-📝 Raw Text:
-${receipt.extractedText}
-
-Generated by Trucking Logistics Pro
-      `;
-
-      await Share.share({
-        message: textContent,
-        title: 'Receipt Report',
-      });
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch (error) {
-      console.error('Error sharing document:', error);
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-
-      Alert.alert(t('error', 'Error'), t('errorSharing', 'Failed to share the receipt'));
-    } finally {
-      setShareLoading(false);
-    }
-  };
-
-  // Go back to the reports screen
-  const handleFinish = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push('/reports');
-  };
-
-  // Get appropriate icon for receipt type
-  const getReceiptTypeIcon = (type?: string) => {
-    switch (type?.toLowerCase()) {
-      case 'fuel':
+  // Get receipt type icon
+  const getReceiptTypeIcon = (type?: string): string => {
+    switch (type) {
+      case 'Fuel':
         return 'local-gas-station';
-      case 'maintenance':
+      case 'Maintenance':
         return 'build';
       default:
         return 'receipt';
     }
   };
 
-  // If receipt is not loaded yet, show loading screen
-  if (!receipt) {
-    return <LoadingView t={t} />;
+  // Handle status update
+  const handleStatusUpdate = async () => {
+    if (!receipt) return;
+
+    setIsStatusUpdating(true);
+
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (err) {
+      console.warn('Haptic feedback not supported:', err);
+    }
+
+    try {
+      const newStatus = receipt.status === 'Approved' ? 'Pending' : 'Approved';
+      await DocumentStorage.updateReceiptStatus(receipt.id, newStatus);
+      
+      Alert.alert(
+        t('statusUpdated', 'Status Updated'),
+        t('statusUpdatedMessage', `Receipt status changed to ${newStatus}`)
+      );
+    } catch (error) {
+      console.error('Failed to update status:', error);
+      Alert.alert(
+        t('error', 'Error'),
+        t('statusUpdateError', 'Failed to update receipt status')
+      );
+    } finally {
+      setIsStatusUpdating(false);
+    }
+  };
+
+  // Handle sharing
+  const handleShare = async () => {
+    if (!receipt) return;
+
+    setShareLoading(true);
+
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (err) {
+      console.warn('Haptic feedback not supported:', err);
+    }
+
+    try {
+      const shareContent = `Receipt Details:
+Date: ${formatDate(receipt.date)}
+Amount: ${receipt.amount}
+Vendor: ${receipt.vendorName || 'Unknown'}
+Vehicle: ${receipt.vehicle}
+Type: ${receipt.type}
+Status: ${receipt.status}`;
+
+      await Share.share({
+        message: shareContent,
+        title: t('receiptDetails', 'Receipt Details'),
+      });
+    } catch (error) {
+      console.error('Failed to share:', error);
+      Alert.alert(
+        t('error', 'Error'),
+        t('shareError', 'Failed to share receipt')
+      );
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  // Handle done button
+  const handleDone = () => {
+    try {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    } catch (err) {
+      console.warn('Haptic feedback not supported:', err);
+    }
+
+    // Complete the flow if we have one
+    if (flowId && activeFlow) {
+      completeFlow();
+    }
+
+    // Navigate to home or reports
+    router.replace('/reports');
+  };
+
+  // Toggle full text display
+  const toggleFullText = () => {
+    setShowFullText(!showFullText);
+  };
+
+  if (!isValidNavigation || !receipt) {
+    return (
+      <CameraNavigationGuard targetStep="report">
+        <LoadingView t={t} />
+      </CameraNavigationGuard>
+    );
   }
 
-  // Add theme toggle button to header
-  const themeToggleButton = (
-    <TouchableOpacity
-      style={[styles.iconButton, { backgroundColor: themeStyles.colors.darkGrey }]}
-      onPress={toggleTheme}
-    >
-      <Feather
-        name={theme === 'dark' ? 'sun' : 'moon'}
-        size={20}
-        color={themeStyles.colors.white}
-      />
-    </TouchableOpacity>
-  );
-
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
-      {/* Header */}
-      <ScreenHeader
-        title={t('receiptReport', 'Receipt Report')}
-        onBack={() => router.back()}
-        rightComponent={
-          <View style={styles.headerButtons}>
-            {themeToggleButton}
-            <TouchableOpacity
-              style={[
-                styles.shareButton,
-                { backgroundColor: themeStyles.colors.darkGrey },
-                shareLoading && { opacity: 0.6 },
-              ]}
-              onPress={handleShareDocument}
-              disabled={shareLoading}
-            >
-              {shareLoading ? (
-                <ActivityIndicator size="small" color={themeStyles.colors.white} />
-              ) : (
-                <Feather name="share" size={20} color={themeStyles.colors.white} />
-              )}
-            </TouchableOpacity>
-          </View>
-        }
-      />
+    <CameraNavigationGuard targetStep="report">
+      <View style={[styles.container, { backgroundColor }]}>
+        <ScreenHeader
+          title={t('receiptReport', 'Receipt Report')}
+          onBack={() => router.back()}
+        />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        <View style={styles.contentContainer}>
-          {/* Status Banner */}
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }}
-          >
-            <StatusBanner
-              status={receipt.status}
-              successText={t('approved', 'Approved')}
-              pendingText={t('pendingApproval', 'Pending Approval')}
-            />
-          </Animated.View>
-
-          {/* Receipt Card */}
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           <Animated.View
             style={[
-              styles.receiptCard,
+              styles.contentContainer,
               {
-                backgroundColor: themeStyles.colors.darkGrey,
-                ...themeStyles.shadow.md,
                 opacity: fadeAnim,
                 transform: [{ translateY: slideAnim }],
               },
             ]}
           >
-            <ReceiptHeader
-              receipt={receipt}
-              formatDate={formatDate}
-              formatTime={formatTime}
-              getReceiptTypeIcon={getReceiptTypeIcon}
+            <StatusBanner
+              status={receipt.status}
+              successText={t('approved', 'Approved')}
+              pendingText={t('pending', 'Pending')}
             />
 
-            <Divider />
+            <View style={styles.receiptCard}>
+              <ReceiptHeader
+                receipt={receipt}
+                formatDate={formatDate}
+                formatTime={formatTime}
+                getReceiptTypeIcon={getReceiptTypeIcon}
+              />
 
-            <ReceiptContent receipt={receipt} t={t} />
-          </Animated.View>
+              <Divider />
 
-          {/* Raw Text Section */}
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }}
-          >
-            <RawTextSection
-              receipt={receipt}
-              showFullText={showFullText}
-              toggleFullText={toggleFullText}
-              t={t}
-            />
-          </Animated.View>
+              <ReceiptContent receipt={receipt} t={t} />
+            </View>
 
-          {/* Action Card */}
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }}
-          >
+            {receipt.extractedText && (
+              <RawTextSection
+                receipt={receipt}
+                showFullText={showFullText}
+                toggleFullText={toggleFullText}
+                t={t}
+              />
+            )}
+
             <ActionCard
               receipt={receipt}
               isStatusUpdating={isStatusUpdating}
-              handleApproveDocument={handleApproveDocument}
-              handleShareDocument={handleShareDocument}
               shareLoading={shareLoading}
+              handleApproveDocument={handleStatusUpdate}
+              handleShareDocument={handleShare}
               t={t}
             />
           </Animated.View>
-        </View>
-      </ScrollView>
+        </ScrollView>
 
-      {/* Footer */}
-      <FooterButton onPress={handleFinish} t={t} />
-    </View>
+        <FooterButton onPress={handleDone} t={t} />
+      </View>
+    </CameraNavigationGuard>
   );
 }
 
@@ -367,25 +325,12 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: horizontalScale(16),
+    paddingHorizontal: horizontalScale(16),
     paddingBottom: verticalScale(100),
+    gap: verticalScale(16),
   },
   receiptCard: {
-    borderRadius: verticalScale(12),
     padding: horizontalScale(16),
-    marginBottom: verticalScale(16),
-  },
-  shareButton: {
-    padding: verticalScale(8),
-    borderRadius: verticalScale(20),
-    marginLeft: horizontalScale(8),
-  },
-  iconButton: {
-    padding: verticalScale(8),
-    borderRadius: verticalScale(20),
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    borderRadius: moderateScale(12),
   },
 });
