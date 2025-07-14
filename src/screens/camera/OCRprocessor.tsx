@@ -1,6 +1,6 @@
 // src/screens/camera/OCRProcessor.tsx
 import { useTheme } from '@/src/context/ThemeContext';
-import { OcrService } from '@/src/services/OcrService';
+import { OcrService } from '@/src/services/OcrService.old';
 import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';

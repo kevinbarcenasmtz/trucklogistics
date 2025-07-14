@@ -1,5 +1,7 @@
 // app/(app)/camera/imagedetails.tsx
-import ImageDetailsScreen from '@/src/screens/camera/ImageDetailsScreen';
-
+import OldImageDetailsScreen from '@/src/screens/camera/ImageDetailsScreen';
+import NewImageDetailsScreen from '@/src/screens/camera/ImageDetailsScreen.refactored';
 // Simply export the component as the default export
-export default ImageDetailsScreen;
+const useNewOCR = process.env.EXPO_PUBLIC_USE_NEW_OCR === 'true';
+
+export default useNewOCR ? NewImageDetailsScreen : OldImageDetailsScreen;

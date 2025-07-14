@@ -1,4 +1,4 @@
-// src/services/OcrService.ts
+// src/services/OcrService.old.ts
 import Constants from 'expo-constants';
 import * as FileSystem from 'expo-file-system';
 

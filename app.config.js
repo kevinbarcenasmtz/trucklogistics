@@ -60,6 +60,7 @@ const config = {
   },
 
   plugins: [
+    "expo-secure-store",
     'expo-router',
     '@react-native-firebase/app',
     '@react-native-firebase/auth',
