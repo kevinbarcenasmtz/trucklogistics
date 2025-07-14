@@ -1,9 +1,8 @@
-// src/screens/camera/ImageDetailsScreen.refactored.tsx
-import { router, useLocalSearchParams } from 'expo-router';
+// src/screens/camera/ImageDetailsScreen.tsx
 import React, { useCallback, useMemo, useRef } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
-
+import { Animated, ScrollView, StyleSheet, View } from 'react-native';
 import { ActionButton, ScreenHeader } from '../../components/camera/CameraUIComponents';
 import {
   ClassificationDisplay,
@@ -12,126 +11,93 @@ import {
 } from '../../components/camera/ImageDetailComponents';
 import { ErrorDisplay } from '../../components/ocr/ErrorDisplay';
 import { OCRProgress } from '../../components/ocr/OCRProgress';
+import { CameraNavigationGuard } from '../../components/camera/workflow/CameraNavigationGuard';
 import { useOCR } from '../../context/OCRContext';
+import { useCameraFlow } from '../../store/cameraFlowStore';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import { OCRSelectors, OCRState, OCRStateGuards } from '../../state/ocr/types';
+import { OCRSelectors, OCRStateGuards } from '../../state/ocr/types';
 import { horizontalScale, moderateScale, verticalScale } from '../../theme';
+import { RouteTypeGuards } from '../../types/camera_navigation';
 import type { Receipt } from '../../types/ReceiptInterfaces';
 
-// Separate component for results view
-function ResultsView({
-  state,
-  imageUri,
-  onContinue,
-  onRetake,
-  formatCurrency,
-  getConfidenceColor,
-  safeGetProperty,
-  fadeAnim,
-  slideAnim,
-}: {
-  state: OCRState;
-  imageUri: string;
-  onContinue: () => void;
-  onRetake: () => void;
-  formatCurrency: (amount?: string) => string;
-  getConfidenceColor: (confidence: number) => string;
-  safeGetProperty: <T>(obj: any, property: string, defaultValue: T) => T;
-  fadeAnim: Animated.Value;
-  slideAnim: Animated.Value;
-}) {
-  const { t } = useTranslation();
-
-  if (state.status !== 'reviewing' || !state.data) {
-    return null;
-  }
-
-  const { extractedText, classification } = state.data;
-
-  return (
-    <>
-      <RecognizedTextDisplay text={extractedText} fadeAnim={fadeAnim} slideAnim={slideAnim} />
-
-      <ClassificationDisplay
-        data={classification}
-        formatCurrency={formatCurrency}
-        getConfidenceColor={getConfidenceColor}
-        safeGetProperty={safeGetProperty}
-      />
-
-      <View style={styles.buttonContainer}>
-        <ActionButton
-          title={t('continue', 'Continue')}
-          icon="arrow-forward"
-          onPress={onContinue}
-          backgroundColor="#4CAF50"
-          style={styles.button}
-        />
-
-        <ActionButton
-          title={t('retake', 'Retake Photo')}
-          icon="camera-alt"
-          onPress={onRetake}
-          backgroundColor="#757575"
-          style={styles.button}
-        />
-      </View>
-    </>
-  );
-}
-
 export default function ImageDetailsScreen() {
-  const { uri } = useLocalSearchParams();
-  const { state, dispatch } = useOCR();
+  const router = useRouter();
+  const params = useLocalSearchParams();
   const { t } = useTranslation();
-  const {
-    backgroundColor,
-    textColor,
-    secondaryTextColor,
-    primaryColor,
-    errorColor,
-    successColor,
-    getButtonBackground,
-  } = useAppTheme();
-
+  const { backgroundColor } = useAppTheme();
+  
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // ✅ Derive all state from the state machine
-  const currentState = state.state;
-  const context = state.context;
-  const progress = useMemo(() => OCRSelectors.getProgress(state), [state]);
-  const isProcessing = useMemo(() => OCRStateGuards.isProcessing(currentState), [currentState]);
-  const canRetry = useMemo(() => OCRSelectors.canRetry(state), [state]);
-  const isError = currentState.status === 'error';
+  // Get flow data
+  const { activeFlow, updateFlow } = useCameraFlow();
+  const { state: ocrState, dispatch } = useOCR();
+
+  // Determine image URI and flow validation
+  const { imageUri, flowId, isValidNavigation } = useMemo(() => {
+    // Check if we have a flow ID (new navigation)
+    if (RouteTypeGuards.hasFlowId(params) && activeFlow?.id === params.flowId) {
+      return {
+        imageUri: activeFlow.imageUri,
+        flowId: activeFlow.id,
+        isValidNavigation: true,
+      };
+    }
+
+    // Check for legacy URI parameter
+    if (RouteTypeGuards.hasImageUri(params)) {
+      return {
+        imageUri: params.uri,
+        flowId: null,
+        isValidNavigation: true,
+      };
+    }
+
+    // Check if we have an active flow without params (direct navigation)
+    if (activeFlow?.imageUri) {
+      return {
+        imageUri: activeFlow.imageUri,
+        flowId: activeFlow.id,
+        isValidNavigation: true,
+      };
+    }
+
+    return {
+      imageUri: null,
+      flowId: null,
+      isValidNavigation: false,
+    };
+  }, [params, activeFlow]);
+
+  // OCR state selectors
+  const currentState = ocrState.state;
+  const isProcessing = OCRStateGuards.isProcessing(currentState);
+  const isError = OCRStateGuards.isError(currentState);
   const isReviewing = currentState.status === 'reviewing';
-  const needsImageCapture = currentState.status === 'idle' && uri;
+  const canRetry = isError && currentState.canRetry;
+  const needsImageCapture = currentState.status === 'idle' && imageUri;
 
-  // ✅ Memoized helper functions
-  const formatCurrency = useCallback((amount?: string): string => {
+  // Helper functions
+  const formatCurrency = useCallback((amount?: string) => {
     if (!amount) return '$0.00';
-    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(numAmount || 0);
+    const cleanAmount = amount.replace(/[^\d.-]/g, '');
+    const num = parseFloat(cleanAmount);
+    return isNaN(num) ? amount : `$${num.toFixed(2)}`;
   }, []);
 
-  const getConfidenceColor = useCallback(
-    (confidence: number): string => {
-      if (confidence >= 0.8) return successColor;
-      if (confidence >= 0.6) return '#FF9800';
-      return errorColor;
-    },
-    [successColor, errorColor]
-  );
-
-  const safeGetProperty = useCallback(<T,>(obj: any, property: string, defaultValue: T): T => {
-    return obj && obj[property] !== undefined ? obj[property] : defaultValue;
+  const getConfidenceColor = useCallback((confidence?: number) => {
+    if (!confidence) return '#999999';
+    if (confidence >= 0.8) return '#4CAF50';
+    if (confidence >= 0.6) return '#FF9800';
+    return '#F44336';
   }, []);
 
-  // ✅ Start animations when entering review state
+  const safeGetProperty = useCallback((obj: any, property: string, defaultValue: any = 'N/A') => {
+    return obj && obj[property] ? obj[property] : defaultValue;
+  }, []);
+
+  // Start animations when entering review state
   const startAnimations = useCallback(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -147,19 +113,20 @@ export default function ImageDetailsScreen() {
     ]).start();
   }, [fadeAnim, slideAnim]);
 
-  // ✅ Handle initial image capture (no useEffect!)
+  // Handle initial image capture
   const handleImageCapture = useCallback(() => {
-    if (uri && currentState.status === 'idle') {
-      // Start the OCR process
+    if (imageUri && currentState.status === 'idle') {
       dispatch({ type: 'START_CAPTURE', source: 'gallery' });
-      dispatch({ type: 'IMAGE_CAPTURED', uri: uri as string });
-
-      // The OCRContext will handle the actual processing
-      // through side effects managed in the context
+      dispatch({ type: 'IMAGE_CAPTURED', uri: imageUri });
+      
+      // Update flow step
+      if (activeFlow) {
+        updateFlow({ currentStep: 'processing' });
+      }
     }
-  }, [uri, currentState.status, dispatch]);
+  }, [imageUri, currentState.status, dispatch, activeFlow, updateFlow]);
 
-  // ✅ Action handlers
+  // Action handlers
   const handleContinue = useCallback(() => {
     if (currentState.status !== 'reviewing' || !currentState.data) {
       return;
@@ -179,14 +146,29 @@ export default function ImageDetailsScreen() {
       timestamp: new Date().toISOString(),
     };
 
-    router.push({
-      pathname: '/camera/verification',
-      params: {
-        receipt: JSON.stringify(receiptData),
-        imageUri: currentState.data.imageUri,
-      },
-    });
-  }, [currentState]);
+    // Update flow with OCR result and receipt draft
+    if (activeFlow) {
+      updateFlow({ 
+        currentStep: 'verification',
+        ocrResult: currentState.data,
+        receiptDraft: receiptData,
+      });
+      
+      router.push({
+        pathname: '/camera/verification',
+        params: { flowId: activeFlow.id },
+      });
+    } else {
+      // Fallback to legacy navigation
+      router.push({
+        pathname: '/camera/verification',
+        params: {
+          receipt: JSON.stringify(receiptData),
+          uri: currentState.data.imageUri,
+        },
+      });
+    }
+  }, [currentState, activeFlow, updateFlow, router]);
 
   const handleRetry = useCallback(() => {
     dispatch({ type: 'RETRY' });
@@ -195,27 +177,38 @@ export default function ImageDetailsScreen() {
   const handleCancel = useCallback(() => {
     dispatch({ type: 'CANCEL' });
     router.back();
-  }, [dispatch]);
+  }, [dispatch, router]);
 
   const handleRetake = useCallback(() => {
     dispatch({ type: 'RESET' });
+    
+    // Reset flow to capture step
+    if (activeFlow) {
+      updateFlow({ currentStep: 'capture' });
+    }
+    
     router.back();
-  }, [dispatch]);
+  }, [dispatch, activeFlow, updateFlow, router]);
 
-  // ✅ Trigger animations when entering review state
+  // Trigger animations when entering review state
   React.useEffect(() => {
     if (isReviewing) {
       startAnimations();
     }
   }, [isReviewing, startAnimations]);
 
-  // ✅ Component-based conditional rendering
+  // Component rendering logic
   const renderContent = () => {
+    // Invalid navigation - let guard handle it
+    if (!isValidNavigation || !imageUri) {
+      return null;
+    }
+
     // Handle initial capture
     if (needsImageCapture) {
       return (
         <View style={styles.centerContainer}>
-          <ImagePreview uri={uri as string} onScanPress={handleImageCapture} />
+          <ImagePreview uri={imageUri} onScanPress={handleImageCapture} />
         </View>
       );
     }
@@ -231,62 +224,82 @@ export default function ImageDetailsScreen() {
       );
     }
 
-    // Processing states - Use the OCRProgress component
+    // Processing state
     if (isProcessing) {
-      return <OCRProgress state={state} onCancel={handleCancel} />;
-    }
-
-    // Review state with results
-    if (isReviewing) {
+      const progress = OCRSelectors.getProgress(ocrState);
       return (
-        <ResultsView
-          state={currentState}
-          imageUri={uri as string}
-          onContinue={handleContinue}
-          onRetake={handleRetake}
-          formatCurrency={formatCurrency}
-          getConfidenceColor={getConfidenceColor}
-          safeGetProperty={safeGetProperty}
-          fadeAnim={fadeAnim}
-          slideAnim={slideAnim}
-        />
+      <OCRProgress
+        state={ocrState}
+        onCancel={handleCancel}
+      />      
       );
     }
 
-    // Idle or other states
+    // Review state
+    if (isReviewing && currentState.data) {
+      return (
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          <View style={styles.contentContainer}>
+            <RecognizedTextDisplay
+              text={currentState.data.extractedText}
+              fadeAnim={fadeAnim}
+              slideAnim={slideAnim}
+            />
+
+            <ClassificationDisplay
+              classification={currentState.data.classification}
+              fadeAnim={fadeAnim}
+              slideAnim={slideAnim}
+              formatCurrency={formatCurrency}
+              getConfidenceColor={getConfidenceColor}
+            />
+
+            <View style={styles.actionContainer}>
+              <ActionButton
+                title={t('retakePhoto', 'Retake Photo')}
+                icon="camera-alt"
+                onPress={handleRetake}
+                backgroundColor="transparent"
+                color="#666666"
+                style={styles.secondaryButton}
+              />
+
+              <ActionButton
+                title={t('continueToVerification', 'Continue to Verification')}
+                icon="arrow-forward"
+                onPress={handleContinue}
+                style={styles.primaryButton}
+              />
+            </View>
+          </View>
+        </ScrollView>
+      );
+    }
+
+    // Default loading state
     return (
       <View style={styles.centerContainer}>
-        <Text style={[styles.statusText, { color: secondaryTextColor }]}>
-          {t('readyToScan', 'Ready to scan')}
-        </Text>
+        <OCRProgress
+          state={ocrState}
+          onCancel={handleCancel}
+        />
       </View>
     );
   };
 
+  // Determine the current step for navigation guard
+  const currentStep = isProcessing ? 'processing' : 'review';
+
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <ScreenHeader title={t('receiptScanner', 'Receipt Scanner')} onBack={handleCancel} />
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.contentContainer}>{renderContent()}</View>
-      </ScrollView>
-
-      {/* Debug info in development */}
-      {__DEV__ && (
-        <View style={[styles.debugContainer, { backgroundColor: 'rgba(0,0,0,0.8)' }]}>
-          <Text style={styles.debugText}>
-            Status: {currentState.status} | Progress: {Math.round(progress * 100)}%
-          </Text>
-          {context.correlationId && (
-            <Text style={styles.debugText}>Correlation: {context.correlationId.slice(-8)}</Text>
-          )}
-        </View>
-      )}
-    </View>
+    <CameraNavigationGuard targetStep={currentStep}>
+      <View style={[styles.container, { backgroundColor }]}>
+        <ScreenHeader
+          title={isProcessing ? t('processingImage', 'Processing Image') : t('reviewResults', 'Review Results')}
+          onBack={() => router.back()}
+        />
+        {renderContent()}
+      </View>
+    </CameraNavigationGuard>
   );
 }
 
@@ -294,45 +307,31 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  contentContainer: {
-    flex: 1,
-    padding: horizontalScale(16),
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: verticalScale(32),
+    paddingHorizontal: horizontalScale(20),
   },
-  buttonContainer: {
-    gap: verticalScale(12),
-    marginTop: verticalScale(24),
-    marginBottom: verticalScale(32),
+  scrollView: {
+    flex: 1,
   },
-  button: {
-    borderWidth: 0,
+  contentContainer: {
+    paddingHorizontal: horizontalScale(16),
+    paddingBottom: verticalScale(100),
+    gap: verticalScale(20),
   },
-  statusText: {
-    fontSize: moderateScale(16),
-    marginTop: verticalScale(16),
-    textAlign: 'center',
+  actionContainer: {
+    flexDirection: 'row',
+    gap: horizontalScale(12),
+    marginTop: verticalScale(20),
   },
-  debugContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: horizontalScale(8),
+  primaryButton: {
+    flex: 2,
   },
-  debugText: {
-    color: 'white',
-    fontSize: moderateScale(10),
-    fontFamily: 'monospace',
+  secondaryButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#666666',
   },
 });
