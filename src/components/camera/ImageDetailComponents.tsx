@@ -3,7 +3,6 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { AIClassifiedReceipt } from '@/src/types/ReceiptInterfaces';
 import { MaterialIcons } from '@expo/vector-icons';
-import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Animated,
@@ -14,7 +13,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { SectionContainer } from './CameraUIComponents';
 
 // Receipt Image Preview
 export const ImagePreview = ({ uri, onScanPress }: { uri: string; onScanPress: () => void }) => {
@@ -95,11 +93,31 @@ export const ClassificationDisplay = ({
 
   const fields = [
     { key: 'date', label: t('date', 'Date'), value: classification.date, icon: 'event' },
-    { key: 'amount', label: t('amount', 'Amount'), value: formatCurrency(classification.amount), icon: 'attach-money' },
+    {
+      key: 'amount',
+      label: t('amount', 'Amount'),
+      value: formatCurrency(classification.amount),
+      icon: 'attach-money',
+    },
     { key: 'type', label: t('type', 'Type'), value: classification.type, icon: 'category' },
-    { key: 'vehicle', label: t('vehicle', 'Vehicle'), value: classification.vehicle, icon: 'directions-car' },
-    { key: 'vendorName', label: t('vendor', 'Vendor'), value: classification.vendorName, icon: 'store' },
-    { key: 'location', label: t('location', 'Location'), value: classification.location, icon: 'location-on' },
+    {
+      key: 'vehicle',
+      label: t('vehicle', 'Vehicle'),
+      value: classification.vehicle,
+      icon: 'directions-car',
+    },
+    {
+      key: 'vendorName',
+      label: t('vendor', 'Vendor'),
+      value: classification.vendorName,
+      icon: 'store',
+    },
+    {
+      key: 'location',
+      label: t('location', 'Location'),
+      value: classification.location,
+      icon: 'location-on',
+    },
   ];
 
   return (
@@ -121,7 +139,7 @@ export const ClassificationDisplay = ({
       </View>
 
       <View style={styles.fieldsContainer}>
-        {fields.map((field) => (
+        {fields.map(field => (
           <View key={field.key} style={styles.fieldRow}>
             <View style={styles.fieldIcon}>
               <MaterialIcons name={field.icon as any} size={16} color={primaryColor} />

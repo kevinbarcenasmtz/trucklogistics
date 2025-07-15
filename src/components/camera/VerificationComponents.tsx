@@ -107,7 +107,13 @@ export const EditField = ({
 };
 
 // Form Container Component
-export const FormContainer = ({ title, children }: { title: string; children: React.ReactNode }) => {
+export const FormContainer = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => {
   const { getSurfaceColor, textColor, borderColor } = useAppTheme();
 
   return (
@@ -186,7 +192,10 @@ export const ImagePreviewModal = ({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.modalContainer}>
-        <TouchableOpacity style={[styles.closeButton, { backgroundColor: primaryColor }]} onPress={onClose}>
+        <TouchableOpacity
+          style={[styles.closeButton, { backgroundColor: primaryColor }]}
+          onPress={onClose}
+        >
           <MaterialIcons name="close" size={24} color="#FFFFFF" />
         </TouchableOpacity>
         <Image source={{ uri: imageUri }} style={styles.fullScreenImage} resizeMode="contain" />

@@ -451,10 +451,26 @@ export function ocrReducer(current: OCRStateWithContext, action: OCRAction): OCR
     case 'RESET': {
       // clean up and reset to initial state
       current.context.abortController?.abort();
-
-      return initialState;
+      return {
+        state: { status: 'idle' },
+        context: initialContext,
+      };
     }
+    case 'RESET_TO_CAPTURING': {
+      // Force reset to capturing state - useful for recovery
+      current.context.abortController?.abort();
 
+      return updateState(
+        { status: 'capturing', source: action.source },
+        {
+          correlationId: generateCorrelationId(),
+          startTime: Date.now(),
+          retryCount: 0,
+          abortController: new AbortController(),
+          metrics: {},
+        }
+      );
+    }
     case 'UPDATE_METRICS': {
       return updateMetrics(action.metrics);
     }

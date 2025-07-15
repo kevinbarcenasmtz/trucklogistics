@@ -1,13 +1,13 @@
 // src/components/camera/workflow/CameraErrorBoundary.tsx
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
-import { useCameraFlow } from '../../../store/cameraFlowStore';
-import { FlowError, CameraFlowStep } from '../../../types/cameraFlow';
+import { router } from 'expo-router';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '../../../hooks/useAppTheme';
+import { useCameraFlow } from '../../../store/cameraFlowStore';
 import { horizontalScale, moderateScale, verticalScale } from '../../../theme';
+import { CameraFlowStep, FlowError } from '../../../types/cameraFlow';
 
 interface Props {
   children: ReactNode;
@@ -50,7 +50,7 @@ export class CameraErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
-    
+
     // Log error for debugging
     console.error('Camera workflow error:', error);
     console.error('Error info:', errorInfo);
@@ -84,7 +84,7 @@ export class CameraErrorBoundary extends Component<Props, State> {
           retryCount: this.retryCount,
         },
       };
-  
+
       // Use global reference to addError function
       const addErrorFn = (global as any).cameraFlowAddError;
       if (addErrorFn) {
@@ -97,7 +97,7 @@ export class CameraErrorBoundary extends Component<Props, State> {
 
   private handleRetry = () => {
     this.retryCount++;
-    
+
     if (this.retryCount >= this.maxRetries) {
       Alert.alert(
         'Maximum Retries Exceeded',
@@ -130,7 +130,7 @@ export class CameraErrorBoundary extends Component<Props, State> {
   private handleRestart = () => {
     // Reset retry count
     this.retryCount = 0;
-    
+
     // Clear error state
     this.setState({
       hasError: false,
@@ -141,7 +141,7 @@ export class CameraErrorBoundary extends Component<Props, State> {
 
     // Navigate to camera start or fallback step using proper routes
     const targetStep = this.props.fallbackStep || 'capture';
-    
+
     switch (targetStep) {
       case 'capture':
         router.replace('/camera');
@@ -226,12 +226,19 @@ function CameraErrorFallback({
   onRestart,
   onGoHome,
 }: ErrorFallbackProps) {
-  const { backgroundColor, textColor, secondaryTextColor, primaryColor, errorColor, getSurfaceColor } = useAppTheme();
+  const {
+    backgroundColor,
+    textColor,
+    secondaryTextColor,
+    primaryColor,
+    errorColor,
+    getSurfaceColor,
+  } = useAppTheme();
 
   const canRetry = retryCount < maxRetries;
   const errorMessage = error?.message || 'An unexpected error occurred';
-  const isNetworkError = errorMessage.toLowerCase().includes('network') || 
-                        errorMessage.toLowerCase().includes('fetch');
+  const isNetworkError =
+    errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('fetch');
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -242,16 +249,13 @@ function CameraErrorFallback({
         </View>
 
         {/* Error Title */}
-        <Text style={[styles.title, { color: textColor }]}>
-          Oops! Something went wrong
-        </Text>
+        <Text style={[styles.title, { color: textColor }]}>Oops! Something went wrong</Text>
 
         {/* Error Description */}
         <Text style={[styles.description, { color: secondaryTextColor }]}>
-          {isNetworkError 
+          {isNetworkError
             ? 'There seems to be a network issue. Please check your connection and try again.'
-            : 'The camera workflow encountered an unexpected error. You can try again or restart the session.'
-          }
+            : 'The camera workflow encountered an unexpected error. You can try again or restart the session.'}
         </Text>
 
         {/* Error Details (Collapsible) */}
@@ -280,9 +284,7 @@ function CameraErrorFallback({
               onPress={onRetry}
             >
               <MaterialIcons name="refresh" size={20} color="#FFFFFF" />
-              <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
-                Try Again
-              </Text>
+              <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>Try Again</Text>
             </TouchableOpacity>
           )}
 
@@ -291,19 +293,12 @@ function CameraErrorFallback({
             onPress={onRestart}
           >
             <MaterialIcons name="restart-alt" size={20} color={primaryColor} />
-            <Text style={[styles.buttonText, { color: primaryColor }]}>
-              Restart Camera
-            </Text>
+            <Text style={[styles.buttonText, { color: primaryColor }]}>Restart Camera</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.tertiaryButton]}
-            onPress={onGoHome}
-          >
+          <TouchableOpacity style={[styles.button, styles.tertiaryButton]} onPress={onGoHome}>
             <MaterialIcons name="home" size={20} color={secondaryTextColor} />
-            <Text style={[styles.buttonText, { color: secondaryTextColor }]}>
-              Go Home
-            </Text>
+            <Text style={[styles.buttonText, { color: secondaryTextColor }]}>Go Home</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -316,20 +311,20 @@ function CameraErrorFallback({
  * This should be used in a component that can access hooks
  */
 export function useCameraErrorHandler() {
-    const { addError } = useCameraFlow();
-  
-    // Return the addError function so the error boundary can use it directly
-    React.useEffect(() => {
-      // Store the addError function globally for the error boundary to access
-      (global as any).cameraFlowAddError = addError;
-      
-      return () => {
-        delete (global as any).cameraFlowAddError;
-      };
-    }, [addError]);
-  
-    return { addError };
-  }
+  const { addError } = useCameraFlow();
+
+  // Return the addError function so the error boundary can use it directly
+  React.useEffect(() => {
+    // Store the addError function globally for the error boundary to access
+    (global as any).cameraFlowAddError = addError;
+
+    return () => {
+      delete (global as any).cameraFlowAddError;
+    };
+  }, [addError]);
+
+  return { addError };
+}
 
 const styles = StyleSheet.create({
   container: {

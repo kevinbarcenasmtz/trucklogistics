@@ -51,19 +51,19 @@ export interface CameraFlow {
   readonly currentStep: CameraFlowStep;
   readonly timestamp: number;
   readonly isComplete: boolean;
-  
+
   // Flow data
   readonly ocrResult?: ProcessedReceipt;
   readonly receiptDraft?: Receipt;
-  
+
   // Navigation tracking
   stepHistory: CameraFlowStep[];
   readonly transitions: FlowTransition[];
-  
+
   // Error handling
   readonly lastError?: FlowError;
   readonly errorHistory: FlowError[];
-  
+
   // Analytics
   metrics: FlowMetrics;
 }
@@ -88,27 +88,27 @@ export const FlowTypeGuards = {
   hasImageUri: (flow: CameraFlow): flow is CameraFlow & { imageUri: string } => {
     return !!flow.imageUri && flow.imageUri.length > 0;
   },
-  
+
   hasOCRResult: (flow: CameraFlow): flow is CameraFlow & { ocrResult: ProcessedReceipt } => {
     return !!flow.ocrResult;
   },
-  
+
   hasReceiptDraft: (flow: CameraFlow): flow is CameraFlow & { receiptDraft: Receipt } => {
     return !!flow.receiptDraft;
   },
-  
+
   isStep: (flow: CameraFlow, step: CameraFlowStep): boolean => {
     return flow.currentStep === step;
   },
-  
+
   hasVisitedStep: (flow: CameraFlow, step: CameraFlowStep): boolean => {
     return flow.stepHistory.includes(step);
   },
-  
+
   hasErrors: (flow: CameraFlow): boolean => {
     return flow.errorHistory.length > 0 || !!flow.lastError;
   },
-  
+
   canRetry: (flow: CameraFlow): boolean => {
     return !!flow.lastError?.retryable;
   },
@@ -119,17 +119,20 @@ export const FlowTypeGuards = {
  */
 export const FLOW_STEP_ORDER: CameraFlowStep[] = [
   'capture',
-  'processing', 
+  'processing',
   'review',
   'verification',
-  'report'
+  'report',
 ];
 
-export const STEP_RELATIONSHIPS: Record<CameraFlowStep, {
-  previous?: CameraFlowStep;
-  next?: CameraFlowStep;
-  canSkipTo?: CameraFlowStep[];
-}> = {
+export const STEP_RELATIONSHIPS: Record<
+  CameraFlowStep,
+  {
+    previous?: CameraFlowStep;
+    next?: CameraFlowStep;
+    canSkipTo?: CameraFlowStep[];
+  }
+> = {
   capture: {
     next: 'processing',
   },

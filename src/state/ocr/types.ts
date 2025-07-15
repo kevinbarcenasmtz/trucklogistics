@@ -115,6 +115,7 @@ export type OCRAction =
   | { type: 'RETRY' }
   | { type: 'CANCEL' }
   | { type: 'RESET' }
+  | { type: 'RESET_TO_CAPTURING'; source: 'camera' | 'gallery' }
   | { type: 'UPDATE_METRICS'; metrics: Partial<ProcessingMetrics> };
 
 /**
@@ -315,6 +316,12 @@ export const OCRActions = {
     type: 'UPDATE_METRICS',
     metrics,
   }),
+
+  resetToCapturing: (source: 'camera' | 'gallery'): OCRAction => ({
+    type: 'RESET_TO_CAPTURING',
+    source,
+  }),
+
 };
 
 /**

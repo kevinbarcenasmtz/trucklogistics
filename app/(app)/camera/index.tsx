@@ -1,82 +1,188 @@
 // app/(app)/camera/index.tsx
-import React, { useEffect, useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import { ActionButton } from '@/src/components/camera/CameraUIComponents';
 import { CameraNavigationGuard } from '@/src/components/camera/workflow/CameraNavigationGuard';
-import { useCameraFlow } from '../../../src/store/cameraFlowStore';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { RouteTypeGuards } from '@/src/types/camera_navigation';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useOCR } from '../../../src/context/OCRContext';
+import { useCameraFlow } from '../../../src/store/cameraFlowStore';
 
 export default function CameraScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false); // Add this flag
+  const dialogShownRef = useRef<string | null>(null); // Track which flow already showed
   const router = useRouter();
   const params = useLocalSearchParams();
   const { t } = useTranslation();
-  
-  const { 
-    backgroundColor, 
-    textColor, 
-    primaryColor,
-    surfaceColor,
-    secondaryTextColor,
-  } = useAppTheme();
 
-  const { 
-    activeFlow, 
-    startFlow, 
-    updateFlow, 
-    hasActiveFlow,
-    cancelFlow
-  } = useCameraFlow();
+  const { backgroundColor, textColor, primaryColor, surfaceColor, secondaryTextColor } =
+    useAppTheme();
 
+  const { activeFlow, startFlow, updateFlow, hasActiveFlow, cancelFlow, cleanupOldFlows } =
+    useCameraFlow();
+
+  // Add OCR context to reset state when needed
+  const { dispatch: dispatchOCR } = useOCR();
   // Camera permissions
   const [cameraPermissionStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
 
-  // Handle flow initialization
+  // Cleanup effect - runs once on mount
   useEffect(() => {
-    // Check if resuming existing flow
-    if (RouteTypeGuards.hasFlowId(params) && activeFlow?.id === params.flowId) {
-      // Resuming existing flow
-      if (activeFlow.imageUri) {
-        setSelectedImage(activeFlow.imageUri);
-      }
-      return;
-    }
+    cleanupOldFlows();
+  }, []); // Empty dependency array
 
-    // Check for orphaned active flow
-    if (hasActiveFlow && activeFlow && !params.flowId) {
-      // Show continue/restart dialog
-      Alert.alert(
-        t('camera.existingFlow', 'Continue Previous Session?'),
-        t('camera.existingFlowMessage', 'You have an incomplete session. Continue or start fresh?'),
-        [
-          {
-            text: t('common.startFresh', 'Start Fresh'),
-            style: 'destructive',
-            onPress: () => {
-              cancelFlow();
-              setSelectedImage(null);
-            }
-          },
-          {
-            text: t('common.continue', 'Continue'),
-            onPress: () => {
-              if (activeFlow.imageUri) {
-                setSelectedImage(activeFlow.imageUri);
+  // Reset processing flag when component unmounts
+  useEffect(() => {
+    return () => {
+      setIsProcessingImage(false);
+      dialogShownRef.current = null;
+    };
+  }, []);
+  // Flow management effect - with debugging
+  // Focus effect with debouncing and duplicate prevention
+  useFocusEffect(
+    useCallback(() => {
+      // Add a small delay to let any ongoing navigation complete
+      const timer = setTimeout(() => {
+        console.log('🔍 CAMERA SCREEN: Screen focused (after delay)');
+        console.log('📋 Params:', JSON.stringify(params, null, 2));
+        console.log(
+          '🏃 Active Flow:',
+          activeFlow
+            ? {
+                id: activeFlow.id,
+                currentStep: activeFlow.currentStep,
+                imageUri: !!activeFlow.imageUri,
+                stepHistory: activeFlow.stepHistory,
+                timestamp: new Date(activeFlow.timestamp).toISOString(),
               }
-            }
+            : null
+        );
+        console.log('🎯 Has Active Flow:', hasActiveFlow);
+        console.log('🔄 Is Processing Image:', isProcessingImage);
+
+        // Don't show dialog if we're processing an image
+        if (isProcessingImage) {
+          console.log('🚫 Skipping dialog - currently processing image');
+          return;
+        }
+
+        // Check if resuming existing flow
+        if (RouteTypeGuards.hasFlowId(params) && activeFlow?.id === params.flowId) {
+          console.log('✅ RESUMING existing flow - matching flowId');
+          if (activeFlow.imageUri) {
+            setSelectedImage(activeFlow.imageUri);
           }
-        ]
-      );
+          return;
+        }
+
+        // Check for orphaned active flow with meaningful progress
+        if (hasActiveFlow && activeFlow && !params.flowId) {
+          // Prevent showing dialog for same flow twice
+          if (dialogShownRef.current === activeFlow.id) {
+            console.log('🚫 Dialog already shown for this flow');
+            return;
+          }
+
+          console.log('⚠️  ORPHANED FLOW DETECTED');
+
+          const hasProgress =
+            activeFlow.imageUri ||
+            activeFlow.ocrResult ||
+            activeFlow.currentStep !== 'capture' ||
+            activeFlow.stepHistory.length > 1;
+
+          console.log('📊 Progress Check:', {
+            hasImageUri: !!activeFlow.imageUri,
+            hasOcrResult: !!activeFlow.ocrResult,
+            currentStep: activeFlow.currentStep,
+            stepHistoryLength: activeFlow.stepHistory.length,
+            hasProgress,
+            dialogShownFor: dialogShownRef.current,
+          });
+
+          if (hasProgress) {
+            console.log('🚨 SHOWING continuation dialog - flow has progress');
+            dialogShownRef.current = activeFlow.id; // Mark dialog as shown
+
+            Alert.alert(
+              t('camera.existingFlow', 'Continue Previous Session?'),
+              t(
+                'camera.existingFlowMessage',
+                'You have an incomplete session. Continue or start fresh?'
+              ),
+              [
+                {
+                  text: t('common.startFresh', 'Start Fresh'),
+                  style: 'destructive',
+                  onPress: () => {
+                    console.log('🔄 USER CHOSE: Start Fresh');
+                    cancelFlow();
+                    resetOCRState();
+                    setSelectedImage(null);
+                    dialogShownRef.current = null; // Reset dialog tracking
+                  },
+                },
+                {
+                  text: t('common.continue', 'Continue'),
+                  onPress: () => {
+                    console.log('🔄 USER CHOSE: Continue');
+                    if (activeFlow.imageUri) {
+                      setSelectedImage(activeFlow.imageUri);
+                      const targetRoute = getRouteForStep(activeFlow.currentStep);
+                      console.log('🧭 Navigating to:', targetRoute);
+                      router.push({
+                        pathname: targetRoute,
+                        params: { flowId: activeFlow.id },
+                      });
+                    }
+                  },
+                },
+              ]
+            );
+          } else {
+            console.log('🧹 AUTO-CANCELLING flow without progress');
+            cancelFlow();
+            resetOCRState();
+            dialogShownRef.current = null; // Reset dialog tracking
+          }
+        } else {
+          console.log('✅ NORMAL LOAD - no active flow or valid params');
+        }
+      }, 100); // 100ms delay
+
+      return () => clearTimeout(timer);
+    }, [params.flowId, activeFlow?.id, hasActiveFlow, isProcessingImage])
+  );
+
+  // Helper function to reset OCR state
+  const resetOCRState = () => {
+    dispatchOCR({ type: 'RESET' });
+  };
+
+  // Helper function to get route for flow step
+  const getRouteForStep = (step: string) => {
+    switch (step) {
+      case 'processing':
+      case 'review':
+        return '/camera/imagedetails';
+      case 'verification':
+        return '/camera/verification';
+      case 'report':
+        return '/camera/report';
+      default:
+        return '/camera';
     }
-  }, [params, activeFlow, hasActiveFlow, cancelFlow, t]);
+  };
 
   const handleImageCapture = async () => {
     try {
@@ -94,7 +200,7 @@ export default function CameraScreen() {
 
       // Launch camera
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: false,
         quality: 0.9,
         base64: false,
@@ -105,17 +211,14 @@ export default function CameraScreen() {
       }
     } catch (error) {
       console.error('Camera error:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('camera.captureError', 'Failed to capture image')
-      );
+      Alert.alert(t('error', 'Error'), t('camera.captureError', 'Failed to capture image'));
     }
   };
 
   const handleImageSelection = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: false,
         quality: 0.9,
         base64: false,
@@ -126,50 +229,89 @@ export default function CameraScreen() {
       }
     } catch (error) {
       console.error('Gallery error:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('camera.selectionError', 'Failed to select image')
-      );
+      Alert.alert(t('error', 'Error'), t('camera.selectionError', 'Failed to select image'));
     }
   };
 
   const processImage = async (uri: string) => {
     try {
+      console.log('🚀 PROCESS IMAGE: Starting');
+      setIsProcessingImage(true); // Set flag to prevent dialog
+
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       setSelectedImage(uri);
+
+      // Reset OCR state to ensure clean start
+      resetOCRState();
+
+      // Initialize OCR state machine for capturing
+      dispatchOCR({
+        type: 'START_CAPTURE',
+        source: 'camera',
+      });
 
       // Start or update flow
       if (!activeFlow) {
         const flow = await startFlow(uri);
-        router.push({
+
+        console.log('🚀 NAVIGATION: Creating flow and navigating to:', {
+          flowId: flow.id,
+          targetPath: '/camera/imagedetails',
+        });
+
+        // Dispatch image captured to OCR state machine
+        dispatchOCR({
+          type: 'IMAGE_CAPTURED',
+          uri: uri,
+        });
+
+        // Mark that we've handled this flow to prevent dialog
+        dialogShownRef.current = flow.id;
+
+        // Use replace instead of push to avoid keeping camera screen in stack
+        router.replace({
           pathname: '/camera/imagedetails',
-          params: { flowId: flow.id }
+          params: { flowId: flow.id },
         });
       } else {
-        await updateFlow({ 
+        await updateFlow({
           imageUri: uri,
-          currentStep: 'processing' 
+          currentStep: 'processing',
         });
-        router.push({
+
+        console.log('🚀 NAVIGATION: Updating existing flow and navigating:', {
+          flowId: activeFlow.id,
+          targetPath: '/camera/imagedetails',
+        });
+
+        // Dispatch image captured to OCR state machine
+        dispatchOCR({
+          type: 'IMAGE_CAPTURED',
+          uri: uri,
+        });
+
+        // Mark that we've handled this flow to prevent dialog
+        dialogShownRef.current = activeFlow.id;
+
+        // Use replace instead of push
+        router.replace({
           pathname: '/camera/imagedetails',
-          params: { flowId: activeFlow.id }
+          params: { flowId: activeFlow.id },
         });
       }
     } catch (error) {
       console.error('Process image error:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('camera.processError', 'Failed to process image')
-      );
+      setIsProcessingImage(false); // Reset flag on error
+      Alert.alert(t('error', 'Error'), t('camera.processError', 'Failed to process image'));
     }
   };
 
   const handleRetake = () => {
     setSelectedImage(null);
     if (activeFlow) {
-      updateFlow({ 
+      updateFlow({
         imageUri: undefined,
-        currentStep: 'capture' 
+        currentStep: 'capture',
       });
     }
   };
@@ -215,7 +357,7 @@ export default function CameraScreen() {
             onPress={handleImageCapture}
             style={styles.mainButton}
           />
-          
+
           <TouchableOpacity
             style={[styles.secondaryButton, { backgroundColor: surfaceColor }]}
             onPress={handleImageSelection}
@@ -232,7 +374,7 @@ export default function CameraScreen() {
 
   return (
     <CameraNavigationGuard targetStep="capture">
-      <View style={[styles.container, { backgroundColor }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor }]} edges={['top', 'bottom']}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
             <MaterialIcons name="close" size={24} color={textColor} />
@@ -242,9 +384,9 @@ export default function CameraScreen() {
           </Text>
           <View style={{ width: 40 }} />
         </View>
-        
+
         {renderContent()}
-      </View>
+      </SafeAreaView>
     </CameraNavigationGuard>
   );
 }

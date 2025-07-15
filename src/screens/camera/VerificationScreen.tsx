@@ -1,5 +1,8 @@
 // src/screens/camera/VerificationScreen.tsx
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Alert,
   Animated,
@@ -8,9 +11,6 @@ import {
   ScrollView,
   StyleSheet,
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import * as Haptics from 'expo-haptics';
 
 import { ScreenHeader } from '@/src/components/camera/CameraUIComponents';
 import {
@@ -25,12 +25,12 @@ import {
   getFieldPlaceholder,
 } from '@/src/components/camera/VerificationComponents';
 import { CameraNavigationGuard } from '@/src/components/camera/workflow/CameraNavigationGuard';
-import { useCameraFlow } from '../../store/cameraFlowStore';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { DocumentStorage } from '@/src/services/DocumentStorage';
 import { horizontalScale, verticalScale } from '@/src/theme';
 import { Receipt } from '@/src/types/ReceiptInterfaces';
 import { RouteTypeGuards } from '@/src/types/camera_navigation';
+import { useCameraFlow } from '../../store/cameraFlowStore';
 
 export default function VerificationScreen() {
   const params = useLocalSearchParams();
@@ -132,7 +132,7 @@ export default function VerificationScreen() {
 
       // Update flow to completed state
       if (activeFlow && flowId) {
-        updateFlow({ 
+        updateFlow({
           currentStep: 'report',
           receiptDraft: finalReceipt,
         });
@@ -145,10 +145,7 @@ export default function VerificationScreen() {
       }
     } catch (error) {
       console.error('Failed to save receipt:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('saveError', 'Failed to save receipt. Please try again.')
-      );
+      Alert.alert(t('error', 'Error'), t('saveError', 'Failed to save receipt. Please try again.'));
     } finally {
       setIsSaving(false);
     }
@@ -160,7 +157,7 @@ export default function VerificationScreen() {
 
   return (
     <CameraNavigationGuard targetStep="verification">
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={[styles.container, { backgroundColor }]}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
@@ -169,100 +166,97 @@ export default function VerificationScreen() {
           onBack={() => router.back()}
         />
 
-        <ScrollView 
+        <ScrollView
           style={styles.content}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <Animated.View 
+          <Animated.View
             style={{
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
             }}
           >
-            <ReceiptImagePreview 
-              imageUri={imageUri} 
-              onPress={() => setIsModalVisible(true)} 
-            />
+            <ReceiptImagePreview imageUri={imageUri} onPress={() => setIsModalVisible(true)} />
 
-            <InfoCard/>
+            <InfoCard />
 
             <FormContainer title={t('verification.receiptDetails', 'Receipt Details')}>
               <EditField
-                field='type'
+                field="type"
                 icon={getFieldIcon('type')}
                 label={t('fields.type', 'Type')}
                 value={localReceiptData.type}
                 placeholder={getFieldPlaceholder('type')}
                 isActive={activeField === 'type'}
                 onActivate={() => setActiveField('type')}
-                onChange={(value) => updateField('type', value as Receipt['type'])}
+                onChange={value => updateField('type', value as Receipt['type'])}
               />
 
               <EditField
-                field='amount'
+                field="amount"
                 icon={getFieldIcon('amount')}
                 label={t('fields.amount', 'Amount')}
                 value={localReceiptData.amount}
                 placeholder={getFieldPlaceholder('amount')}
                 isActive={activeField === 'amount'}
                 onActivate={() => setActiveField('amount')}
-                onChange={(value) => updateField('amount', value)}
+                onChange={value => updateField('amount', value)}
                 keyboardType="decimal-pad"
               />
 
               <EditField
-                field='vendorName'
+                field="vendorName"
                 icon={getFieldIcon('vendorName')}
                 label={t('fields.vendor', 'Vendor')}
                 value={localReceiptData.vendorName || ''}
                 placeholder={getFieldPlaceholder('vendorName')}
                 isActive={activeField === 'vendorName'}
                 onActivate={() => setActiveField('vendorName')}
-                onChange={(value) => updateField('vendorName', value)}
+                onChange={value => updateField('vendorName', value)}
               />
 
               <EditField
-                field='vehicle'
+                field="vehicle"
                 icon={getFieldIcon('vehicle')}
                 label={t('fields.vehicle', 'Vehicle')}
                 value={localReceiptData.vehicle}
                 placeholder={getFieldPlaceholder('vehicle')}
                 isActive={activeField === 'vehicle'}
                 onActivate={() => setActiveField('vehicle')}
-                onChange={(value) => updateField('vehicle', value)}
+                onChange={value => updateField('vehicle', value)}
               />
 
               <EditField
-                field='location'
+                field="location"
                 icon={getFieldIcon('location')}
                 label={t('fields.location', 'Location')}
                 value={localReceiptData.location || ''}
                 placeholder={getFieldPlaceholder('location')}
                 isActive={activeField === 'location'}
                 onActivate={() => setActiveField('location')}
-                onChange={(value) => updateField('location', value)}
+                onChange={value => updateField('location', value)}
               />
 
               <EditField
-                field='date'
+                field="date"
                 icon={getFieldIcon('date')}
                 label={t('fields.date', 'Date')}
                 value={localReceiptData.date}
                 placeholder={getFieldPlaceholder('date')}
                 isActive={activeField === 'date'}
                 onActivate={() => setActiveField('date')}
-                onChange={(value) => updateField('date', value)}
+                onChange={value => updateField('date', value)}
               />
             </FormContainer>
 
-            <ViewRawTextButton 
+            <ViewRawTextButton
               onPress={() => {
                 Alert.alert(
                   t('verification.extractedText', 'Extracted Text'),
                   localReceiptData.extractedText
                 );
-              }} 
+              }}
             />
           </Animated.View>
         </ScrollView>

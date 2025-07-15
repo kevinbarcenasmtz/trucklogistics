@@ -79,13 +79,10 @@ export const RouteTypeGuards = {
     return typeof params?.flowId === 'string' && params.flowId.length > 0;
   },
 
-  isValidFlowRoute: (
-    routeName: keyof CameraStackParamList,
-    params: any
-  ): boolean => {
+  isValidFlowRoute: (routeName: keyof CameraStackParamList, params: any): boolean => {
     // Index route doesn't require flowId
     if (routeName === 'index') return true;
-    
+
     // All other routes require flowId
     return RouteTypeGuards.hasFlowId(params);
   },
@@ -120,15 +117,12 @@ export const NavigationUtils = {
   /**
    * Determine if a route transition is valid
    */
-  canTransitionTo: (
-    from: CameraFlowStep,
-    to: CameraFlowStep
-  ): boolean => {
+  canTransitionTo: (from: CameraFlowStep, to: CameraFlowStep): boolean => {
     const toConfig = CAMERA_ROUTE_CONFIGS[to];
-    
+
     // Capture can be accessed from anywhere
     if (to === 'capture') return true;
-    
+
     // Check if the transition is allowed
     return toConfig.allowedFromSteps.includes(from);
   },

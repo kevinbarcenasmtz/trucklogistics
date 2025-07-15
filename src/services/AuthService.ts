@@ -1,5 +1,5 @@
 // src/services/AuthService.ts
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 import { AuthFormData } from '../machines/authFormMachine';
 
 export interface ValidationResult {
@@ -37,11 +37,15 @@ export class AuthService {
     }
 
     if (!/[A-Z]/.test(password)) {
-      errors.push(t('PasswordUppercaseRequired', 'Password must contain at least one uppercase letter'));
+      errors.push(
+        t('PasswordUppercaseRequired', 'Password must contain at least one uppercase letter')
+      );
     }
 
     if (!/[a-z]/.test(password)) {
-      errors.push(t('PasswordLowercaseRequired', 'Password must contain at least one lowercase letter'));
+      errors.push(
+        t('PasswordLowercaseRequired', 'Password must contain at least one lowercase letter')
+      );
     }
 
     if (!/[0-9]/.test(password)) {
@@ -49,7 +53,9 @@ export class AuthService {
     }
 
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
-      errors.push(t('PasswordSpecialCharRequired', 'Password must contain at least one special character'));
+      errors.push(
+        t('PasswordSpecialCharRequired', 'Password must contain at least one special character')
+      );
     }
 
     if (/(.)\1{3,}/.test(password)) {
@@ -57,8 +63,14 @@ export class AuthService {
     }
 
     const commonPasswords = [
-      'password123', '123456789', 'qwerty123', 'admin123',
-      'welcome123', 'letmein123', 'password1', '123456abc',
+      'password123',
+      '123456789',
+      'qwerty123',
+      'admin123',
+      'welcome123',
+      'letmein123',
+      'password1',
+      '123456abc',
     ];
 
     if (commonPasswords.some(common => password.toLowerCase().includes(common))) {

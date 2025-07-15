@@ -1,6 +1,6 @@
 // src/screens/camera/ImageDetailsScreen.tsx
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Animated, ScrollView, StyleSheet, View } from 'react-native';
 import { ActionButton, ScreenHeader } from '../../components/camera/CameraUIComponents';
@@ -9,14 +9,14 @@ import {
   ImagePreview,
   RecognizedTextDisplay,
 } from '../../components/camera/ImageDetailComponents';
+import { CameraNavigationGuard } from '../../components/camera/workflow/CameraNavigationGuard';
 import { ErrorDisplay } from '../../components/ocr/ErrorDisplay';
 import { OCRProgress } from '../../components/ocr/OCRProgress';
-import { CameraNavigationGuard } from '../../components/camera/workflow/CameraNavigationGuard';
 import { useOCR } from '../../context/OCRContext';
-import { useCameraFlow } from '../../store/cameraFlowStore';
 import { useAppTheme } from '../../hooks/useAppTheme';
 import { OCRSelectors, OCRStateGuards } from '../../state/ocr/types';
-import { horizontalScale, moderateScale, verticalScale } from '../../theme';
+import { useCameraFlow } from '../../store/cameraFlowStore';
+import { horizontalScale, verticalScale } from '../../theme';
 import { RouteTypeGuards } from '../../types/camera_navigation';
 import type { Receipt } from '../../types/ReceiptInterfaces';
 
@@ -25,7 +25,7 @@ export default function ImageDetailsScreen() {
   const params = useLocalSearchParams();
   const { t } = useTranslation();
   const { backgroundColor, primaryColor, errorColor } = useAppTheme();
-  
+
   // Animation refs
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
@@ -63,9 +63,9 @@ export default function ImageDetailsScreen() {
   // Auto-trigger OCR when entering processing step
   useEffect(() => {
     if (isProcessingStep && imageUri && ocrState.status === 'idle') {
-      dispatch({ 
-        type: 'IMAGE_CAPTURED', 
-        uri: imageUri 
+      dispatch({
+        type: 'IMAGE_CAPTURED',
+        uri: imageUri,
       });
     }
   }, [isProcessingStep, imageUri, ocrState.status, dispatch]);
@@ -115,11 +115,11 @@ export default function ImageDetailsScreen() {
     };
 
     // Update flow with receipt draft
-    updateFlow({ 
+    updateFlow({
       currentStep: 'verification',
       receiptDraft: receiptData,
     });
-    
+
     router.push({
       pathname: '/camera/verification',
       params: { flowId: activeFlow.id },
@@ -137,14 +137,14 @@ export default function ImageDetailsScreen() {
 
   const handleRetake = useCallback(() => {
     if (!activeFlow) return;
-    
+
     dispatch({ type: 'RESET' });
-    updateFlow({ 
+    updateFlow({
       currentStep: 'capture',
       ocrResult: undefined,
       receiptDraft: undefined,
     });
-    
+
     router.replace('/camera');
   }, [dispatch, activeFlow, updateFlow, router]);
 
@@ -174,10 +174,7 @@ export default function ImageDetailsScreen() {
     if (isProcessing || (isProcessingStep && ocrState.status !== 'reviewing')) {
       return (
         <View style={styles.centerContainer}>
-          <OCRProgress 
-            state={ocrContextState}
-            onCancel={handleCancel}
-          />
+          <OCRProgress state={ocrContextState} onCancel={handleCancel} />
         </View>
       );
     }
@@ -185,7 +182,7 @@ export default function ImageDetailsScreen() {
     // Review state
     if (isReviewing && 'data' in ocrState && ocrState.data) {
       return (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.contentContainer,
             {
@@ -194,30 +191,29 @@ export default function ImageDetailsScreen() {
             },
           ]}
         >
-          <ScrollView 
+          <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.scrollContent}
           >
-            <ImagePreview 
-              uri={imageUri} 
-              onScanPress={() => {}} 
-            />
-            
+            <ImagePreview uri={imageUri} onScanPress={() => {}} />
+
             <ClassificationDisplay
               classification={ocrState.data.classification}
               fadeAnim={fadeAnim}
               slideAnim={slideAnim}
-              formatCurrency={(amount) => amount || '$0.00'}
-              getConfidenceColor={(confidence) => confidence && confidence > 0.8 ? '#4CAF50' : '#FF9800'}
+              formatCurrency={amount => amount || '$0.00'}
+              getConfidenceColor={confidence =>
+                confidence && confidence > 0.8 ? '#4CAF50' : '#FF9800'
+              }
             />
-            
+
             <RecognizedTextDisplay
               text={ocrState.data.extractedText}
               fadeAnim={fadeAnim}
               slideAnim={slideAnim}
             />
           </ScrollView>
-          
+
           <View style={styles.buttonContainer}>
             <ActionButton
               title={t('camera.retake', 'Retake Photo')}
@@ -246,7 +242,9 @@ export default function ImageDetailsScreen() {
     <CameraNavigationGuard targetStep={targetStep}>
       <View style={[styles.container, { backgroundColor }]}>
         <ScreenHeader
-          title={isProcessingStep ? t('camera.processing', 'Processing') : t('camera.review', 'Review')}
+          title={
+            isProcessingStep ? t('camera.processing', 'Processing') : t('camera.review', 'Review')
+          }
           onBack={() => router.back()}
         />
         {renderContent()}

@@ -1,6 +1,6 @@
 // src/components/camera/workflow/CameraNavigationGuard.tsx
-import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
 import { useCameraFlow } from '../../../store/cameraFlowStore';
 import { CameraFlowStep } from '../../../types/cameraFlow';
 
@@ -13,10 +13,7 @@ interface NavigationGuardProps {
  * Navigation Guard Component - Flow-based navigation only
  * No legacy support - requires active flow for all steps except capture
  */
-export function CameraNavigationGuard({ 
-  targetStep,
-  children 
-}: NavigationGuardProps) {
+export function CameraNavigationGuard({ targetStep, children }: NavigationGuardProps) {
   const router = useRouter();
   const { activeFlow, canNavigateToStep } = useCameraFlow();
   const hasRedirected = useRef(false);
@@ -43,7 +40,7 @@ export function CameraNavigationGuard({
     // Check if we can navigate to the target step
     if (!canNavigateToStep(targetStep)) {
       hasRedirected.current = true;
-      
+
       // Determine appropriate redirect based on flow state
       setTimeout(() => {
         switch (targetStep) {
@@ -57,7 +54,7 @@ export function CameraNavigationGuard({
               router.back();
             }
             break;
-            
+
           case 'verification':
             // Need OCR result
             if (!activeFlow.imageUri) {
@@ -68,7 +65,7 @@ export function CameraNavigationGuard({
               router.back();
             }
             break;
-            
+
           case 'report':
             // Need verified receipt
             if (!activeFlow.receiptDraft) {
@@ -83,7 +80,7 @@ export function CameraNavigationGuard({
               router.back();
             }
             break;
-            
+
           default:
             router.replace('/camera');
         }
@@ -140,7 +137,7 @@ export function useGuardedNavigation() {
         router.push(`/camera/report?flowId=${activeFlow.id}`);
         break;
     }
-    
+
     return true;
   };
 

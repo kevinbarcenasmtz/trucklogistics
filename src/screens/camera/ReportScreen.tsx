@@ -1,17 +1,9 @@
 // src/screens/camera/ReportScreen.tsx
-import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Animated,
-  ScrollView,
-  Share,
-  StyleSheet,
-  View,
-} from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 import * as Haptics from 'expo-haptics';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, Animated, ScrollView, Share, StyleSheet, View } from 'react-native';
 
 import { ScreenHeader, StatusBanner } from '@/src/components/camera/CameraUIComponents';
 import {
@@ -24,12 +16,12 @@ import {
   ReceiptHeader,
 } from '@/src/components/camera/ReportComponents';
 import { CameraNavigationGuard } from '@/src/components/camera/workflow/CameraNavigationGuard';
-import { useCameraFlow } from '../../store/cameraFlowStore';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { DocumentStorage } from '@/src/services/DocumentStorage';
-import { horizontalScale, verticalScale, moderateScale } from '@/src/theme';
+import { horizontalScale, verticalScale } from '@/src/theme';
 import { Receipt } from '@/src/types/ReceiptInterfaces';
 import { RouteTypeGuards } from '@/src/types/camera_navigation';
+import { useCameraFlow } from '../../store/cameraFlowStore';
 
 export default function ReportScreen() {
   const params = useLocalSearchParams();
@@ -86,21 +78,15 @@ export default function ReportScreen() {
     setIsStatusUpdating(true);
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      
+
       const newStatus = receipt.status === 'Approved' ? 'Pending' : 'Approved';
       await DocumentStorage.updateReceiptStatus(receipt.id, newStatus);
 
       // Update local state would go here if needed
-      Alert.alert(
-        t('success', 'Success'),
-        t('report.statusUpdated', 'Receipt status updated')
-      );
+      Alert.alert(t('success', 'Success'), t('report.statusUpdated', 'Receipt status updated'));
     } catch (error) {
       console.error('Failed to update status:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('report.statusError', 'Failed to update status')
-      );
+      Alert.alert(t('error', 'Error'), t('report.statusError', 'Failed to update status'));
     } finally {
       setIsStatusUpdating(false);
     }
@@ -111,7 +97,8 @@ export default function ReportScreen() {
 
     setShareLoading(true);
     try {
-      const message = `Receipt from ${receipt.vendorName || 'Unknown Vendor'}\n` +
+      const message =
+        `Receipt from ${receipt.vendorName || 'Unknown Vendor'}\n` +
         `Amount: ${receipt.amount}\n` +
         `Date: ${new Date(receipt.date).toLocaleDateString()}\n` +
         `Vehicle: ${receipt.vehicle}\n` +
@@ -131,7 +118,7 @@ export default function ReportScreen() {
   const handleDone = async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       // Complete the flow
       if (flowId) {
         await completeFlow();
@@ -148,7 +135,7 @@ export default function ReportScreen() {
   const handleNewScan = async () => {
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       // Complete current flow
       if (flowId) {
         await completeFlow();
@@ -169,10 +156,7 @@ export default function ReportScreen() {
   return (
     <CameraNavigationGuard targetStep="report">
       <View style={[styles.container, { backgroundColor }]}>
-        <ScreenHeader
-          title={t('report.title', 'Receipt Saved')}
-          onBack={() => router.back()}
-        />
+        <ScreenHeader title={t('report.title', 'Receipt Saved')} onBack={() => router.back()} />
 
         <ScrollView
           style={styles.content}
@@ -185,48 +169,51 @@ export default function ReportScreen() {
               transform: [{ translateY: slideAnim }],
             }}
           >
-<StatusBanner 
-  status={receipt.status}
-  successText={t('report.approved', 'Approved')}
-  pendingText={t('report.pending', 'Pending')}
-/>
-<ReceiptHeader 
-  receipt={receipt}
-  formatDate={(date) => date ? new Date(date).toLocaleDateString() : ''}
-  formatTime={(date) => date ? new Date(date).toLocaleTimeString() : ''}
-  getReceiptTypeIcon={(type) => {
-    switch(type) {
-      case 'Fuel': return 'local-gas-station';
-      case 'Maintenance': return 'build';
-      default: return 'receipt';
-    }
-  }}
-/>
-<ReceiptContent receipt={receipt} t={t} />
+            <StatusBanner
+              status={receipt.status}
+              successText={t('report.approved', 'Approved')}
+              pendingText={t('report.pending', 'Pending')}
+            />
+            <ReceiptHeader
+              receipt={receipt}
+              formatDate={date => (date ? new Date(date).toLocaleDateString() : '')}
+              formatTime={date => (date ? new Date(date).toLocaleTimeString() : '')}
+              getReceiptTypeIcon={type => {
+                switch (type) {
+                  case 'Fuel':
+                    return 'local-gas-station';
+                  case 'Maintenance':
+                    return 'build';
+                  default:
+                    return 'receipt';
+                }
+              }}
+            />
+            <ReceiptContent receipt={receipt} t={t} />
             <Divider />
 
             <RawTextSection
-  receipt={receipt}  // Changed from text={receipt.extractedText}
-  showFullText={showFullText}
-  toggleFullText={() => setShowFullText(!showFullText)}  // Changed from onToggle
-  t={t}
-/>
+              receipt={receipt} // Changed from text={receipt.extractedText}
+              showFullText={showFullText}
+              toggleFullText={() => setShowFullText(!showFullText)} // Changed from onToggle
+              t={t}
+            />
             <View style={styles.actions}>
-            <ActionCard
-  receipt={receipt}
-  isStatusUpdating={isStatusUpdating}
-  handleApproveDocument={handleStatusChange}
-  handleShareDocument={handleShare}
-  shareLoading={shareLoading}
-  t={t}
-/>
+              <ActionCard
+                receipt={receipt}
+                isStatusUpdating={isStatusUpdating}
+                handleApproveDocument={handleStatusChange}
+                handleShareDocument={handleShare}
+                shareLoading={shareLoading}
+                t={t}
+              />
             </View>
           </Animated.View>
         </ScrollView>
 
         <View style={styles.footer}>
-        <FooterButton onPress={handleDone} t={t} />
-        <FooterButton onPress={handleNewScan} t={t} />
+          <FooterButton onPress={handleDone} t={t} />
+          <FooterButton onPress={handleNewScan} t={t} />
         </View>
       </View>
     </CameraNavigationGuard>
