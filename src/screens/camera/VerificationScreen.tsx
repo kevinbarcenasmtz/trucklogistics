@@ -50,68 +50,20 @@ export default function VerificationScreen() {
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Parse receipt data from flow or legacy params
-  const { receiptData, imageUri, flowId, isValidNavigation } = useMemo(() => {
-    // Check if we have a flow ID (new navigation)
-    if (RouteTypeGuards.hasFlowId(params) && activeFlow?.id === params.flowId) {
-      const flow = activeFlow;
-      
-      if (!flow.receiptDraft) {
-        console.warn('Flow found but no receipt draft available');
-        return {
-          receiptData: null,
-          imageUri: flow.imageUri,
-          flowId: flow.id,
-          isValidNavigation: false,
-        };
-      }
-
+  // Parse receipt data from flow
+  const { receiptData, imageUri, flowId } = useMemo(() => {
+    if (!RouteTypeGuards.hasFlowId(params) || !activeFlow || activeFlow.id !== params.flowId) {
       return {
-        receiptData: flow.receiptDraft as Receipt,
-        imageUri: flow.imageUri,
-        flowId: flow.id,
-        isValidNavigation: true,
-      };
-    }
-
-    // Check for legacy parameters
-    if (RouteTypeGuards.hasLegacyReceipt(params)) {
-      try {
-        const legacyReceipt = JSON.parse(params.receipt) as Receipt;
-        const legacyImageUri = RouteTypeGuards.hasImageUri(params) ? params.uri : legacyReceipt.imageUri;
-        
-        return {
-          receiptData: legacyReceipt,
-          imageUri: legacyImageUri,
-          flowId: null,
-          isValidNavigation: true,
-        };
-      } catch (error) {
-        console.error('Failed to parse legacy receipt data:', error);
-        return {
-          receiptData: null,
-          imageUri: null,
-          flowId: null,
-          isValidNavigation: false,
-        };
-      }
-    }
-
-    // Check if we have an active flow without params (direct navigation)
-    if (activeFlow?.receiptDraft) {
-      return {
-        receiptData: activeFlow.receiptDraft as Receipt,
-        imageUri: activeFlow.imageUri,
-        flowId: activeFlow.id,
-        isValidNavigation: true,
+        receiptData: null,
+        imageUri: null,
+        flowId: null,
       };
     }
 
     return {
-      receiptData: null,
-      imageUri: null,
-      flowId: null,
-      isValidNavigation: false,
+      receiptData: activeFlow.receiptDraft as Receipt,
+      imageUri: activeFlow.imageUri,
+      flowId: activeFlow.id,
     };
   }, [params, activeFlow]);
 
@@ -149,7 +101,7 @@ export default function VerificationScreen() {
 
     setLocalReceiptData(updatedReceipt);
 
-    // Update flow state if we have an active flow
+    // Update flow state
     if (activeFlow && flowId) {
       updateFlow({ receiptDraft: updatedReceipt });
     }
@@ -164,12 +116,8 @@ export default function VerificationScreen() {
     setIsSaving(true);
 
     try {
-      // Provide haptic feedback
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (err) {
-        console.warn('Haptic feedback not supported:', err);
-      }
+      // Haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Prepare final receipt data
       const finalReceipt: Receipt = {
@@ -189,16 +137,10 @@ export default function VerificationScreen() {
           receiptDraft: finalReceipt,
         });
 
-        // Navigate to report with flow ID
+        // Navigate to report
         router.push({
           pathname: '/camera/report',
           params: { flowId: flowId },
-        });
-      } else {
-        // Fallback to legacy navigation
-        router.push({
-          pathname: '/camera/report',
-          params: { receipt: JSON.stringify(finalReceipt) },
         });
       }
     } catch (error) {
@@ -212,8 +154,7 @@ export default function VerificationScreen() {
     }
   };
 
-  if (!isValidNavigation || !localReceiptData || !imageUri) {
-    // Let navigation guard handle invalid states
+  if (!localReceiptData || !imageUri) {
     return null;
   }
 
@@ -224,110 +165,104 @@ export default function VerificationScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScreenHeader
-          title={t('verifyReceipt', 'Verify Receipt')}
+          title={t('verification.title', 'Verify Details')}
           onBack={() => router.back()}
         />
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <Animated.View 
-            style={[
-              styles.contentContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
           >
-            <InfoCard />
-
-            <ReceiptImagePreview
-              imageUri={imageUri}
-              onPress={() => setIsModalVisible(true)}
+            <ReceiptImagePreview 
+              imageUri={imageUri} 
+              onPress={() => setIsModalVisible(true)} 
             />
 
-            <FormContainer title={t('receiptDetails', 'Receipt Details')}>
-              <EditField
-                field="date"
-                value={localReceiptData.date || ''}
-                onChange={(value) => updateField('date', value)}
-                placeholder={getFieldPlaceholder('date')}
-                icon={getFieldIcon('date')}
-                label={t('date', 'Date')}
-                isActive={activeField === 'date'}
-                onActivate={() => setActiveField('date')}
-              />
+            <InfoCard/>
 
+            <FormContainer title={t('verification.receiptDetails', 'Receipt Details')}>
               <EditField
-                field="amount"
-                value={localReceiptData.amount || ''}
-                onChange={(value) => updateField('amount', value)}
-                placeholder={getFieldPlaceholder('amount')}
-                icon={getFieldIcon('amount')}
-                label={t('amount', 'Amount')}
-                keyboardType="decimal-pad"
-                isActive={activeField === 'amount'}
-                onActivate={() => setActiveField('amount')}
-              />
-
-              <EditField
-                field="type"
-                value={localReceiptData.type || ''}
-                onChange={(value) => updateField('type', value)}
-                placeholder={getFieldPlaceholder('type')}
+                field='type'
                 icon={getFieldIcon('type')}
-                label={t('type', 'Type')}
+                label={t('fields.type', 'Type')}
+                value={localReceiptData.type}
+                placeholder={getFieldPlaceholder('type')}
                 isActive={activeField === 'type'}
                 onActivate={() => setActiveField('type')}
+                onChange={(value) => updateField('type', value as Receipt['type'])}
               />
 
               <EditField
-                field="vendorName"
-                value={localReceiptData.vendorName || ''}
-                onChange={(value) => updateField('vendorName', value)}
-                placeholder={getFieldPlaceholder('vendorName')}
+                field='amount'
+                icon={getFieldIcon('amount')}
+                label={t('fields.amount', 'Amount')}
+                value={localReceiptData.amount}
+                placeholder={getFieldPlaceholder('amount')}
+                isActive={activeField === 'amount'}
+                onActivate={() => setActiveField('amount')}
+                onChange={(value) => updateField('amount', value)}
+                keyboardType="decimal-pad"
+              />
+
+              <EditField
+                field='vendorName'
                 icon={getFieldIcon('vendorName')}
-                label={t('vendor', 'Vendor')}
+                label={t('fields.vendor', 'Vendor')}
+                value={localReceiptData.vendorName || ''}
+                placeholder={getFieldPlaceholder('vendorName')}
                 isActive={activeField === 'vendorName'}
                 onActivate={() => setActiveField('vendorName')}
+                onChange={(value) => updateField('vendorName', value)}
               />
 
               <EditField
-                field="vehicle"
-                value={localReceiptData.vehicle || ''}
-                onChange={(value) => updateField('vehicle', value)}
-                placeholder={getFieldPlaceholder('vehicle')}
+                field='vehicle'
                 icon={getFieldIcon('vehicle')}
-                label={t('vehicle', 'Vehicle')}
+                label={t('fields.vehicle', 'Vehicle')}
+                value={localReceiptData.vehicle}
+                placeholder={getFieldPlaceholder('vehicle')}
                 isActive={activeField === 'vehicle'}
                 onActivate={() => setActiveField('vehicle')}
+                onChange={(value) => updateField('vehicle', value)}
               />
 
               <EditField
-                field="location"
-                value={localReceiptData.location || ''}
-                onChange={(value) => updateField('location', value)}
-                placeholder={getFieldPlaceholder('location')}
+                field='location'
                 icon={getFieldIcon('location')}
-                label={t('location', 'Location')}
+                label={t('fields.location', 'Location')}
+                value={localReceiptData.location || ''}
+                placeholder={getFieldPlaceholder('location')}
                 isActive={activeField === 'location'}
                 onActivate={() => setActiveField('location')}
+                onChange={(value) => updateField('location', value)}
+              />
+
+              <EditField
+                field='date'
+                icon={getFieldIcon('date')}
+                label={t('fields.date', 'Date')}
+                value={localReceiptData.date}
+                placeholder={getFieldPlaceholder('date')}
+                isActive={activeField === 'date'}
+                onActivate={() => setActiveField('date')}
+                onChange={(value) => updateField('date', value)}
               />
             </FormContainer>
 
-            <ViewRawTextButton
+            <ViewRawTextButton 
               onPress={() => {
-                if (flowId) {
-                  router.push({
-                    pathname: '/camera/imagedetails',
-                    params: { flowId: flowId },
-                  });
-                } else {
-                  router.push({
-                    pathname: '/camera/imagedetails',
-                    params: { uri: imageUri },
-                  });
-                }
-              }}
+                Alert.alert(
+                  t('verification.extractedText', 'Extracted Text'),
+                  localReceiptData.extractedText
+                );
+              }} 
             />
           </Animated.View>
         </ScrollView>
@@ -348,12 +283,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  content: {
     flex: 1,
   },
-  contentContainer: {
-    paddingHorizontal: horizontalScale(16),
-    paddingBottom: verticalScale(100), // Space for save button
-    gap: verticalScale(16),
+  scrollContent: {
+    padding: horizontalScale(16),
+    paddingBottom: verticalScale(100),
   },
 });

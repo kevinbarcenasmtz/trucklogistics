@@ -18,32 +18,6 @@ export type FlowTransition = {
 };
 
 /**
- * Step validation requirements
- */
-export interface StepRequirements {
-  capture: {
-    required: [];
-    optional: [];
-  };
-  processing: {
-    required: ['imageUri'];
-    optional: [];
-  };
-  review: {
-    required: ['imageUri', 'ocrResult'];
-    optional: [];
-  };
-  verification: {
-    required: ['imageUri', 'ocrResult'];
-    optional: ['receiptDraft'];
-  };
-  report: {
-    required: ['imageUri', 'receiptDraft'];
-    optional: ['ocrResult'];
-  };
-}
-
-/**
  * Flow error context
  */
 export interface FlowError {
@@ -80,10 +54,10 @@ export interface CameraFlow {
   
   // Flow data
   readonly ocrResult?: ProcessedReceipt;
-  readonly receiptDraft?: Partial<Receipt>;
+  readonly receiptDraft?: Receipt;
   
   // Navigation tracking
-  readonly stepHistory: CameraFlowStep[];
+  stepHistory: CameraFlowStep[];
   readonly transitions: FlowTransition[];
   
   // Error handling
@@ -91,7 +65,7 @@ export interface CameraFlow {
   readonly errorHistory: FlowError[];
   
   // Analytics
-  readonly metrics: FlowMetrics;
+  metrics: FlowMetrics;
 }
 
 /**
@@ -108,81 +82,18 @@ export interface NavigationGuardResult {
 }
 
 /**
- * Step component props interface
- */
-export interface CameraStepProps {
-  flowId: string;
-  onNext: (data?: any) => void;
-  onBack: () => void;
-  onCancel: () => void;
-  onError: (error: FlowError) => void;
-  onRetry?: () => void;
-}
-
-/**
- * Navigation action types
- */
-export type NavigationAction = 
-  | { type: 'ADVANCE'; step: CameraFlowStep; data?: any }
-  | { type: 'GO_BACK' }
-  | { type: 'RETRY'; step?: CameraFlowStep }
-  | { type: 'CANCEL'; reason?: string }
-  | { type: 'ERROR'; error: FlowError }
-  | { type: 'COMPLETE'; receipt: Receipt };
-
-/**
- * Flow state selectors
- */
-export interface FlowSelectors {
-  canAdvanceTo: (step: CameraFlowStep) => boolean;
-  canGoBack: () => boolean;
-  getRequiredData: (step: CameraFlowStep) => string[];
-  getMissingData: (step: CameraFlowStep) => string[];
-  getPreviousStep: () => CameraFlowStep | null;
-  getNextStep: () => CameraFlowStep | null;
-  getStepProgress: () => number;
-  hasErrors: () => boolean;
-  canRetry: () => boolean;
-}
-
-/**
- * Step configuration
- */
-export interface StepConfig {
-  id: CameraFlowStep;
-  title: string;
-  description?: string;
-  canSkip?: boolean;
-  autoAdvance?: boolean;
-  maxRetries?: number;
-  timeout?: number;
-  validation?: (flow: CameraFlow) => NavigationGuardResult;
-}
-
-/**
- * Workflow configuration
- */
-export interface WorkflowConfig {
-  steps: StepConfig[];
-  allowBackNavigation: boolean;
-  enableAnalytics: boolean;
-  maxFlowDuration: number;
-  autoCleanupAfter: number;
-}
-
-/**
  * Type guards for flow validation
  */
 export const FlowTypeGuards = {
   hasImageUri: (flow: CameraFlow): flow is CameraFlow & { imageUri: string } => {
-    return !!flow.imageUri;
+    return !!flow.imageUri && flow.imageUri.length > 0;
   },
   
   hasOCRResult: (flow: CameraFlow): flow is CameraFlow & { ocrResult: ProcessedReceipt } => {
     return !!flow.ocrResult;
   },
   
-  hasReceiptDraft: (flow: CameraFlow): flow is CameraFlow & { receiptDraft: Partial<Receipt> } => {
+  hasReceiptDraft: (flow: CameraFlow): flow is CameraFlow & { receiptDraft: Receipt } => {
     return !!flow.receiptDraft;
   },
   
@@ -217,29 +128,24 @@ export const FLOW_STEP_ORDER: CameraFlowStep[] = [
 export const STEP_RELATIONSHIPS: Record<CameraFlowStep, {
   previous?: CameraFlowStep;
   next?: CameraFlowStep;
-  allowedFrom: CameraFlowStep[];
+  canSkipTo?: CameraFlowStep[];
 }> = {
   capture: {
     next: 'processing',
-    allowedFrom: [],
   },
   processing: {
     previous: 'capture',
     next: 'review',
-    allowedFrom: ['capture'],
   },
   review: {
     previous: 'processing',
     next: 'verification',
-    allowedFrom: ['processing', 'verification'],
   },
   verification: {
     previous: 'review',
     next: 'report',
-    allowedFrom: ['review', 'report'],
   },
   report: {
     previous: 'verification',
-    allowedFrom: ['verification'],
   },
 };

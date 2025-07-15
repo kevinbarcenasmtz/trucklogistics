@@ -49,65 +49,22 @@ export default function ReportScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
 
-  // Parse receipt data from flow or legacy params
-  const { receipt, flowId, isValidNavigation } = useMemo(() => {
-    // Check if we have a flow ID (new navigation)
-    if (RouteTypeGuards.hasFlowId(params) && activeFlow?.id === params.flowId) {
-      const flow = activeFlow;
-      
-      if (!flow.receiptDraft) {
-        console.warn('Flow found but no receipt draft available');
-        return {
-          receipt: null,
-          flowId: flow.id,
-          isValidNavigation: false,
-        };
-      }
-
+  // Parse receipt data from flow
+  const { receipt, flowId } = useMemo(() => {
+    if (!RouteTypeGuards.hasFlowId(params) || !activeFlow || activeFlow.id !== params.flowId) {
       return {
-        receipt: flow.receiptDraft as Receipt,
-        flowId: flow.id,
-        isValidNavigation: true,
-      };
-    }
-
-    // Check for legacy parameters
-    if (RouteTypeGuards.hasLegacyReceipt(params)) {
-      try {
-        const legacyReceipt = JSON.parse(params.receipt) as Receipt;
-        
-        return {
-          receipt: legacyReceipt,
-          flowId: null,
-          isValidNavigation: true,
-        };
-      } catch (error) {
-        console.error('Failed to parse legacy receipt data:', error);
-        return {
-          receipt: null,
-          flowId: null,
-          isValidNavigation: false,
-        };
-      }
-    }
-
-    // Check if we have an active flow without params (direct navigation)
-    if (activeFlow?.receiptDraft) {
-      return {
-        receipt: activeFlow.receiptDraft as Receipt,
-        flowId: activeFlow.id,
-        isValidNavigation: true,
+        receipt: null,
+        flowId: null,
       };
     }
 
     return {
-      receipt: null,
-      flowId: null,
-      isValidNavigation: false,
+      receipt: activeFlow.receiptDraft as Receipt,
+      flowId: activeFlow.id,
     };
   }, [params, activeFlow]);
 
-  // Animate components in on mount
+  // Start animations on mount
   useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -123,195 +80,154 @@ export default function ReportScreen() {
     ]).start();
   }, []);
 
-  // Format date for display
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return t('noDate', 'No date');
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString();
-    } catch {
-      return dateString;
-    }
-  };
-
-  // Format time for display
-  const formatTime = (timestamp?: string): string => {
-    if (!timestamp) return '';
-    try {
-      const date = new Date(timestamp);
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
-      return '';
-    }
-  };
-
-  // Get receipt type icon
-  const getReceiptTypeIcon = (type?: string): string => {
-    switch (type) {
-      case 'Fuel':
-        return 'local-gas-station';
-      case 'Maintenance':
-        return 'build';
-      default:
-        return 'receipt';
-    }
-  };
-
-  // Handle status update
-  const handleStatusUpdate = async () => {
+  const handleStatusChange = async () => {
     if (!receipt) return;
 
     setIsStatusUpdating(true);
-
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (err) {
-      console.warn('Haptic feedback not supported:', err);
-    }
-
-    try {
+      
       const newStatus = receipt.status === 'Approved' ? 'Pending' : 'Approved';
       await DocumentStorage.updateReceiptStatus(receipt.id, newStatus);
-      
+
+      // Update local state would go here if needed
       Alert.alert(
-        t('statusUpdated', 'Status Updated'),
-        t('statusUpdatedMessage', `Receipt status changed to ${newStatus}`)
+        t('success', 'Success'),
+        t('report.statusUpdated', 'Receipt status updated')
       );
     } catch (error) {
       console.error('Failed to update status:', error);
       Alert.alert(
         t('error', 'Error'),
-        t('statusUpdateError', 'Failed to update receipt status')
+        t('report.statusError', 'Failed to update status')
       );
     } finally {
       setIsStatusUpdating(false);
     }
   };
 
-  // Handle sharing
   const handleShare = async () => {
     if (!receipt) return;
 
     setShareLoading(true);
-
     try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (err) {
-      console.warn('Haptic feedback not supported:', err);
-    }
-
-    try {
-      const shareContent = `Receipt Details:
-Date: ${formatDate(receipt.date)}
-Amount: ${receipt.amount}
-Vendor: ${receipt.vendorName || 'Unknown'}
-Vehicle: ${receipt.vehicle}
-Type: ${receipt.type}
-Status: ${receipt.status}`;
+      const message = `Receipt from ${receipt.vendorName || 'Unknown Vendor'}\n` +
+        `Amount: ${receipt.amount}\n` +
+        `Date: ${new Date(receipt.date).toLocaleDateString()}\n` +
+        `Vehicle: ${receipt.vehicle}\n` +
+        `Type: ${receipt.type}`;
 
       await Share.share({
-        message: shareContent,
-        title: t('receiptDetails', 'Receipt Details'),
+        message,
+        title: t('report.shareTitle', 'Receipt Details'),
       });
     } catch (error) {
-      console.error('Failed to share:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('shareError', 'Failed to share receipt')
-      );
+      console.error('Share error:', error);
     } finally {
       setShareLoading(false);
     }
   };
 
-  // Handle done button
-  const handleDone = () => {
+  const handleDone = async () => {
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (err) {
-      console.warn('Haptic feedback not supported:', err);
-    }
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      // Complete the flow
+      if (flowId) {
+        await completeFlow();
+      }
 
-    // Complete the flow if we have one
-    if (flowId && activeFlow) {
-      completeFlow();
+      // Navigate back to main screen
+      router.replace('/');
+    } catch (error) {
+      console.error('Failed to complete flow:', error);
+      router.replace('/');
     }
-
-    // Navigate to home or reports
-    router.replace('/reports');
   };
 
-  // Toggle full text display
-  const toggleFullText = () => {
-    setShowFullText(!showFullText);
+  const handleNewScan = async () => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      // Complete current flow
+      if (flowId) {
+        await completeFlow();
+      }
+
+      // Start new scan
+      router.replace('/camera');
+    } catch (error) {
+      console.error('Failed to start new scan:', error);
+      router.replace('/camera');
+    }
   };
 
-  if (!isValidNavigation || !receipt) {
-    return (
-      <CameraNavigationGuard targetStep="report">
-        <LoadingView t={t} />
-      </CameraNavigationGuard>
-    );
+  if (!receipt) {
+    return <LoadingView t={t} />;
   }
 
   return (
     <CameraNavigationGuard targetStep="report">
       <View style={[styles.container, { backgroundColor }]}>
         <ScreenHeader
-          title={t('receiptReport', 'Receipt Report')}
+          title={t('report.title', 'Receipt Saved')}
           onBack={() => router.back()}
         />
 
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.content}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <Animated.View
-            style={[
-              styles.contentContainer,
-              {
-                opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
-              },
-            ]}
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            }}
           >
-            <StatusBanner
-              status={receipt.status}
-              successText={t('approved', 'Approved')}
-              pendingText={t('pending', 'Pending')}
-            />
+<StatusBanner 
+  status={receipt.status}
+  successText={t('report.approved', 'Approved')}
+  pendingText={t('report.pending', 'Pending')}
+/>
+<ReceiptHeader 
+  receipt={receipt}
+  formatDate={(date) => date ? new Date(date).toLocaleDateString() : ''}
+  formatTime={(date) => date ? new Date(date).toLocaleTimeString() : ''}
+  getReceiptTypeIcon={(type) => {
+    switch(type) {
+      case 'Fuel': return 'local-gas-station';
+      case 'Maintenance': return 'build';
+      default: return 'receipt';
+    }
+  }}
+/>
+<ReceiptContent receipt={receipt} t={t} />
+            <Divider />
 
-            <View style={styles.receiptCard}>
-              <ReceiptHeader
-                receipt={receipt}
-                formatDate={formatDate}
-                formatTime={formatTime}
-                getReceiptTypeIcon={getReceiptTypeIcon}
-              />
-
-              <Divider />
-
-              <ReceiptContent receipt={receipt} t={t} />
-            </View>
-
-            {receipt.extractedText && (
-              <RawTextSection
-                receipt={receipt}
-                showFullText={showFullText}
-                toggleFullText={toggleFullText}
-                t={t}
-              />
-            )}
-
+            <RawTextSection
+  receipt={receipt}  // Changed from text={receipt.extractedText}
+  showFullText={showFullText}
+  toggleFullText={() => setShowFullText(!showFullText)}  // Changed from onToggle
+  t={t}
+/>
+            <View style={styles.actions}>
             <ActionCard
-              receipt={receipt}
-              isStatusUpdating={isStatusUpdating}
-              shareLoading={shareLoading}
-              handleApproveDocument={handleStatusUpdate}
-              handleShareDocument={handleShare}
-              t={t}
-            />
+  receipt={receipt}
+  isStatusUpdating={isStatusUpdating}
+  handleApproveDocument={handleStatusChange}
+  handleShareDocument={handleShare}
+  shareLoading={shareLoading}
+  t={t}
+/>
+            </View>
           </Animated.View>
         </ScrollView>
 
+        <View style={styles.footer}>
         <FooterButton onPress={handleDone} t={t} />
+        <FooterButton onPress={handleNewScan} t={t} />
+        </View>
       </View>
     </CameraNavigationGuard>
   );
@@ -321,16 +237,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  content: {
     flex: 1,
   },
-  contentContainer: {
-    paddingHorizontal: horizontalScale(16),
-    paddingBottom: verticalScale(100),
-    gap: verticalScale(16),
-  },
-  receiptCard: {
+  scrollContent: {
     padding: horizontalScale(16),
-    borderRadius: moderateScale(12),
+    paddingBottom: verticalScale(150),
+  },
+  actions: {
+    marginTop: verticalScale(24),
+    gap: verticalScale(12),
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: horizontalScale(16),
+    paddingBottom: verticalScale(30),
+    gap: verticalScale(12),
   },
 });

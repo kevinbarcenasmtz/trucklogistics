@@ -24,6 +24,8 @@ export default function CameraScreen() {
     backgroundColor, 
     textColor, 
     primaryColor,
+    surfaceColor,
+    secondaryTextColor,
   } = useAppTheme();
 
   const { 
@@ -34,116 +36,57 @@ export default function CameraScreen() {
     cancelFlow
   } = useCameraFlow();
 
-  // Use useCameraPermissions hook for camera permissions
+  // Camera permissions
   const [cameraPermissionStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
 
-  // Handle flow initialization on mount
+  // Handle flow initialization
   useEffect(() => {
-    // Check if we have a flowId in params (resuming existing flow)
-    if (RouteTypeGuards.hasFlowId(params)) {
-      const existingFlow = activeFlow?.id === params.flowId ? activeFlow : null;
-      
-      if (!existingFlow) {
-        console.warn('Flow ID provided but no matching active flow found');
-        // Could redirect to error or start new flow
+    // Check if resuming existing flow
+    if (RouteTypeGuards.hasFlowId(params) && activeFlow?.id === params.flowId) {
+      // Resuming existing flow
+      if (activeFlow.imageUri) {
+        setSelectedImage(activeFlow.imageUri);
       }
       return;
     }
 
-    // If we have an active flow but no flowId in params, we might be starting fresh
-    // This handles the case where user navigates directly to /camera
-    if (activeFlow && hasActiveFlow && activeFlow?.currentStep !== 'capture') {
-      // Ask user if they want to continue existing flow or start new
+    // Check for orphaned active flow
+    if (hasActiveFlow && activeFlow && !params.flowId) {
+      // Show continue/restart dialog
       Alert.alert(
         t('camera.existingFlow', 'Continue Previous Session?'),
-        t('camera.existingFlowMessage', 'You have an incomplete camera session. Would you like to continue or start fresh?'),
+        t('camera.existingFlowMessage', 'You have an incomplete session. Continue or start fresh?'),
         [
           {
             text: t('common.startFresh', 'Start Fresh'),
             style: 'destructive',
             onPress: () => {
-              // Will start new flow when image is selected
-              // Cancel the existing flow completely
               cancelFlow();
-              // Clear any selected image
               setSelectedImage(null);
-            },
+            }
           },
           {
             text: t('common.continue', 'Continue'),
             onPress: () => {
-              // Navigate to current step of existing flow
-              const currentStep = activeFlow.currentStep;
-              switch (currentStep) {
-                case 'processing':
-                case 'review':
-                  router.replace('/camera/imagedetails');
-                  break;
-                case 'verification':
-                  router.replace('/camera/verification');
-                  break;
-                case 'report':
-                  router.replace('/camera/report');
-                  break;
+              if (activeFlow.imageUri) {
+                setSelectedImage(activeFlow.imageUri);
               }
-            },
-          },
+            }
+          }
         ]
       );
     }
-  }, [params, activeFlow, hasActiveFlow]);
+  }, [params, activeFlow, hasActiveFlow, cancelFlow, t]);
 
-  // Handle selecting image from library
-  const handleSelectImage = async () => {
+  const handleImageCapture = async () => {
     try {
-      // Provide haptic feedback
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (err) {
-        console.warn('Haptic feedback not supported:', err);
-      }
-
-      // Launch image library
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        allowsEditing: true,
-        aspect: [4, 5],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        const imageUri = result.assets[0].uri;
-        setSelectedImage(imageUri);
-        
-        // Start new flow with selected image
-        startFlow(imageUri);
-      }
-    } catch (error) {
-      console.error('Image selection error:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('imageSelectionError', 'Failed to select image. Please try again.')
-      );
-    }
-  };
-
-  // Handle taking a photo with the camera
-  const handleOpenCamera = async () => {
-    try {
-      // Provide haptic feedback
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (err) {
-        console.warn('Haptic feedback not supported:', err);
-      }
-
-      // Check camera permissions
+      // Check permissions
       if (!cameraPermissionStatus?.granted) {
-        const permissionResult = await requestCameraPermission();
-        if (!permissionResult.granted) {
+        const result = await requestCameraPermission();
+        if (!result.granted) {
           Alert.alert(
-            t('permissionRequired', 'Permission Required'),
-            t('cameraPermissionMessage', 'This app needs camera access to scan receipts and documents')
+            t('permissions.cameraTitle', 'Camera Permission'),
+            t('permissions.cameraMessage', 'Camera access is required to take photos.')
           );
           return;
         }
@@ -151,126 +94,156 @@ export default function CameraScreen() {
 
       // Launch camera
       const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [4, 5],
-        quality: 1,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+        base64: false,
       });
 
-      if (!result.canceled) {
-        const imageUri = result.assets[0].uri;
-        setSelectedImage(imageUri);
-        
-        // Start new flow with captured image
-        startFlow(imageUri);
+      if (!result.canceled && result.assets[0]) {
+        await processImage(result.assets[0].uri);
       }
     } catch (error) {
       console.error('Camera error:', error);
       Alert.alert(
         t('error', 'Error'),
-        t('cameraError', 'Failed to open camera. Please try again.')
+        t('camera.captureError', 'Failed to capture image')
       );
     }
   };
 
-  // Handle processing the selected image
-  const handleProcess = () => {
-    if (!selectedImage || !activeFlow) {
-      console.warn('Cannot process: missing image or flow');
-      return;
-    }
-
+  const handleImageSelection = async () => {
     try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } catch (err) {
-      console.warn('Haptic feedback not supported:', err);
-    }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+        base64: false,
+      });
 
-    // Update flow step and navigate
-    updateFlow({ currentStep: 'processing' });
-    
-    // Navigate with flow ID instead of URI
-    router.push({
-      pathname: '/camera/imagedetails',
-      params: { flowId: activeFlow.id },
-    });
+      if (!result.canceled && result.assets[0]) {
+        await processImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Gallery error:', error);
+      Alert.alert(
+        t('error', 'Error'),
+        t('camera.selectionError', 'Failed to select image')
+      );
+    }
   };
 
-  // Handle retaking/reselecting an image
+  const processImage = async (uri: string) => {
+    try {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      setSelectedImage(uri);
+
+      // Start or update flow
+      if (!activeFlow) {
+        const flow = await startFlow(uri);
+        router.push({
+          pathname: '/camera/imagedetails',
+          params: { flowId: flow.id }
+        });
+      } else {
+        await updateFlow({ 
+          imageUri: uri,
+          currentStep: 'processing' 
+        });
+        router.push({
+          pathname: '/camera/imagedetails',
+          params: { flowId: activeFlow.id }
+        });
+      }
+    } catch (error) {
+      console.error('Process image error:', error);
+      Alert.alert(
+        t('error', 'Error'),
+        t('camera.processError', 'Failed to process image')
+      );
+    }
+  };
+
   const handleRetake = () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (err) {
-      console.warn('Haptic feedback not supported:', err);
-    }
-
     setSelectedImage(null);
-    
-    // Reset flow if we had one
     if (activeFlow) {
-      updateFlow({ currentStep: 'capture' });
+      updateFlow({ 
+        imageUri: undefined,
+        currentStep: 'capture' 
+      });
     }
   };
 
-  // Show image from active flow if available
-  const displayImage = selectedImage || (activeFlow?.imageUri && activeFlow.currentStep === 'capture' ? activeFlow.imageUri : null);
+  const renderContent = () => {
+    if (selectedImage) {
+      return (
+        <View style={styles.previewContainer}>
+          <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+          <View style={styles.previewActions}>
+            <ActionButton
+              title={t('camera.retake', 'Retake')}
+              icon="camera"
+              onPress={handleRetake}
+              backgroundColor={surfaceColor}
+              color={textColor}
+              style={styles.actionButton}
+            />
+            <ActionButton
+              title={t('camera.continue', 'Continue')}
+              icon="arrow-forward"
+              onPress={() => processImage(selectedImage)}
+              style={styles.actionButton}
+            />
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.captureContainer}>
+        <View style={[styles.placeholder, { backgroundColor: surfaceColor }]}>
+          <MaterialIcons name="receipt" size={64} color={secondaryTextColor} />
+          <Text style={[styles.placeholderText, { color: secondaryTextColor }]}>
+            {t('camera.placeholder', 'Capture or select a receipt')}
+          </Text>
+        </View>
+
+        <View style={styles.actions}>
+          <ActionButton
+            title={t('camera.takePhoto', 'Take Photo')}
+            icon="camera"
+            onPress={handleImageCapture}
+            style={styles.mainButton}
+          />
+          
+          <TouchableOpacity
+            style={[styles.secondaryButton, { backgroundColor: surfaceColor }]}
+            onPress={handleImageSelection}
+          >
+            <MaterialIcons name="photo-library" size={24} color={primaryColor} />
+            <Text style={[styles.secondaryButtonText, { color: textColor }]}>
+              {t('camera.selectFromGallery', 'Select from Gallery')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <CameraNavigationGuard targetStep="capture">
       <View style={[styles.container, { backgroundColor }]}>
-        {displayImage ? (
-          // Show selected image and process button
-          <>
-            <Image source={{ uri: displayImage }} style={styles.imagePreview} resizeMode="contain" />
-            <TouchableOpacity
-              onPress={handleRetake}
-              style={[styles.retakeButton, { backgroundColor: primaryColor }]}
-            >
-              <MaterialIcons name="refresh" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-
-            <View style={styles.buttonContainer}>
-              <ActionButton
-                title={t('processImage', 'Process Image')}
-                icon="arrow-forward"
-                onPress={handleProcess}
-                backgroundColor={primaryColor}
-                style={styles.processImage}
-                disabled={!activeFlow} // Only enable if we have an active flow
-              />
-            </View>
-          </>
-        ) : (
-          // Show camera and gallery options
-          <View style={styles.bottomButtonsContainer}>
-            <View style={styles.instructionContainer}>
-              <MaterialIcons name="receipt" size={40} color={primaryColor} />
-              <Text style={[styles.instructionText, { color: textColor }]}>
-                {t(
-                  'selectOrTakePhoto',
-                  'Take a photo of your receipt or select from your photo library'
-                )}
-              </Text>
-            </View>
-
-            <View style={styles.buttonRow}>
-              <ActionButton
-                title={t('openCamera', 'Open Camera')}
-                icon="camera-alt"
-                onPress={handleOpenCamera}
-                backgroundColor={primaryColor}
-                style={styles.actionButton}
-              />
-
-              <ActionButton
-                title={t('gallery', 'Gallery')}
-                icon="photo-library"
-                onPress={handleSelectImage}
-                backgroundColor={primaryColor}
-                style={styles.actionButton}
-              />
-            </View>
-          </View>
-        )}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.closeButton}>
+            <MaterialIcons name="close" size={24} color={textColor} />
+          </TouchableOpacity>
+          <Text style={[styles.title, { color: textColor }]}>
+            {t('camera.title', 'Scan Receipt')}
+          </Text>
+          <View style={{ width: 40 }} />
+        </View>
+        
+        {renderContent()}
       </View>
     </CameraNavigationGuard>
   );
@@ -279,57 +252,73 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: horizontalScale(16),
+    paddingTop: verticalScale(50),
+    paddingBottom: verticalScale(24),
+  },
+  closeButton: {
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  instructionContainer: {
-    alignItems: 'center',
-    marginBottom: verticalScale(30),
-    paddingHorizontal: horizontalScale(20),
+  title: {
+    fontSize: moderateScale(18),
+    fontWeight: '600',
   },
-  instructionText: {
+  captureContainer: {
+    flex: 1,
+    padding: horizontalScale(16),
+  },
+  placeholder: {
+    flex: 1,
+    borderRadius: moderateScale(16),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: verticalScale(20),
+  },
+  placeholderText: {
+    fontSize: moderateScale(16),
     marginTop: verticalScale(16),
+  },
+  actions: {
+    gap: verticalScale(12),
+  },
+  mainButton: {
+    height: verticalScale(56),
+  },
+  secondaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: verticalScale(56),
+    borderRadius: moderateScale(12),
+    gap: horizontalScale(8),
+  },
+  secondaryButtonText: {
     fontSize: moderateScale(16),
     fontWeight: '500',
-    textAlign: 'center',
   },
-  buttonRow: {
+  previewContainer: {
+    flex: 1,
+    padding: horizontalScale(16),
+  },
+  previewImage: {
+    flex: 1,
+    borderRadius: moderateScale(16),
+    marginBottom: verticalScale(20),
+  },
+  previewActions: {
     flexDirection: 'row',
-    width: '100%',
-    paddingHorizontal: horizontalScale(10),
-    justifyContent: 'space-between',
-    gap: horizontalScale(16),
+    gap: horizontalScale(12),
   },
   actionButton: {
     flex: 1,
-    marginHorizontal: horizontalScale(10),
-  },
-  imagePreview: {
-    width: '100%',
-    height: '50%',
-    marginTop: verticalScale(50),
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: verticalScale(120),
-    width: '80%',
-    alignItems: 'center',
-  },
-  processImage: {
-    width: '100%',
-  },
-  retakeButton: {
-    position: 'absolute',
-    top: verticalScale(60),
-    right: horizontalScale(20),
-    padding: moderateScale(10),
-    borderRadius: moderateScale(20),
-    zIndex: 999,
-  },
-  bottomButtonsContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: horizontalScale(10),
-    paddingBottom: verticalScale(100),
+    height: verticalScale(56),
   },
 });

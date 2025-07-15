@@ -1,332 +1,99 @@
 // src/components/camera/workflow/CameraNavigationGuard.tsx
-import React, { useEffect, useCallback } from 'react';
-import { Alert } from 'react-native';
+import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { useTranslation } from 'react-i18next';
 import { useCameraFlow } from '../../../store/cameraFlowStore';
-import { 
-  CameraFlowStep, 
-  NavigationGuardResult, 
-  FlowTypeGuards,
-  STEP_RELATIONSHIPS 
-} from '../../../types/cameraFlow';
+import { CameraFlowStep } from '../../../types/cameraFlow';
 
 interface NavigationGuardProps {
   targetStep: CameraFlowStep;
   children: React.ReactNode;
-  onNavigationBlocked?: (result: NavigationGuardResult) => void;
 }
 
 /**
- * Navigation Guard Component
- * Validates whether navigation to a specific step is allowed
- * Redirects or shows warnings for invalid navigation attempts
+ * Navigation Guard Component - Flow-based navigation only
+ * No legacy support - requires active flow for all steps except capture
  */
 export function CameraNavigationGuard({ 
-  targetStep, 
-  children, 
-  onNavigationBlocked 
+  targetStep,
+  children 
 }: NavigationGuardProps) {
-  const { t } = useTranslation();
   const router = useRouter();
-  const { activeFlow, canNavigateToStep, updateFlow } = useCameraFlow();
-
-  const validateNavigation = useCallback((
-    step: CameraFlowStep, 
-    flow: typeof activeFlow
-  ): NavigationGuardResult => {
-    // No active flow
-    if (!flow) {
-      if (step === 'capture') {
-        return { allowed: true };
-      }
-      return {
-        allowed: false,
-        reason: 'No active camera flow',
-        suggestedAction: {
-          type: 'redirect',
-          target: 'capture',
-          message: t('navigationGuard.noActiveFlow', 'Please start a new camera session'),
-        },
-      };
-    }
-
-    // Check if step is reachable from current position
-    if (!canNavigateToStep(step)) {
-      const missingData = getMissingRequirements(step, flow);
-      
-      return {
-        allowed: false,
-        reason: `Missing required data: ${missingData.join(', ')}`,
-        suggestedAction: {
-          type: 'redirect',
-          target: getRequiredStep(missingData[0]),
-          message: t('navigationGuard.missingData', 'Please complete the previous steps first'),
-        },
-      };
-    }
-
-    // Check step-specific validations
-    const stepValidation = validateStepSpecificRequirements(step, flow);
-    if (!stepValidation.allowed) {
-      return stepValidation;
-    }
-
-    // Check if coming from valid previous step
-    const allowedFromSteps = STEP_RELATIONSHIPS[step].allowedFrom;
-    if (allowedFromSteps.length > 0 && !allowedFromSteps.includes(flow.currentStep)) {
-      // Allow if we've visited this step before (back navigation)
-      if (!FlowTypeGuards.hasVisitedStep(flow, step)) {
-        return {
-          allowed: false,
-          reason: `Cannot navigate from ${flow.currentStep} to ${step}`,
-          suggestedAction: {
-            type: 'redirect',
-            target: allowedFromSteps[0],
-            message: t('navigationGuard.invalidTransition', 'Invalid navigation path'),
-          },
-        };
-      }
-    }
-
-    return { allowed: true };
-  }, [canNavigateToStep, t]);
-
-  const validateStepSpecificRequirements = useCallback((
-    step: CameraFlowStep,
-    flow: NonNullable<typeof activeFlow>
-  ): NavigationGuardResult => {
-    switch (step) {
-      case 'capture':
-        return { allowed: true };
-
-      case 'processing':
-        if (!FlowTypeGuards.hasImageUri(flow)) {
-          return {
-            allowed: false,
-            reason: 'No image selected',
-            suggestedAction: {
-              type: 'redirect',
-              target: 'capture',
-              message: t('navigationGuard.noImage', 'Please select or capture an image first'),
-            },
-          };
-        }
-        return { allowed: true };
-
-      case 'review':
-        // Only require OCR result for review step, not processing step
-        if (!FlowTypeGuards.hasOCRResult(flow)) {
-          return {
-            allowed: false,
-            reason: 'OCR processing not completed',
-            suggestedAction: {
-              type: 'redirect',
-              target: 'processing',
-              message: t('navigationGuard.noOCRResult', 'Please wait for image processing to complete'),
-            },
-          };
-        }
-        return { allowed: true };
-
-      case 'verification':
-        if (!FlowTypeGuards.hasOCRResult(flow)) {
-          return {
-            allowed: false,
-            reason: 'OCR processing not completed',
-            suggestedAction: {
-              type: 'redirect',
-              target: 'processing',
-              message: t('navigationGuard.noOCRResult', 'Please complete image processing first'),
-            },
-          };
-        }
-        return { allowed: true };
-
-      case 'report':
-        if (!FlowTypeGuards.hasReceiptDraft(flow)) {
-          return {
-            allowed: false,
-            reason: 'Receipt data not verified',
-            suggestedAction: {
-              type: 'redirect',
-              target: 'verification',
-              message: t('navigationGuard.noReceiptData', 'Please verify receipt information first'),
-            },
-          };
-        }
-        return { allowed: true };
-
-      default:
-        return {
-          allowed: false,
-          reason: `Unknown step: ${step}`,
-          suggestedAction: {
-            type: 'cancel',
-            message: t('navigationGuard.unknownStep', 'Invalid navigation target'),
-          },
-        };
-    }
-  }, [t]);
-
-  const getMissingRequirements = useCallback((
-    step: CameraFlowStep,
-    flow: NonNullable<typeof activeFlow>
-  ): string[] => {
-    const missing: string[] = [];
-
-    switch (step) {
-      case 'processing':
-        if (!flow.imageUri) missing.push('imageUri');
-        break;
-      case 'review':
-        if (!flow.imageUri) missing.push('imageUri');
-        if (!flow.ocrResult) missing.push('ocrResult');
-        break;
-      case 'verification':
-        if (!flow.imageUri) missing.push('imageUri');
-        if (!flow.ocrResult) missing.push('ocrResult');
-        break;
-      case 'report':
-        if (!flow.imageUri) missing.push('imageUri');
-        if (!flow.receiptDraft) missing.push('receiptDraft');
-        break;
-    }
-
-    return missing;
-  }, []);
-
-  const getRequiredStep = useCallback((missingData: string): CameraFlowStep => {
-    switch (missingData) {
-      case 'imageUri':
-        return 'capture';
-      case 'ocrResult':
-        return 'processing';
-      case 'receiptDraft':
-        return 'verification';
-      default:
-        return 'capture';
-    }
-  }, []);
-
-  const handleNavigationBlocked = useCallback((result: NavigationGuardResult) => {
-    console.warn('Navigation blocked:', result);
-
-    // Call optional callback
-    onNavigationBlocked?.(result);
-
-    const { suggestedAction } = result;
-    if (!suggestedAction) return;
-
-    switch (suggestedAction.type) {
-      case 'redirect':
-        if (suggestedAction.target) {
-          Alert.alert(
-            t('navigationGuard.redirectTitle', 'Navigation Required'),
-            suggestedAction.message || result.reason,
-            [
-              {
-                text: t('common.cancel', 'Cancel'),
-                style: 'cancel',
-                onPress: () => router.back(),
-              },
-              {
-                text: t('common.continue', 'Continue'),
-                onPress: () => {
-                  // Use specific route paths that exist in the app
-                  switch (suggestedAction.target) {
-                    case 'capture':
-                      router.replace('/camera');
-                      break;
-                    case 'processing':
-                    case 'review':
-                      router.replace('/camera/imagedetails');
-                      break;
-                    case 'verification':
-                      router.replace('/camera/verification');
-                      break;
-                    case 'report':
-                      router.replace('/camera/report');
-                      break;
-                    default:
-                      router.replace('/camera');
-                  }
-                },
-              },
-            ]
-          );
-        }
-        break;
-
-      case 'retry':
-        Alert.alert(
-          t('navigationGuard.retryTitle', 'Retry Required'),
-          suggestedAction.message || result.reason,
-          [
-            {
-              text: t('common.cancel', 'Cancel'),
-              style: 'cancel',
-              onPress: () => router.back(),
-            },
-            {
-              text: t('common.retry', 'Retry'),
-              onPress: () => {
-                // Navigate to appropriate step for retry
-                const targetStep = suggestedAction.target || 'capture';
-                switch (targetStep) {
-                  case 'capture':
-                    router.replace('/camera');
-                    break;
-                  case 'processing':
-                  case 'review':
-                    router.replace('/camera/imagedetails');
-                    break;
-                  case 'verification':
-                    router.replace('/camera/verification');
-                    break;
-                  case 'report':
-                    router.replace('/camera/report');
-                    break;
-                  default:
-                    router.replace('/camera');
-                }
-              },
-            },
-          ]
-        );
-        break;
-
-      case 'cancel':
-        Alert.alert(
-          t('navigationGuard.errorTitle', 'Navigation Error'),
-          suggestedAction.message || result.reason,
-          [
-            {
-              text: t('common.ok', 'OK'),
-              onPress: () => router.replace('/camera'),
-            },
-          ]
-        );
-        break;
-    }
-  }, [router, t, onNavigationBlocked]);
+  const { activeFlow, canNavigateToStep } = useCameraFlow();
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
-    const guardResult = validateNavigation(targetStep, activeFlow);
-    
-    if (!guardResult.allowed) {
-      handleNavigationBlocked(guardResult);
+    // Reset redirect flag when target step changes
+    hasRedirected.current = false;
+  }, [targetStep]);
+
+  useEffect(() => {
+    // Skip if already redirected to prevent loops
+    if (hasRedirected.current) return;
+
+    // Special case: capture step is always allowed
+    if (targetStep === 'capture') return;
+
+    // No active flow - must start from capture
+    if (!activeFlow) {
+      hasRedirected.current = true;
+      setTimeout(() => router.replace('/camera'), 0);
       return;
     }
-    
-    // Don't automatically update flow step - let screens handle this themselves
-  }, [targetStep, activeFlow?.id, activeFlow?.currentStep, validateNavigation, handleNavigationBlocked]);
 
-  // Only render children if navigation is allowed
-  const guardResult = validateNavigation(targetStep, activeFlow);
-  
-  if (!guardResult.allowed) {
-    // Return null - the useEffect will handle the blocking
+    // Check if we can navigate to the target step
+    if (!canNavigateToStep(targetStep)) {
+      hasRedirected.current = true;
+      
+      // Determine appropriate redirect based on flow state
+      setTimeout(() => {
+        switch (targetStep) {
+          case 'processing':
+          case 'review':
+            // Need image first
+            if (!activeFlow.imageUri) {
+              router.replace('/camera');
+            } else {
+              // Stay on current step
+              router.back();
+            }
+            break;
+            
+          case 'verification':
+            // Need OCR result
+            if (!activeFlow.imageUri) {
+              router.replace('/camera');
+            } else if (!activeFlow.ocrResult) {
+              router.replace('/camera/imagedetails');
+            } else {
+              router.back();
+            }
+            break;
+            
+          case 'report':
+            // Need verified receipt
+            if (!activeFlow.receiptDraft) {
+              if (!activeFlow.imageUri) {
+                router.replace('/camera');
+              } else if (!activeFlow.ocrResult) {
+                router.replace('/camera/imagedetails');
+              } else {
+                router.replace('/camera/verification');
+              }
+            } else {
+              router.back();
+            }
+            break;
+            
+          default:
+            router.replace('/camera');
+        }
+      }, 0);
+      return;
+    }
+  }, [targetStep, activeFlow, canNavigateToStep, router]);
+
+  // Don't render children if navigation is not allowed
+  if (targetStep !== 'capture' && (!activeFlow || !canNavigateToStep(targetStep))) {
     return null;
   }
 
@@ -334,33 +101,48 @@ export function CameraNavigationGuard({
 }
 
 /**
- * Hook for manual navigation validation
- * Useful for checking if navigation is possible before attempting it
+ * Hook for programmatic navigation with validation
  */
-export function useNavigationValidation() {
+export function useGuardedNavigation() {
+  const router = useRouter();
   const { activeFlow, canNavigateToStep } = useCameraFlow();
 
-  const validateNavigation = useCallback((targetStep: CameraFlowStep): NavigationGuardResult => {
-    if (!activeFlow) {
-      return {
-        allowed: targetStep === 'capture',
-        reason: targetStep !== 'capture' ? 'No active flow' : undefined,
-      };
+  const navigateToStep = (step: CameraFlowStep) => {
+    // Always allow navigation to capture
+    if (step === 'capture') {
+      router.push('/camera');
+      return true;
     }
 
-    return {
-      allowed: canNavigateToStep(targetStep),
-      reason: canNavigateToStep(targetStep) ? undefined : 'Navigation requirements not met',
-    };
-  }, [activeFlow, canNavigateToStep]);
+    // Require active flow for other steps
+    if (!activeFlow) {
+      console.warn('Cannot navigate without active flow');
+      router.replace('/camera');
+      return false;
+    }
 
-  const canNavigate = useCallback((targetStep: CameraFlowStep): boolean => {
-    return validateNavigation(targetStep).allowed;
-  }, [validateNavigation]);
+    // Check if navigation is allowed
+    if (!canNavigateToStep(step)) {
+      console.warn(`Cannot navigate to ${step} - requirements not met`);
+      return false;
+    }
 
-  return {
-    validateNavigation,
-    canNavigate,
-    activeFlow,
+    // Navigate to the appropriate route
+    switch (step) {
+      case 'processing':
+      case 'review':
+        router.push(`/camera/imagedetails?flowId=${activeFlow.id}`);
+        break;
+      case 'verification':
+        router.push(`/camera/verification?flowId=${activeFlow.id}`);
+        break;
+      case 'report':
+        router.push(`/camera/report?flowId=${activeFlow.id}`);
+        break;
+    }
+    
+    return true;
   };
+
+  return { navigateToStep, canNavigateToStep, activeFlow };
 }
