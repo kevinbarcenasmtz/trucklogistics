@@ -336,20 +336,21 @@ export const OCRProcessingProvider: React.FC<OCRProcessingProviderProps> = ({ ch
   }, []);
 
   // Development logging
-  // if (process.env.NODE_ENV === 'development') {
-  //   React.useEffect(() => {
-  //     console.log('[OCRProcessingContext] State updated:', {
-  //       status: state.status,
-  //       stage: state.stage,
-  //       uploadProgress: state.uploadProgress,
-  //       processingProgress: state.processingProgress,
-  //       totalProgress: state.totalProgress,
-  //       isProcessing: state.isProcessing,
-  //       hasError: state.hasError,
-  //       timestamp: new Date().toISOString(),
-  //     });
-  //   }, [state]);
-  // }
+    React.useEffect(() => {
+      if (process.env.NODE_ENV === 'development') {
+      console.log('[OCRProcessingContext] State updated:', {
+        status: state.status,
+        stage: state.stage,
+        uploadProgress: state.uploadProgress,
+        processingProgress: state.processingProgress,
+        totalProgress: state.totalProgress,
+        isProcessing: state.isProcessing,
+        hasError: state.hasError,
+        timestamp: new Date().toISOString(),
+      });
+      }   
+    }, [state]);
+
 
   const contextValue: OCRProcessingContextValue = {
     state,
