@@ -1,6 +1,5 @@
-// src/components/camera/ReportComponents.tsx
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Receipt } from '@/src/types/ReceiptInterfaces';
 import { Feather, MaterialIcons } from '@expo/vector-icons';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -18,9 +17,7 @@ export const ReceiptHeader = ({
   formatTime: (date?: string) => string;
   getReceiptTypeIcon: (type?: string) => string;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { textColor, secondaryTextColor, primaryColor } = useAppTheme();
 
   return (
     <View style={styles.receiptHeader}>
@@ -28,32 +25,17 @@ export const ReceiptHeader = ({
         <MaterialIcons
           name={getReceiptTypeIcon(receipt.type) as any}
           size={24}
-          color={themeStyles.colors.greenThemeColor}
+          color={primaryColor}
         />
-        <Text
-          style={[
-            styles.receiptTypeText,
-            { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-          ]}
-        >
+        <Text style={[styles.receiptTypeText, { color: textColor }]}>
           {receipt.type || 'Other'}
         </Text>
       </View>
       <View style={styles.receiptDate}>
-        <Text
-          style={[
-            styles.dateText,
-            { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-          ]}
-        >
+        <Text style={[styles.dateText, { color: textColor }]}>
           {formatDate(receipt.date)}
         </Text>
-        <Text
-          style={[
-            styles.timeText,
-            { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
-          ]}
-        >
+        <Text style={[styles.timeText, { color: secondaryTextColor }]}>
           {formatTime(receipt.timestamp)}
         </Text>
       </View>
@@ -63,44 +45,23 @@ export const ReceiptHeader = ({
 
 // Divider Component
 export const Divider = () => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { borderColor } = useAppTheme();
 
   return (
-    <View
-      style={[
-        styles.divider,
-        {
-          backgroundColor: isDarkTheme ? themeStyles.colors.black_grey : themeStyles.colors.border,
-        },
-      ]}
-    />
+    <View style={[styles.divider, { backgroundColor: borderColor }]} />
   );
 };
 
 // Receipt Content Component
 export const ReceiptContent = ({ receipt, t }: { receipt: Receipt; t: any }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { textColor } = useAppTheme();
 
   return (
     <View style={styles.receiptContent}>
-      <Text
-        style={[
-          styles.amountText,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
-      >
+      <Text style={[styles.amountText, { color: textColor }]}>
         {receipt.amount}
       </Text>
-      <Text
-        style={[
-          styles.vendorText,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
-      >
+      <Text style={[styles.vendorText, { color: textColor }]}>
         {receipt.vendorName || t('unknownVendor', 'Unknown Vendor')}
       </Text>
 
@@ -127,25 +88,15 @@ export const DetailItem = ({
   value: string;
   multiline?: boolean;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { textColor, secondaryTextColor } = useAppTheme();
 
   return (
     <View style={styles.detailItem}>
-      <Text
-        style={[
-          styles.detailLabel,
-          { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
-        ]}
-      >
+      <Text style={[styles.detailLabel, { color: secondaryTextColor }]}>
         {label}
       </Text>
       <Text
-        style={[
-          styles.detailValue,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
+        style={[styles.detailValue, { color: textColor }]}
         numberOfLines={multiline ? 2 : 1}
       >
         {value}
@@ -166,48 +117,29 @@ export const RawTextSection = ({
   toggleFullText: () => void;
   t: any;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { textColor, secondaryTextColor, primaryColor, borderColor, surfaceColor } = useAppTheme();
 
   return (
     <SectionContainer>
       <TouchableOpacity
-        style={[
-          styles.rawTextHeader,
-          {
-            borderBottomColor: isDarkTheme
-              ? themeStyles.colors.black_grey
-              : themeStyles.colors.border,
-          },
-        ]}
+        style={[styles.rawTextHeader, { borderBottomColor: borderColor }]}
         onPress={toggleFullText}
       >
         <View style={styles.rawTextTitle}>
-          <Feather name="file-text" size={20} color={themeStyles.colors.greenThemeColor} />
-          <Text
-            style={[
-              styles.rawTextTitleText,
-              { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-            ]}
-          >
+          <Feather name="file-text" size={20} color={primaryColor} />
+          <Text style={[styles.rawTextTitleText, { color: textColor }]}>
             {t('extractedText', 'Extracted Text')}
           </Text>
         </View>
         <Feather
           name={showFullText ? 'chevron-up' : 'chevron-down'}
           size={20}
-          color={isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary}
+          color={secondaryTextColor}
         />
       </TouchableOpacity>
 
       <View style={[styles.rawTextContent, !showFullText && styles.rawTextContentCollapsed]}>
-        <Text
-          style={[
-            styles.rawText,
-            { color: isDarkTheme ? themeStyles.colors.grey : themeStyles.colors.text.secondary },
-          ]}
-        >
+        <Text style={[styles.rawText, { color: secondaryTextColor }]}>
           {receipt.extractedText ||
             t('noTextExtracted', 'No text was extracted from this receipt.')}
         </Text>
@@ -215,17 +147,10 @@ export const RawTextSection = ({
 
       {!showFullText && receipt.extractedText && receipt.extractedText.length > 100 && (
         <TouchableOpacity
-          style={[
-            styles.showMoreButton,
-            {
-              backgroundColor: isDarkTheme
-                ? themeStyles.colors.black_grey
-                : themeStyles.colors.surface,
-            },
-          ]}
+          style={[styles.showMoreButton, { backgroundColor: surfaceColor }]}
           onPress={toggleFullText}
         >
-          <Text style={[styles.showMoreText, { color: themeStyles.colors.greenThemeColor }]}>
+          <Text style={[styles.showMoreText, { color: primaryColor }]}>
             {t('showMore', 'Show More')}
           </Text>
         </TouchableOpacity>
@@ -250,9 +175,7 @@ export const ActionCard = ({
   shareLoading: boolean;
   t: any;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { textColor, surfaceColor, successColor, themeStyles } = useAppTheme();
 
   return (
     <SectionContainer title={t('actions', 'Actions')}>
@@ -262,7 +185,7 @@ export const ActionCard = ({
             style={[
               styles.approveButton,
               {
-                backgroundColor: themeStyles.colors.status.success,
+                backgroundColor: successColor,
                 ...themeStyles.shadow.sm,
               },
               isStatusUpdating && { opacity: 0.6 },
@@ -271,33 +194,20 @@ export const ActionCard = ({
             disabled={isStatusUpdating}
           >
             {isStatusUpdating ? (
-              <ActivityIndicator size="small" color={themeStyles.colors.white} />
+              <ActivityIndicator size="small" color="#FFFFFF" />
             ) : (
               <>
-                <MaterialIcons name="check-circle" size={20} color={themeStyles.colors.white} />
-                <Text style={[styles.buttonText, { color: themeStyles.colors.white }]}>
+                <MaterialIcons name="check-circle" size={20} color="#FFFFFF" />
+                <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
                   {t('approve', 'Approve')}
                 </Text>
               </>
             )}
           </TouchableOpacity>
         ) : (
-          <View
-            style={[
-              styles.approvedMessage,
-              {
-                backgroundColor: isDarkTheme
-                  ? themeStyles.colors.black_grey
-                  : themeStyles.colors.surface,
-              },
-            ]}
-          >
-            <MaterialIcons
-              name="check-circle"
-              size={20}
-              color={themeStyles.colors.status.success}
-            />
-            <Text style={[styles.approvedText, { color: themeStyles.colors.status.success }]}>
+          <View style={[styles.approvedMessage, { backgroundColor: surfaceColor }]}>
+            <MaterialIcons name="check-circle" size={20} color={successColor} />
+            <Text style={[styles.approvedText, { color: successColor }]}>
               {t('receiptApproved', 'Receipt Approved')}
             </Text>
           </View>
@@ -307,9 +217,7 @@ export const ActionCard = ({
           style={[
             styles.shareActionButton,
             {
-              backgroundColor: isDarkTheme
-                ? themeStyles.colors.black_grey
-                : themeStyles.colors.surface,
+              backgroundColor: surfaceColor,
               ...themeStyles.shadow.sm,
             },
             shareLoading && { opacity: 0.6 },
@@ -318,25 +226,11 @@ export const ActionCard = ({
           disabled={shareLoading}
         >
           {shareLoading ? (
-            <ActivityIndicator
-              size="small"
-              color={isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary}
-            />
+            <ActivityIndicator size="small" color={textColor} />
           ) : (
             <>
-              <Feather
-                name="share-2"
-                size={20}
-                color={isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary}
-              />
-              <Text
-                style={[
-                  styles.buttonText,
-                  {
-                    color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary,
-                  },
-                ]}
-              >
+              <Feather name="share-2" size={20} color={textColor} />
+              <Text style={[styles.buttonText, { color: textColor }]}>
                 {t('share', 'Share')}
               </Text>
             </>
@@ -349,19 +243,15 @@ export const ActionCard = ({
 
 // Footer Button Component
 export const FooterButton = ({ onPress, t }: { onPress: () => void; t: any }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { backgroundColor, borderColor, primaryColor, themeStyles } = useAppTheme();
 
   return (
     <View
       style={[
         styles.footer,
         {
-          backgroundColor: isDarkTheme
-            ? themeStyles.colors.black_grey
-            : themeStyles.colors.background,
-          borderTopColor: isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.border,
+          backgroundColor: backgroundColor,
+          borderTopColor: borderColor,
           ...themeStyles.shadow.lg,
         },
       ]}
@@ -370,13 +260,13 @@ export const FooterButton = ({ onPress, t }: { onPress: () => void; t: any }) =>
         style={[
           styles.doneButton,
           {
-            backgroundColor: themeStyles.colors.greenThemeColor,
+            backgroundColor: primaryColor,
             ...themeStyles.shadow.md,
           },
         ]}
         onPress={onPress}
       >
-        <Text style={[styles.buttonText, { color: themeStyles.colors.white }]}>
+        <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
           {t('done', 'Done')}
         </Text>
       </TouchableOpacity>
@@ -386,28 +276,12 @@ export const FooterButton = ({ onPress, t }: { onPress: () => void; t: any }) =>
 
 // Loading Component
 export const LoadingView = ({ t }: { t: any }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
-  const isDarkTheme = theme === 'dark';
+  const { backgroundColor, textColor, primaryColor } = useAppTheme();
 
   return (
-    <View
-      style={[
-        styles.loadingContainer,
-        {
-          backgroundColor: isDarkTheme
-            ? themeStyles.colors.black_grey
-            : themeStyles.colors.background,
-        },
-      ]}
-    >
-      <ActivityIndicator size="large" color={themeStyles.colors.greenThemeColor} />
-      <Text
-        style={[
-          styles.loadingText,
-          { color: isDarkTheme ? themeStyles.colors.white : themeStyles.colors.text.primary },
-        ]}
-      >
+    <View style={[styles.loadingContainer, { backgroundColor: backgroundColor }]}>
+      <ActivityIndicator size="large" color={primaryColor} />
+      <Text style={[styles.loadingText, { color: textColor }]}>
         {t('loadingReceipt', 'Loading receipt...')}
       </Text>
     </View>
