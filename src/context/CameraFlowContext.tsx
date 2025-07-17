@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useReducer, useCallback } from 'react';
 import { CameraFlow, CameraFlowStep, FlowError, FlowMetrics, FlowTransition } from '../types/cameraFlow';
-import { ProcessedReceipt } from '../state/ocr/types';
-import { Receipt } from '../types/ReceiptInterfaces';
+// import { ProcessedReceipt } from '../state/ocr/types';
+// import { Receipt } from '../types/ReceiptInterfaces';
 
 /**
  * Camera Flow State
