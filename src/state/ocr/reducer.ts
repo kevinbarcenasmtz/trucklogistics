@@ -51,6 +51,19 @@ export function ocrReducer(current: OCRStateWithContext, action: OCRAction): OCR
     },
   });
 
+  /**
+ * Convert confidence from AIClassifiedReceipt to a single number
+ */
+const getConfidenceValue = (confidence: { [key: string]: number } | number | undefined): number => {
+  if (typeof confidence === 'number') return confidence;
+  if (typeof confidence === 'object' && confidence) {
+    // Calculate average confidence from all fields
+    const values = Object.values(confidence);
+    return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0.8;
+  }
+  return 0.8; // Default confidence
+};
+
   switch (action.type) {
     // ===== CAPTURE ACTIONS =====
     case 'START_CAPTURE': {
@@ -255,16 +268,16 @@ export function ocrReducer(current: OCRStateWithContext, action: OCRAction): OCR
 
     case 'CLASSIFY_COMPLETE': {
       if (current.state.status !== 'classifying') return current;
-
+      
       const classificationTime =
         Date.now() -
         (current.context.startTime +
           (current.context.metrics.imageOptimizationTime || 0) +
           (current.context.metrics.uploadTime || 0) +
           (current.context.metrics.ocrProcessingTime || 0));
-
+      
       const totalProcessingTime = Date.now() - current.context.startTime;
-
+      
       return updateState(
         {
           status: 'reviewing',
@@ -274,7 +287,7 @@ export function ocrReducer(current: OCRStateWithContext, action: OCRAction): OCR
             extractedText: current.state.text,
             classification: action.classification,
             processedAt: new Date().toISOString(),
-            confidence: action.classification.confidence || 0.8,
+            confidence: getConfidenceValue(action.classification.confidence),
           },
           imageUri: current.state.imageUri,
           optimizedUri: current.state.optimizedUri,
@@ -284,7 +297,7 @@ export function ocrReducer(current: OCRStateWithContext, action: OCRAction): OCR
             ...current.context.metrics,
             classificationTime,
             totalProcessingTime,
-            classificationConfidence: action.classification.confidence,
+            classificationConfidence: getConfidenceValue(action.classification.confidence),
           },
         }
       );

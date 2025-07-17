@@ -321,7 +321,6 @@ export const OCRActions = {
     type: 'RESET_TO_CAPTURING',
     source,
   }),
-
 };
 
 /**

@@ -4,7 +4,7 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 
 export default function CameraLayout() {
-  const { backgroundColor, textColor } = useAppTheme();
+  const { backgroundColor } = useAppTheme();
 
   return (
     <OCRProvider>

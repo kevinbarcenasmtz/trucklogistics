@@ -1,29 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { View, Alert, StyleSheet, Text, Image } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as Haptics from 'expo-haptics';
-import { useCameraFlow } from '../../../../store/cameraFlowStore';
 import { useOCR } from '@/src/context/OCRContext';
-import { StepProps } from '../types';
-import StepTransition from '../StepTransition';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { ActionButton } from '../../CameraUIComponents';
-import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
-import { TouchableOpacity } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCameraFlow } from '../../../../store/cameraFlowStore';
+import { ActionButton } from '../../CameraUIComponents';
+import StepTransition from '../StepTransition';
+import { StepProps } from '../types';
 
-export const CaptureStep: React.FC<StepProps> = ({
-  flowId,
-  onNext,
-  onCancel,
-  onError
-}) => {
+export const CaptureStep: React.FC<StepProps> = ({ flowId, onNext, onCancel, onError }) => {
   const { activeFlow, startFlow, updateFlow } = useCameraFlow();
   const { dispatch: dispatchOCR } = useOCR();
-  const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor } = useAppTheme();
+  const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor } =
+    useAppTheme();
   const { t } = useTranslation();
-  
+
   // UI-only state
   const [cameraPermissionStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
   const [isProcessingImage, setIsProcessingImage] = useState(false);
@@ -35,7 +30,7 @@ export const CaptureStep: React.FC<StepProps> = ({
   useEffect(() => {
     // Reset OCR state when entering capture step
     dispatchOCR({ type: 'RESET' });
-  }, []);
+  }, [dispatchOCR]);
 
   const handleTakePhoto = async () => {
     try {
@@ -47,7 +42,7 @@ export const CaptureStep: React.FC<StepProps> = ({
             code: 'CAMERA_PERMISSION_DENIED',
             message: 'Camera permission is required to capture receipts',
             step: 'capture',
-            retry: true
+            retry: true,
           });
           return;
         }
@@ -69,7 +64,7 @@ export const CaptureStep: React.FC<StepProps> = ({
         code: 'CAMERA_LAUNCH_FAILED',
         message: 'Failed to open camera. Please try again.',
         step: 'capture',
-        retry: true
+        retry: true,
       });
     }
   };
@@ -91,7 +86,7 @@ export const CaptureStep: React.FC<StepProps> = ({
         code: 'GALLERY_SELECTION_FAILED',
         message: 'Failed to select image. Please try again.',
         step: 'capture',
-        retry: true
+        retry: true,
       });
     }
   };
@@ -116,13 +111,12 @@ export const CaptureStep: React.FC<StepProps> = ({
 
       // Advance to processing step
       onNext();
-      
     } catch (error) {
       onError({
         code: 'IMAGE_PROCESSING_FAILED',
         message: 'Failed to process image. Please try again.',
         step: 'capture',
-        retry: true
+        retry: true,
       });
     } finally {
       setIsProcessingImage(false);
@@ -130,10 +124,10 @@ export const CaptureStep: React.FC<StepProps> = ({
   };
 
   const handleRetake = () => {
-    updateFlow({ 
-      imageUri: undefined, 
+    updateFlow({
+      imageUri: undefined,
       ocrResult: undefined,
-      currentStep: 'capture' 
+      currentStep: 'capture',
     });
     dispatchOCR({ type: 'RESET' });
   };
@@ -151,7 +145,7 @@ export const CaptureStep: React.FC<StepProps> = ({
       t('camera.cancelMessage', 'Are you sure you want to cancel? Any progress will be lost.'),
       [
         { text: t('camera.continueScan', 'Continue Scanning'), style: 'cancel' },
-        { text: t('common.cancel', 'Cancel'), style: 'destructive', onPress: onCancel }
+        { text: t('common.cancel', 'Cancel'), style: 'destructive', onPress: onCancel },
       ]
     );
   };
@@ -162,10 +156,10 @@ export const CaptureStep: React.FC<StepProps> = ({
         {/* Image Preview Section */}
         {showPreview && (
           <View style={styles.previewContainer}>
-            <Image 
-              source={{ uri: selectedImage }} 
+            <Image
+              source={{ uri: selectedImage }}
               style={styles.previewImage}
-              resizeMode="contain" 
+              resizeMode="contain"
             />
           </View>
         )}
@@ -180,7 +174,7 @@ export const CaptureStep: React.FC<StepProps> = ({
                   {t('camera.instruction', 'Take a photo of your receipt or select from gallery')}
                 </Text>
               </View>
-              
+
               <View style={styles.buttonContainer}>
                 <ActionButton
                   title={t('camera.takePhoto', 'Take Photo')}
@@ -189,7 +183,7 @@ export const CaptureStep: React.FC<StepProps> = ({
                   disabled={isProcessingImage}
                   style={styles.primaryButton}
                 />
-                
+
                 <TouchableOpacity
                   style={[styles.secondaryButton, { backgroundColor: surfaceColor }]}
                   onPress={handleSelectFromGallery}
@@ -211,7 +205,7 @@ export const CaptureStep: React.FC<StepProps> = ({
                 color={textColor}
                 style={styles.secondaryButton}
               />
-              
+
               <ActionButton
                 title={t('common.continue', 'Continue')}
                 onPress={handleContinue}
@@ -219,7 +213,7 @@ export const CaptureStep: React.FC<StepProps> = ({
               />
             </View>
           )}
-          
+
           <ActionButton
             title={t('common.cancel', 'Cancel')}
             onPress={handleCancelFlow}

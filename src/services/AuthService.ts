@@ -1,5 +1,4 @@
 // src/services/AuthService.ts
-import { useTranslation } from 'react-i18next';
 import { AuthFormData } from '../machines/authFormMachine';
 
 export interface ValidationResult {
@@ -29,37 +28,36 @@ export class AuthService {
    * Enhanced password validation
    */
   static validatePasswordStrength(password: string): ValidationResult {
-    const { t } = useTranslation();
     const errors: string[] = [];
 
     if (password.length < 12) {
-      errors.push(t('PasswordTooShort', 'Password must be at least 12 characters long'));
+      errors.push('PasswordTooShort', 'Password must be at least 12 characters long');
     }
 
     if (!/[A-Z]/.test(password)) {
       errors.push(
-        t('PasswordUppercaseRequired', 'Password must contain at least one uppercase letter')
+        'PasswordUppercaseRequired', 'Password must contain at least one uppercase letter'
       );
     }
 
     if (!/[a-z]/.test(password)) {
       errors.push(
-        t('PasswordLowercaseRequired', 'Password must contain at least one lowercase letter')
+        'PasswordLowercaseRequired', 'Password must contain at least one lowercase letter'
       );
     }
 
     if (!/[0-9]/.test(password)) {
-      errors.push(t('PasswordNumberRequired', 'Password must contain at least one number'));
+      errors.push('PasswordNumberRequired', 'Password must contain at least one number');
     }
 
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
       errors.push(
-        t('PasswordSpecialCharRequired', 'Password must contain at least one special character')
+        'PasswordSpecialCharRequired', 'Password must contain at least one special character'
       );
     }
 
     if (/(.)\1{3,}/.test(password)) {
-      errors.push(t('PasswordRepeatedChar', 'Password cannot contain repeated characters'));
+      errors.push('PasswordRepeatedChar', 'Password cannot contain repeated characters');
     }
 
     const commonPasswords = [
@@ -74,7 +72,7 @@ export class AuthService {
     ];
 
     if (commonPasswords.some(common => password.toLowerCase().includes(common))) {
-      errors.push(t('PasswordTooCommon', 'Please choose a more secure password'));
+      errors.push('PasswordTooCommon', 'Please choose a more secure password');
     }
 
     return { isValid: errors.length === 0, errors };
@@ -84,19 +82,18 @@ export class AuthService {
    * Validate login form data
    */
   static validateLoginForm(form: AuthFormData): ValidationResult {
-    const { t } = useTranslation();
     const errors: string[] = [];
 
     if (!form.email.trim()) {
-      errors.push(t('EmailRequired', 'Email is required'));
+      errors.push('EmailRequired', 'Email is required');
     }
 
     if (!form.password.trim()) {
-      errors.push(t('PasswordRequired', 'Password is required'));
+      errors.push('PasswordRequired', 'Password is required');
     }
 
     if (form.email.trim() && !this.isValidEmailFormat(form.email)) {
-      errors.push(t('EmailInvalid', 'Please enter a valid email address'));
+      errors.push('EmailInvalid', 'Please enter a valid email address');
     }
 
     return { isValid: errors.length === 0, errors };
@@ -106,35 +103,34 @@ export class AuthService {
    * Validate signup form data with enhanced security
    */
   static validateSignupForm(form: AuthFormData): ValidationResult {
-    const { t } = useTranslation();
     const errors: string[] = [];
 
     if (!form.email?.trim()) {
-      errors.push(t('EmailRequired', 'Email is required'));
+      errors.push('EmailRequired', 'Email is required');
     }
 
     if (!form.password?.trim()) {
-      errors.push(t('PasswordRequired', 'Password is required'));
+      errors.push('PasswordRequired', 'Password is required');
     }
 
     if (!form.confirmPassword?.trim()) {
-      errors.push(t('ConfirmPasswordRequired', 'Confirm password is required'));
+      errors.push('ConfirmPasswordRequired', 'Confirm password is required');
     }
 
     if (!form.fname?.trim()) {
-      errors.push(t('FirstNameRequired', 'First name is required'));
+      errors.push('FirstNameRequired', 'First name is required');
     }
 
     if (!form.lname?.trim()) {
-      errors.push(t('LastNameRequired', 'Last name is required'));
+      errors.push('LastNameRequired', 'Last name is required');
     }
 
     if (form.email?.trim() && !this.isValidEmailFormat(form.email)) {
-      errors.push(t('EmailInvalid', 'Please enter a valid email address'));
+      errors.push('EmailInvalid', 'Please enter a valid email address');
     }
 
     if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
-      errors.push(t('PasswordsDontMatch', 'Passwords do not match'));
+      errors.push('PasswordsDontMatch', 'Passwords do not match');
     }
 
     if (form.password) {
@@ -151,15 +147,14 @@ export class AuthService {
    * Validate forgot password form data
    */
   static validateForgotPasswordForm(form: { email: string }): ValidationResult {
-    const { t } = useTranslation();
     const errors: string[] = [];
 
     if (!form.email.trim()) {
-      errors.push(t('EmailRequired', 'Email is required'));
+      errors.push('EmailRequired', 'Email is required');
     }
 
     if (form.email.trim() && !this.isValidEmailFormat(form.email)) {
-      errors.push(t('EmailInvalid', 'Please enter a valid email address'));
+      errors.push('EmailInvalid', 'Please enter a valid email address');
     }
 
     return { isValid: errors.length === 0, errors };

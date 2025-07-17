@@ -1,25 +1,20 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import { useCameraFlow } from '../../../../store/cameraFlowStore';
 import { useOCR } from '@/src/context/OCRContext';
-import { StepProps } from '../types';
-import StepTransition from '../StepTransition';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { ActionButton } from '../../CameraUIComponents';
-import { useTranslation } from 'react-i18next';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ActivityIndicator } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useCameraFlow } from '../../../../store/cameraFlowStore';
+import { ActionButton } from '../../CameraUIComponents';
+import StepTransition from '../StepTransition';
+import { StepProps } from '../types';
 
-export const ProcessingStep: React.FC<StepProps> = ({
-  flowId,
-  onNext,
-  onCancel,
-  onError
-}) => {
+export const ProcessingStep: React.FC<StepProps> = ({ flowId, onNext, onCancel, onError }) => {
   const { activeFlow, updateFlow } = useCameraFlow();
   const { state: ocrContextState, dispatch: dispatchOCR } = useOCR();
-  const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor } = useAppTheme();
+  const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor } =
+    useAppTheme();
   const { t } = useTranslation();
 
   // Extract actual OCR state from context
@@ -33,19 +28,19 @@ export const ProcessingStep: React.FC<StepProps> = ({
         uri: activeFlow.imageUri,
       });
     }
-  }, [activeFlow?.imageUri, ocrState.status]);
+  }, [activeFlow?.imageUri, ocrState.status, dispatchOCR]);
 
   // Listen for OCR completion
   useEffect(() => {
     if (ocrState.status === 'reviewing' && 'data' in ocrState && ocrState.data) {
       // Update flow with OCR result and advance to next step
-      updateFlow({ 
+      updateFlow({
         ocrResult: ocrState.data,
-        currentStep: 'review'
+        currentStep: 'review',
       });
       onNext();
     }
-  }, [ocrState.status, ocrState]);
+  }, [ocrState.status, ocrState, updateFlow, onNext]);
 
   // Handle OCR errors
   useEffect(() => {
@@ -54,10 +49,10 @@ export const ProcessingStep: React.FC<StepProps> = ({
         code: 'OCR_PROCESSING_FAILED',
         message: ocrState.error.message || 'OCR processing failed',
         step: 'processing',
-        retry: true
+        retry: true,
       });
     }
-  }, [ocrState.status, ocrState]);
+  }, [ocrState.status, ocrState, onError]);
 
   const handleCancel = () => {
     // Cancel OCR processing
@@ -101,12 +96,12 @@ export const ProcessingStep: React.FC<StepProps> = ({
         case 'optimizing':
           return ocrState.progress * 25; // 0-25%
         case 'uploading':
-          return 25 + (ocrState.progress * 25); // 25-50%
+          return 25 + ocrState.progress * 25; // 25-50%
         case 'processing':
         case 'extracting':
-          return 50 + (ocrState.progress * 25); // 50-75%
+          return 50 + ocrState.progress * 25; // 50-75%
         case 'classifying':
-          return 75 + (ocrState.progress * 25); // 75-100%
+          return 75 + ocrState.progress * 25; // 75-100%
         default:
           return 0;
       }
@@ -115,7 +110,6 @@ export const ProcessingStep: React.FC<StepProps> = ({
   };
 
   const isError = ocrState.status === 'error';
-  const isProcessing = ['optimizing', 'uploading', 'processing', 'extracting', 'classifying'].includes(ocrState.status);
 
   return (
     <StepTransition entering={true}>
@@ -129,23 +123,21 @@ export const ProcessingStep: React.FC<StepProps> = ({
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color={primaryColor} />
                 <View style={[styles.progressBar, { backgroundColor: secondaryTextColor }]}>
-                  <View 
+                  <View
                     style={[
-                      styles.progressFill, 
-                      { 
+                      styles.progressFill,
+                      {
                         backgroundColor: primaryColor,
-                        width: `${getProgressPercentage()}%`
-                      }
-                    ]} 
+                        width: `${getProgressPercentage()}%`,
+                      },
+                    ]}
                   />
                 </View>
               </View>
             )}
-            
-            <Text style={[styles.statusText, { color: textColor }]}>
-              {getStatusMessage()}
-            </Text>
-            
+
+            <Text style={[styles.statusText, { color: textColor }]}>{getStatusMessage()}</Text>
+
             {'progress' in ocrState && (
               <Text style={[styles.progressText, { color: secondaryTextColor }]}>
                 {Math.round(ocrState.progress * 100)}% complete
@@ -159,23 +151,31 @@ export const ProcessingStep: React.FC<StepProps> = ({
               <Text style={[styles.stepsTitle, { color: textColor }]}>
                 {t('ocr.processingsteps', 'Processing Steps')}
               </Text>
-              
-              <ProcessingStepItem 
+
+              <ProcessingStepItem
                 title={t('ocr.step1', 'Optimizing image')}
-                isCompleted={['uploading', 'processing', 'extracting', 'classifying', 'reviewing'].includes(ocrState.status)}
+                isCompleted={[
+                  'uploading',
+                  'processing',
+                  'extracting',
+                  'classifying',
+                  'reviewing',
+                ].includes(ocrState.status)}
                 isActive={ocrState.status === 'optimizing'}
               />
-              <ProcessingStepItem 
+              <ProcessingStepItem
                 title={t('ocr.step2', 'Uploading image')}
-                isCompleted={['processing', 'extracting', 'classifying', 'reviewing'].includes(ocrState.status)}
+                isCompleted={['processing', 'extracting', 'classifying', 'reviewing'].includes(
+                  ocrState.status
+                )}
                 isActive={ocrState.status === 'uploading'}
               />
-              <ProcessingStepItem 
+              <ProcessingStepItem
                 title={t('ocr.step3', 'Extracting text')}
                 isCompleted={['extracting', 'classifying', 'reviewing'].includes(ocrState.status)}
                 isActive={ocrState.status === 'processing' || ocrState.status === 'extracting'}
               />
-              <ProcessingStepItem 
+              <ProcessingStepItem
                 title={t('ocr.step4', 'Classifying receipt')}
                 isCompleted={['reviewing'].includes(ocrState.status)}
                 isActive={ocrState.status === 'classifying'}
@@ -194,7 +194,7 @@ export const ProcessingStep: React.FC<StepProps> = ({
               style={styles.actionButton}
             />
           ) : null}
-          
+
           <ActionButton
             title={t('common.cancel', 'Cancel')}
             onPress={handleCancel}
@@ -215,31 +215,31 @@ const ProcessingStepItem: React.FC<{
   isActive: boolean;
 }> = ({ title, isCompleted, isActive }) => {
   const { textColor, secondaryTextColor, primaryColor } = useAppTheme();
-  
+
   return (
     <View style={styles.stepItem}>
-      <View style={[
-        styles.stepIndicator,
-        { 
-          backgroundColor: isCompleted ? primaryColor : 'transparent',
-          borderColor: isActive ? primaryColor : secondaryTextColor
-        }
-      ]}>
-        {isCompleted && (
-          <MaterialIcons name="check" size={16} color="#FFFFFF" />
-        )}
-        {isActive && !isCompleted && (
-          <ActivityIndicator size="small" color={primaryColor} />
-        )}
+      <View
+        style={[
+          styles.stepIndicator,
+          {
+            backgroundColor: isCompleted ? primaryColor : 'transparent',
+            borderColor: isActive ? primaryColor : secondaryTextColor,
+          },
+        ]}
+      >
+        {isCompleted && <MaterialIcons name="check" size={16} color="#FFFFFF" />}
+        {isActive && !isCompleted && <ActivityIndicator size="small" color={primaryColor} />}
       </View>
-      
-      <Text style={[
-        styles.stepTitle,
-        { 
-          color: isCompleted || isActive ? textColor : secondaryTextColor,
-          fontWeight: isActive ? '600' : '400'
-        }
-      ]}>
+
+      <Text
+        style={[
+          styles.stepTitle,
+          {
+            color: isCompleted || isActive ? textColor : secondaryTextColor,
+            fontWeight: isActive ? '600' : '400',
+          },
+        ]}
+      >
         {title}
       </Text>
     </View>

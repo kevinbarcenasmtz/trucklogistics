@@ -32,9 +32,7 @@ export const ReceiptHeader = ({
         </Text>
       </View>
       <View style={styles.receiptDate}>
-        <Text style={[styles.dateText, { color: textColor }]}>
-          {formatDate(receipt.date)}
-        </Text>
+        <Text style={[styles.dateText, { color: textColor }]}>{formatDate(receipt.date)}</Text>
         <Text style={[styles.timeText, { color: secondaryTextColor }]}>
           {formatTime(receipt.timestamp)}
         </Text>
@@ -47,9 +45,7 @@ export const ReceiptHeader = ({
 export const Divider = () => {
   const { borderColor } = useAppTheme();
 
-  return (
-    <View style={[styles.divider, { backgroundColor: borderColor }]} />
-  );
+  return <View style={[styles.divider, { backgroundColor: borderColor }]} />;
 };
 
 // Receipt Content Component
@@ -58,9 +54,7 @@ export const ReceiptContent = ({ receipt, t }: { receipt: Receipt; t: any }) => 
 
   return (
     <View style={styles.receiptContent}>
-      <Text style={[styles.amountText, { color: textColor }]}>
-        {receipt.amount}
-      </Text>
+      <Text style={[styles.amountText, { color: textColor }]}>{receipt.amount}</Text>
       <Text style={[styles.vendorText, { color: textColor }]}>
         {receipt.vendorName || t('unknownVendor', 'Unknown Vendor')}
       </Text>
@@ -92,13 +86,8 @@ export const DetailItem = ({
 
   return (
     <View style={styles.detailItem}>
-      <Text style={[styles.detailLabel, { color: secondaryTextColor }]}>
-        {label}
-      </Text>
-      <Text
-        style={[styles.detailValue, { color: textColor }]}
-        numberOfLines={multiline ? 2 : 1}
-      >
+      <Text style={[styles.detailLabel, { color: secondaryTextColor }]}>{label}</Text>
+      <Text style={[styles.detailValue, { color: textColor }]} numberOfLines={multiline ? 2 : 1}>
         {value}
       </Text>
     </View>
@@ -230,9 +219,7 @@ export const ActionCard = ({
           ) : (
             <>
               <Feather name="share-2" size={20} color={textColor} />
-              <Text style={[styles.buttonText, { color: textColor }]}>
-                {t('share', 'Share')}
-              </Text>
+              <Text style={[styles.buttonText, { color: textColor }]}>{t('share', 'Share')}</Text>
             </>
           )}
         </TouchableOpacity>
@@ -266,9 +253,7 @@ export const FooterButton = ({ onPress, t }: { onPress: () => void; t: any }) =>
         ]}
         onPress={onPress}
       >
-        <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>
-          {t('done', 'Done')}
-        </Text>
+        <Text style={[styles.buttonText, { color: '#FFFFFF' }]}>{t('done', 'Done')}</Text>
       </TouchableOpacity>
     </View>
   );

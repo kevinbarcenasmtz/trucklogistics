@@ -1,64 +1,62 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useCameraFlow } from '../../../store/cameraFlowStore';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { WorkflowStep, FlowError } from './types';
+import { Alert, StyleSheet, View } from 'react-native';
+import { useCameraFlow } from '../../../store/cameraFlowStore';
 import { CameraErrorBoundary } from './CameraErrorBoundary';
 import { CameraNavigationGuard } from './CameraNavigationGuard';
+import { FlowError, WorkflowStep } from './types';
 
 // Import all step components
 import CaptureStep from './steps/CaptureStep';
+import CompletionStep from './steps/CompletionStep';
 import ProcessingStep from './steps/ProcessingStep';
 import ReviewStep from './steps/ReviewStep';
 import VerificationStep from './steps/VerificationStep';
-import CompletionStep from './steps/CompletionStep';
 
 interface CameraWorkflowCoordinatorProps {
   flowId?: string;
 }
 
-export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps> = ({
-  flowId
-}) => {
-  const { activeFlow, startFlow, updateFlow, cancelFlow } = useCameraFlow();
+export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps> = ({ flowId }) => {
+const { activeFlow, updateFlow, cancelFlow } = useCameraFlow();
   const { backgroundColor } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
 
   // Workflow configuration
   const WORKFLOW_STEPS: WorkflowStep[] = [
-    { 
-      id: 'capture', 
-      component: CaptureStep, 
-      canSkip: false, 
-      validation: () => true 
+    {
+      id: 'capture',
+      component: CaptureStep,
+      canSkip: false,
+      validation: () => true,
     },
-    { 
-      id: 'processing', 
-      component: ProcessingStep, 
-      canSkip: false, 
-      validation: (f) => !!f.imageUri 
+    {
+      id: 'processing',
+      component: ProcessingStep,
+      canSkip: false,
+      validation: f => !!f.imageUri,
     },
-    { 
-      id: 'review', 
-      component: ReviewStep, 
-      canSkip: false, 
-      validation: (f) => !!f.ocrResult 
+    {
+      id: 'review',
+      component: ReviewStep,
+      canSkip: false,
+      validation: f => !!f.ocrResult,
     },
-    { 
-      id: 'verification', 
-      component: VerificationStep, 
-      canSkip: false, 
-      validation: (f) => !!f.ocrResult 
+    {
+      id: 'verification',
+      component: VerificationStep,
+      canSkip: false,
+      validation: f => !!f.ocrResult,
     },
-    { 
-      id: 'report', 
-      component: CompletionStep, 
-      canSkip: false, 
-      validation: (f) => !!f.receiptDraft 
-    }
+    {
+      id: 'report',
+      component: CompletionStep,
+      canSkip: false,
+      validation: f => !!f.receiptDraft,
+    },
   ];
 
   // Initialize flow if needed
@@ -67,7 +65,7 @@ export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps>
       // Flow ID provided but no matching active flow - this might be invalid
       console.warn('Flow ID provided but no matching active flow found:', flowId);
     }
-    
+
     // If no active flow and no flowId, we should be in capture step
     if (!activeFlow && !flowId) {
       // This is a fresh start - let the capture step handle flow creation
@@ -81,19 +79,20 @@ export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps>
   const StepComponent = currentStepConfig?.component;
 
   // Validate current step
-  const isStepValid = currentStepConfig && activeFlow 
-    ? currentStepConfig.validation(activeFlow)
-    : currentStep === 'capture'; // Capture step is always valid to start
+  const isStepValid =
+    currentStepConfig && activeFlow
+      ? currentStepConfig.validation(activeFlow)
+      : currentStep === 'capture'; // Capture step is always valid to start
 
   // Navigation handlers
   const handleNext = (data?: Partial<import('@/src/types/cameraFlow').CameraFlow>) => {
     if (data) {
       updateFlow(data);
     }
-    
+
     const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
     const nextIndex = currentIndex + 1;
-    
+
     if (nextIndex < WORKFLOW_STEPS.length) {
       const nextStep = WORKFLOW_STEPS[nextIndex];
       updateFlow({ currentStep: nextStep.id });
@@ -106,7 +105,7 @@ export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps>
   const handleBack = () => {
     const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
     const prevIndex = currentIndex - 1;
-    
+
     if (prevIndex >= 0) {
       const prevStep = WORKFLOW_STEPS[prevIndex];
       updateFlow({ currentStep: prevStep.id });
@@ -122,21 +121,21 @@ export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps>
       t('camera.cancelMessage', 'Are you sure you want to cancel? All progress will be lost.'),
       [
         { text: t('camera.continue', 'Continue'), style: 'cancel' },
-        { 
-          text: t('common.cancel', 'Cancel'), 
-          style: 'destructive', 
+        {
+          text: t('common.cancel', 'Cancel'),
+          style: 'destructive',
           onPress: () => {
             cancelFlow();
             router.replace('/');
-          }
-        }
+          },
+        },
       ]
     );
   };
 
   const handleError = (error: FlowError) => {
     console.error('Workflow error:', error);
-    
+
     // Create complete FlowError for flow store
     const completeError: import('@/src/types/cameraFlow').FlowError = {
       step: error.step,
@@ -146,72 +145,66 @@ export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps>
       timestamp: Date.now(),
       retryable: error.retry || false,
     };
-    
+
     // Update flow with error
     updateFlow({ lastError: completeError });
-    
+
     // Show user-friendly error
-    Alert.alert(
-      t('error.title', 'Something went wrong'),
-      error.message,
-      [
-        ...(error.retry ? [
-          { 
-            text: t('common.retry', 'Retry'), 
-            onPress: () => {
-              // Clear error and retry current step
-              updateFlow({ lastError: undefined });
-            }
-          }
-        ] : []),
-        { 
-          text: t('common.cancel', 'Cancel'), 
-          style: 'destructive',
-          onPress: handleCancel 
-        }
-      ]
-    );
+    Alert.alert(t('error.title', 'Something went wrong'), error.message, [
+      ...(error.retry
+        ? [
+            {
+              text: t('common.retry', 'Retry'),
+              onPress: () => {
+                // Clear error and retry current step
+                updateFlow({ lastError: undefined });
+              },
+            },
+          ]
+        : []),
+      {
+        text: t('common.cancel', 'Cancel'),
+        style: 'destructive',
+        onPress: handleCancel,
+      },
+    ]);
   };
 
   // Handle invalid step state
   if (!isStepValid && currentStep !== 'capture') {
     console.warn('Invalid step state, redirecting to appropriate step');
-    
+
     // Find the earliest valid step
     for (const step of WORKFLOW_STEPS) {
-      if (step.validation(activeFlow || {} as any)) {
+      if (step.validation(activeFlow || ({} as any))) {
         updateFlow({ currentStep: step.id });
         break;
       }
     }
-    
+
     // If no valid step found, go back to capture
-    if (!WORKFLOW_STEPS.some(s => s.validation(activeFlow || {} as any))) {
+    if (!WORKFLOW_STEPS.some(s => s.validation(activeFlow || ({} as any)))) {
       updateFlow({ currentStep: 'capture' });
     }
-    
-    return (
-      <View style={[styles.container, { backgroundColor }]} />
-    );
+
+    return <View style={[styles.container, { backgroundColor }]} />;
   }
 
   // Render step component if available
   if (!StepComponent) {
     console.error('No component found for step:', currentStep);
-    return (
-      <View style={[styles.container, { backgroundColor }]} />
-    );
+    return <View style={[styles.container, { backgroundColor }]} />;
   }
 
   return (
-    <CameraErrorBoundary 
-      fallbackStep={currentStep} 
+    <CameraErrorBoundary
+      fallbackStep={currentStep}
       onError={(error, errorInfo) => {
         handleError({
           code: 'COMPONENT_ERROR',
           message: 'A component error occurred',
           step: currentStep,
-          retry: true
+          retry: true,
         });
       }}
     >

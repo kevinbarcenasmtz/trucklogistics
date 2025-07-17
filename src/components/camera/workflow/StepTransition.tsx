@@ -7,11 +7,7 @@ interface StepTransitionProps {
   style?: ViewStyle;
 }
 
-export const StepTransition: React.FC<StepTransitionProps> = ({ 
-  entering, 
-  children, 
-  style 
-}) => {
+export const StepTransition: React.FC<StepTransitionProps> = ({ entering, children, style }) => {
   const fadeAnim = useRef(new Animated.Value(entering ? 0 : 1)).current;
   const slideAnim = useRef(new Animated.Value(entering ? 30 : 0)).current;
 
@@ -20,7 +16,7 @@ export const StepTransition: React.FC<StepTransitionProps> = ({
       // Start from hidden/offset state
       fadeAnim.setValue(0);
       slideAnim.setValue(30);
-      
+
       // Animate to visible/positioned state
       Animated.parallel([
         Animated.timing(fadeAnim, {

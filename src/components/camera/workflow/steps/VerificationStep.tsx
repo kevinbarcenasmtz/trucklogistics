@@ -1,23 +1,22 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Modal } from 'react-native';
-import { useCameraFlow } from '../../../../store/cameraFlowStore';
-import { StepProps } from '../types';
-import StepTransition from '../StepTransition';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { ActionButton } from '../../CameraUIComponents';
+import { DocumentStorage } from '@/src/services/DocumentStorage';
+import { Receipt } from '@/src/types/ReceiptInterfaces';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, Dimensions, Image, Modal, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { 
-  InfoCard,
-  ReceiptImagePreview,
+import { useCameraFlow } from '../../../../store/cameraFlowStore';
+import { ActionButton } from '../../CameraUIComponents';
+import {
   EditField,
   FormContainer,
+  InfoCard,
+  ReceiptImagePreview,
+  SaveButton,
   ViewRawTextButton,
-  SaveButton
 } from '../../VerificationComponents';
-import { Receipt } from '@/src/types/ReceiptInterfaces';
-import { DocumentStorage } from '@/src/services/DocumentStorage';
-import { Image, Dimensions } from 'react-native';
+import StepTransition from '../StepTransition';
+import { StepProps } from '../types';
 
 const { width, height } = Dimensions.get('window');
 
@@ -26,7 +25,7 @@ export const VerificationStep: React.FC<StepProps> = ({
   onNext,
   onBack,
   onCancel,
-  onError
+  onError,
 }) => {
   const { activeFlow, updateFlow } = useCameraFlow();
   const { backgroundColor, surfaceColor, textColor, borderColor } = useAppTheme();
@@ -46,7 +45,7 @@ export const VerificationStep: React.FC<StepProps> = ({
       code: 'MISSING_RECEIPT_DATA',
       message: 'Receipt data not available',
       step: 'verification',
-      retry: true
+      retry: true,
     });
     return null;
   }
@@ -56,8 +55,8 @@ export const VerificationStep: React.FC<StepProps> = ({
     updateFlow({
       receiptDraft: {
         ...receiptDraft,
-        [field]: value
-      }
+        [field]: value,
+      },
     });
   };
 
@@ -72,18 +71,17 @@ export const VerificationStep: React.FC<StepProps> = ({
       // Update flow with completion
       updateFlow({
         receiptDraft: receiptDraft,
-        currentStep: 'report'
+        currentStep: 'report',
       });
 
       // Advance to completion step
       onNext();
-      
     } catch (error) {
       onError({
         code: 'RECEIPT_SAVE_FAILED',
         message: 'Failed to save receipt',
         step: 'verification',
-        retry: true
+        retry: true,
       });
     } finally {
       setIsSaving(false);
@@ -93,10 +91,13 @@ export const VerificationStep: React.FC<StepProps> = ({
   const handleBack = () => {
     Alert.alert(
       t('verification.goBack', 'Go Back'),
-      t('verification.goBackMessage', 'Are you sure you want to go back? Any changes will be lost.'),
+      t(
+        'verification.goBackMessage',
+        'Are you sure you want to go back? Any changes will be lost.'
+      ),
       [
         { text: t('common.cancel', 'Cancel'), style: 'cancel' },
-        { text: t('common.goBack', 'Go Back'), style: 'destructive', onPress: onBack }
+        { text: t('common.goBack', 'Go Back'), style: 'destructive', onPress: onBack },
       ]
     );
   };
@@ -107,17 +108,15 @@ export const VerificationStep: React.FC<StepProps> = ({
       t('camera.cancelMessage', 'Are you sure you want to cancel? All progress will be lost.'),
       [
         { text: t('camera.continueScan', 'Continue'), style: 'cancel' },
-        { text: t('common.cancel', 'Cancel'), style: 'destructive', onPress: onCancel }
+        { text: t('common.cancel', 'Cancel'), style: 'destructive', onPress: onCancel },
       ]
     );
   };
 
   const handleViewRawText = () => {
-    Alert.alert(
-      t('verification.extractedText', 'Extracted Text'),
-      receiptDraft.extractedText,
-      [{ text: t('common.close', 'Close') }]
-    );
+    Alert.alert(t('verification.extractedText', 'Extracted Text'), receiptDraft.extractedText, [
+      { text: t('common.close', 'Close') },
+    ]);
   };
 
   return (
@@ -126,17 +125,14 @@ export const VerificationStep: React.FC<StepProps> = ({
         {/* Info Card */}
         <InfoCard />
 
-        <ScrollView 
+        <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
           {/* Receipt Image Preview */}
           <View style={styles.section}>
-            <ReceiptImagePreview
-              imageUri={imageUri}
-              onPress={() => setIsModalVisible(true)}
-            />
+            <ReceiptImagePreview imageUri={imageUri} onPress={() => setIsModalVisible(true)} />
           </View>
 
           {/* Basic Information */}
@@ -144,7 +140,7 @@ export const VerificationStep: React.FC<StepProps> = ({
             <EditField
               field="date"
               value={receiptDraft.date}
-              onChange={(value) => handleFieldChange('date', value)}
+              onChange={value => handleFieldChange('date', value)}
               isActive={activeField === 'date'}
               onActivate={() => setActiveField('date')}
               icon="event"
@@ -155,7 +151,7 @@ export const VerificationStep: React.FC<StepProps> = ({
             <EditField
               field="amount"
               value={receiptDraft.amount}
-              onChange={(value) => handleFieldChange('amount', value)}
+              onChange={value => handleFieldChange('amount', value)}
               isActive={activeField === 'amount'}
               onActivate={() => setActiveField('amount')}
               icon="attach-money"
@@ -167,7 +163,7 @@ export const VerificationStep: React.FC<StepProps> = ({
             <EditField
               field="vendorName"
               value={receiptDraft.vendorName || ''}
-              onChange={(value) => handleFieldChange('vendorName', value)}
+              onChange={value => handleFieldChange('vendorName', value)}
               isActive={activeField === 'vendorName'}
               onActivate={() => setActiveField('vendorName')}
               icon="store"
@@ -181,7 +177,7 @@ export const VerificationStep: React.FC<StepProps> = ({
             <EditField
               field="type"
               value={receiptDraft.type}
-              onChange={(value) => handleFieldChange('type', value as Receipt['type'])}
+              onChange={value => handleFieldChange('type', value as Receipt['type'])}
               isActive={activeField === 'type'}
               onActivate={() => setActiveField('type')}
               icon="category"
@@ -192,7 +188,7 @@ export const VerificationStep: React.FC<StepProps> = ({
             <EditField
               field="vehicle"
               value={receiptDraft.vehicle}
-              onChange={(value) => handleFieldChange('vehicle', value)}
+              onChange={value => handleFieldChange('vehicle', value)}
               isActive={activeField === 'vehicle'}
               onActivate={() => setActiveField('vehicle')}
               icon="directions-car"
@@ -203,7 +199,7 @@ export const VerificationStep: React.FC<StepProps> = ({
             <EditField
               field="location"
               value={receiptDraft.location || ''}
-              onChange={(value) => handleFieldChange('location', value)}
+              onChange={value => handleFieldChange('location', value)}
               isActive={activeField === 'location'}
               onActivate={() => setActiveField('location')}
               icon="location-on"
@@ -220,7 +216,12 @@ export const VerificationStep: React.FC<StepProps> = ({
         </ScrollView>
 
         {/* Action Buttons */}
-        <View style={[styles.buttonContainer, { backgroundColor: surfaceColor, borderTopColor: borderColor }]}>
+        <View
+          style={[
+            styles.buttonContainer,
+            { backgroundColor: surfaceColor, borderTopColor: borderColor },
+          ]}
+        >
           <View style={styles.buttonRow}>
             <ActionButton
               title={t('common.back', 'Back')}
@@ -230,13 +231,10 @@ export const VerificationStep: React.FC<StepProps> = ({
               color={textColor}
               style={styles.secondaryButton}
             />
-            
-            <SaveButton
-              onPress={handleSave}
-              isLoading={isSaving}
-            />
+
+            <SaveButton onPress={handleSave} isLoading={isSaving} />
           </View>
-          
+
           <ActionButton
             title={t('common.cancel', 'Cancel')}
             onPress={handleCancel}
@@ -255,11 +253,7 @@ export const VerificationStep: React.FC<StepProps> = ({
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
-              <Image
-                source={{ uri: imageUri }}
-                style={styles.modalImage}
-                resizeMode="contain"
-              />
+              <Image source={{ uri: imageUri }} style={styles.modalImage} resizeMode="contain" />
               <ActionButton
                 title={t('common.close', 'Close')}
                 onPress={() => setIsModalVisible(false)}

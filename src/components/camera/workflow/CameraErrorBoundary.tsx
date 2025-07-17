@@ -311,13 +311,31 @@ function CameraErrorFallback({
  * This should be used in a component that can access hooks
  */
 export function useCameraErrorHandler() {
-  const { addError } = useCameraFlow();
+  const { updateFlow } = useCameraFlow();
+  
+  // Create addError function that uses updateFlow
+  const addError = React.useCallback((error: {
+    step: string;
+    code: string;
+    message: string;
+    userMessage?: string;
+    retryable?: boolean;
+  }) => {
+    updateFlow({
+      lastError: {
+        step: error.step as any, // Cast to match CameraFlowStep type
+        code: error.code,
+        message: error.message,
+        userMessage: error.userMessage || error.message,
+        timestamp: Date.now(),
+        retryable: error.retryable ?? true,
+      }
+    });
+  }, [updateFlow]);
 
-  // Return the addError function so the error boundary can use it directly
+  // Store the addError function globally for the error boundary to access
   React.useEffect(() => {
-    // Store the addError function globally for the error boundary to access
     (global as any).cameraFlowAddError = addError;
-
     return () => {
       delete (global as any).cameraFlowAddError;
     };
