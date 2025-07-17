@@ -1,4 +1,14 @@
-// app/(app)/camera/report.tsx
-import ReportScreen from '@/src/screens/camera/ReportScreen';
+//app/(app)/camera/report.tsx
+import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator'
+import { Redirect, useLocalSearchParams } from 'expo-router'
 
-export default ReportScreen;
+export default function ReportScreen() {
+  const params = useLocalSearchParams()
+  const flowId = params.flowId as string
+  
+  if (!flowId) {
+    return <Redirect href="/camera"/>
+  } 
+  
+  return <CameraWorkflowCoordinator flowId={flowId} />
+}
