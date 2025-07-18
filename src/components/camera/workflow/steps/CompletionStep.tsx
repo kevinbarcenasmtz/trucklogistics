@@ -1,9 +1,9 @@
-// src/components/camera/steps/CompletionStep.tsx
+// src/components/camera/workflow/steps/CompletionStep.tsx
 
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import * as Share from 'expo-sharing';
+import * as Sharing from 'expo-sharing';
 import { useRouter } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,14 +18,14 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import { Receipt } from '../../../../types/ReceiptInterfaces';
+import { SectionContainer } from '../../CameraUIComponents'; // Import SectionContainer from correct source
 import { 
-  SectionContainer,
   ReceiptHeader,
   ReceiptContent,
   ActionCard,
   RawTextSection,
   Divider
-} from '../../CompletionComponents';
+} from '../../ReportComponents'; // Import other components from ReportComponents
 import StepTransition from '../StepTransition';
 import { BaseCameraStepProps } from '../../../../types/component_props';
 
@@ -47,8 +47,8 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
     getCurrentProcessedData,
     getFlowMetrics,
     completeFlow,
-    resetFlow,
-    currentFlow
+    resetFlow
+    // Removed currentFlow - it was unused
   } = useCameraFlow();
   
   const { 
@@ -75,6 +75,125 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   const imageUri = getCurrentImage();
   const processedData = getCurrentProcessedData();
   const flowMetrics = getFlowMetrics();
+
+  // Move styles declaration here to fix hoisting issue
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 20,
+    },
+    loadingText: {
+      fontSize: 16,
+      textAlign: 'center',
+    },
+    header: {
+      alignItems: 'center',
+      padding: 24,
+      backgroundColor: surfaceColor,
+      borderBottomLeftRadius: 20,
+      borderBottomRightRadius: 20,
+    },
+    successIcon: {
+      marginBottom: 16,
+    },
+    headerTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: textColor,
+      textAlign: 'center',
+      marginBottom: 8,
+    },
+    headerSubtitle: {
+      fontSize: 16,
+      color: secondaryTextColor,
+      textAlign: 'center',
+      opacity: 0.8,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    scrollContent: {
+      padding: 16,
+    },
+    section: {
+      backgroundColor: surfaceColor,
+      borderRadius: 12,
+      marginBottom: 16,
+      padding: 16,
+    },
+    summaryContainer: {
+      marginBottom: 16,
+      padding: 12,
+      backgroundColor: surfaceColor,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: successColor,
+    },
+    summaryTitle: {
+      fontSize: 14,
+      fontWeight: '600',
+      color: successColor,
+      marginBottom: 8,
+    },
+    summaryText: {
+      fontSize: 12,
+      color: secondaryTextColor,
+      lineHeight: 16,
+    },
+    buttonContainer: {
+      padding: 20,
+      backgroundColor: surfaceColor,
+      borderTopWidth: 1,
+      borderTopColor: borderColor,
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+    },
+    buttonRow: {
+      flexDirection: 'row',
+      gap: 12,
+      marginBottom: 12,
+    },
+    primaryButton: {
+      flex: 1,
+      backgroundColor: primaryColor,
+      paddingVertical: 15,
+      borderRadius: 8,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+    secondaryButton: {
+      flex: 1,
+      backgroundColor: 'transparent',
+      paddingVertical: 15,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: primaryColor,
+      alignItems: 'center',
+      flexDirection: 'row',
+      justifyContent: 'center',
+      gap: 8,
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: primaryColor,
+    },
+    bottomSpacing: {
+      height: 80, // Space for button container
+    },
+  });
 
   // Validate required data
   useEffect(() => {
@@ -228,18 +347,36 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       setShareLoading(true);
       console.log('[CompletionStep] Sharing receipt document');
 
-      const shareContent = {
-        title: t('completion.shareTitle', 'Receipt Report'),
-        message: generateShareMessage(receipt),
-        url: imageUri, // Share the image if available
-      };
-
-      const result = await Share.share(shareContent);
-
-      if (result.action === Share.sharedAction) {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        console.log('[CompletionStep] Receipt shared successfully');
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert(
+          t('completion.shareErrorTitle', 'Share Error'),
+          t('completion.shareNotAvailable', 'Sharing is not available on this device.')
+        );
+        return;
       }
+
+      // Share the image if available, otherwise share text content
+      if (imageUri) {
+        await Sharing.shareAsync(imageUri, {
+          mimeType: 'image/jpeg',
+          dialogTitle: t('completion.shareTitle', 'Receipt Report')
+        });
+      } else {
+        // Create a text file with receipt content
+        const shareContent = generateShareMessage(receipt);
+        // Note: For text sharing, you might need to create a temporary file
+        // or use a different sharing method depending on your requirements
+        console.log('Share content:', shareContent);
+        Alert.alert(
+          t('completion.shareTitle', 'Receipt Report'),
+          shareContent
+        );
+      }
+
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      console.log('[CompletionStep] Receipt shared successfully');
     } catch (error) {
       console.error('[CompletionStep] Share failed:', error);
       Alert.alert(
@@ -269,12 +406,12 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       };
 
       // Here you would typically call a service to update the receipt
-      // For now, we'll simulate the update
+      // For now, we'll simulate the update and log it
       await new Promise(resolve => setTimeout(resolve, 500));
 
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       
-      console.log('[CompletionStep] Receipt status updated successfully');
+      console.log('[CompletionStep] Receipt status updated successfully:', updatedReceipt.status);
     } catch (error) {
       console.error('[CompletionStep] Failed to update status:', error);
       Alert.alert(
@@ -327,125 +464,13 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
     };
   };
 
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-    },
-    loadingText: {
-      fontSize: 16,
-      textAlign: 'center',
-    },
-    header: {
-      alignItems: 'center',
-      padding: 24,
-      backgroundColor: surfaceColor,
-      borderBottomLeftRadius: 20,
-      borderBottomRightRadius: 20,
-    },
-    successIcon: {
-      marginBottom: 16,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: textColor,
-      textAlign: 'center',
-      marginBottom: 8,
-    },
-    headerSubtitle: {
-      fontSize: 16,
-      color: secondaryTextColor,
-      textAlign: 'center',
-      opacity: 0.8,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    scrollContent: {
-      padding: 16,
-    },
-    section: {
-      backgroundColor: surfaceColor,
-      borderRadius: 12,
-      marginBottom: 16,
-      padding: 16,
-    },
-    summaryContainer: {
-      marginBottom: 16,
-      padding: 12,
-      backgroundColor: surfaceColor,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: successColor,
-    },
-    summaryTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: successColor,
-      marginBottom: 8,
-    },
-    summaryText: {
-      fontSize: 12,
-      color: secondaryTextColor,
-      lineHeight: 16,
-    },
-    buttonContainer: {
-      padding: 20,
-      backgroundColor: surfaceColor,
-      borderTopWidth: 1,
-      borderTopColor: borderColor,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      gap: 12,
-      marginBottom: 12,
-    },
-    primaryButton: {
-      flex: 1,
-      backgroundColor: primaryColor,
-      paddingVertical: 15,
-      borderRadius: 8,
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    primaryButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#FFFFFF',
-    },
-    secondaryButton: {
-      flex: 1,
-      backgroundColor: 'transparent',
-      paddingVertical: 15,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: primaryColor,
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    secondaryButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: primaryColor,
-    },
-    bottomSpacing: {
-      height: 80, // Space for button container
-    },
-  });
-
   const processingSummary = getProcessingSummary();
+
+  // Create receipt with extracted text for RawTextSection
+  const receiptWithExtractedText = {
+    ...receipt,
+    extractedText: processedData?.extractedText || receipt.extractedText
+  };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor }]} testID={testID}>
@@ -509,10 +534,9 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
           />
 
           {/* Raw Text Section */}
-          {processedData?.extractedText && (
+          {(processedData?.extractedText || receipt.extractedText) && (
             <RawTextSection
-              receipt={receipt}
-              extractedText={processedData.extractedText}
+              receipt={receiptWithExtractedText}
               showFullText={showFullText}
               toggleFullText={toggleFullText}
               t={t}
