@@ -3,12 +3,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import type { OCRError } from '../../state/ocr/types';
+import type { ProcessingError } from '../../state/ocr/types';
 import { horizontalScale, moderateScale, verticalScale } from '../../theme';
 import { ActionButton } from '../camera/CameraUIComponents';
 
 interface ErrorDisplayProps {
-  error: OCRError;
+  error: ProcessingError;
   onRetry?: () => void;
   onDismiss: () => void;
 }

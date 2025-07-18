@@ -409,6 +409,8 @@ export class CameraFlowService {
           optimizedDimensions: { width: 0, height: 0 },
           reductionPercentage: 0,
           processingTime: 0,
+          compressionRatio: 1.0, // Add this - no compression since image wasn't optimized
+          qualityScore: 1.0, // Add this - original quality
         },
       };
     }
@@ -431,6 +433,8 @@ export class CameraFlowService {
           optimizedDimensions: { width: 0, height: 0 },
           reductionPercentage: 0,
           processingTime,
+          compressionRatio: 1.0,
+          qualityScore: 1.0,
         },
       };
     } catch (error) {

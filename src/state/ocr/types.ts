@@ -27,6 +27,11 @@ export interface OptimizationMetrics {
   readonly compressionRatio: number;
   readonly processingTime: number;
   readonly qualityScore: number;
+  // Add these missing properties that are used in the code
+  readonly originalDimensions?: { width: number; height: number };
+  readonly optimizedDimensions?: { width: number; height: number };
+  readonly reductionPercentage?: number;
+  readonly format?: string;
 }
 
 /**
