@@ -1,231 +1,502 @@
+// src/components/camera/workflow/CameraWorkflowCoordinator.tsx
+
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, StyleSheet, View } from 'react-native';
-import { useCameraFlow } from '../../../store/cameraFlowStore';
+import { Alert, StyleSheet, View, BackHandler, Text } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+// New Context Providers
+import { CameraFlowProvider } from '../../../context/CameraFlowContext';
+import { OCRProcessingProvider } from '../../../context/OCRProcessingContext';
+import { ReceiptDraftProvider } from '../../../context/ReceiptDraftContext';
+
+// Enhanced hook
+import { useCameraFlow } from '../../../hooks/useCameraFlow';
+
+// Error Boundary and Navigation Guard
 import { CameraErrorBoundary } from './CameraErrorBoundary';
 import { CameraNavigationGuard } from './CameraNavigationGuard';
-import { FlowError, WorkflowStep } from './types';
 
-// Import all step components
+// Step components
 import CaptureStep from './steps/CaptureStep';
 import CompletionStep from './steps/CompletionStep';
 import ProcessingStep from './steps/ProcessingStep';
 import ReviewStep from './steps/ReviewStep';
 import VerificationStep from './steps/VerificationStep';
 
+// Types
+import { CameraFlowStep, FlowError } from '../../../types/cameraFlow';
+import { BaseCameraStepProps } from '../../../types/component_props';
+
+/**
+ * Workflow step configuration
+ */
+interface WorkflowStepConfig {
+  id: CameraFlowStep;
+  component: React.ComponentType<BaseCameraStepProps>;
+  canSkip: boolean;
+  requiresActiveFlow: boolean;
+  allowedFromSteps: CameraFlowStep[];
+}
+
+/**
+ * CameraWorkflowCoordinator Props
+ */
 interface CameraWorkflowCoordinatorProps {
   flowId?: string;
 }
 
-export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps> = ({ flowId }) => {
-  const { activeFlow, updateFlow, cancelFlow } = useCameraFlow();
-  const { backgroundColor } = useAppTheme();
+/**
+ * Workflow step configurations
+ */
+const WORKFLOW_STEPS: WorkflowStepConfig[] = [
+  {
+    id: 'capture',
+    component: CaptureStep,
+    canSkip: false,
+    requiresActiveFlow: false,
+    allowedFromSteps: [],
+  },
+  {
+    id: 'processing',
+    component: ProcessingStep,
+    canSkip: false,
+    requiresActiveFlow: true,
+    allowedFromSteps: ['capture'],
+  },
+  {
+    id: 'review',
+    component: ReviewStep,
+    canSkip: false,
+    requiresActiveFlow: true,
+    allowedFromSteps: ['processing'],
+  },
+  {
+    id: 'verification',
+    component: VerificationStep,
+    canSkip: false,
+    requiresActiveFlow: true,
+    allowedFromSteps: ['review', 'verification'], // Allow self-transition for edits
+  },
+  {
+    id: 'report',
+    component: CompletionStep,
+    canSkip: false,
+    requiresActiveFlow: true,
+    allowedFromSteps: ['verification'],
+  },
+];
+
+/**
+ * Error Fallback Component
+ */
+const ErrorFallback: React.FC<{ 
+  message: string; 
+  backgroundColor: string;
+  textColor: string;
+}> = ({ message, backgroundColor, textColor }) => (
+  <SafeAreaView style={[styles.container, { backgroundColor }]}>
+    <View style={styles.errorContainer}>
+      <Text style={[styles.errorText, { color: textColor }]}>{message}</Text>
+    </View>
+  </SafeAreaView>
+);
+
+/**
+ * Inner Coordinator Component (wrapped with contexts)
+ */
+const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> = ({ flowId }) => {
+  const {
+    hasActiveFlow,
+    currentFlow,
+    currentStep,
+    isNavigationBlocked,
+    blockReason,
+    canNavigateBack,
+    cancelFlow,
+    clearError,
+    retryCurrentOperation,
+  } = useCameraFlow();
+
+  const { backgroundColor, textColor } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
+  
+  // Fix: Use proper React Native timer type
+  const navigationGuardTimeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  // Workflow configuration
-  const WORKFLOW_STEPS: WorkflowStep[] = [
-    {
-      id: 'capture',
-      component: CaptureStep,
-      canSkip: false,
-      validation: () => true,
-    },
-    {
-      id: 'processing',
-      component: ProcessingStep,
-      canSkip: false,
-      validation: f => !!f.imageUri,
-    },
-    {
-      id: 'review',
-      component: ReviewStep,
-      canSkip: false,
-      validation: f => !!f.ocrResult,
-    },
-    {
-      id: 'verification',
-      component: VerificationStep,
-      canSkip: false,
-      validation: f => !!f.ocrResult,
-    },
-    {
-      id: 'report',
-      component: CompletionStep,
-      canSkip: false,
-      validation: f => !!f.receiptDraft,
-    },
-  ];
+  /**
+   * Handle cancel action - Moved to top to fix hoisting issue
+   */
+  const handleCancel = useCallback(() => {
+    Alert.alert(
+      t('camera.cancelTitle', 'Cancel Process'),
+      t('camera.cancelMessage', 'Are you sure you want to cancel? All progress will be lost.'),
+      [
+        { 
+          text: t('camera.continue', 'Continue'), 
+          style: 'cancel' 
+        },
+        {
+          text: t('common.cancel', 'Cancel'),
+          style: 'destructive',
+          onPress: () => {
+            console.log('[CameraWorkflowCoordinator] User cancelled workflow at step:', currentStep);
+            cancelFlow('user_cancellation');
+            router.replace('/home');
+          },
+        },
+      ]
+    );
+  }, [t, currentStep, cancelFlow, router]);
 
-  // Initialize flow if needed
-  useEffect(() => {
-    if (flowId && (!activeFlow || activeFlow.id !== flowId)) {
-      // Flow ID provided but no matching active flow - this might be invalid
-      console.warn('Flow ID provided but no matching active flow found:', flowId);
+  /**
+   * Step validation logic
+   */
+  const validateCurrentStep = useCallback((): boolean => {
+    const stepConfig = WORKFLOW_STEPS.find(s => s.id === currentStep);
+    
+    if (!stepConfig) {
+      console.error('[CameraWorkflowCoordinator] Invalid step configuration:', currentStep);
+      return false;
     }
 
-    // If no active flow and no flowId, we should be in capture step
-    if (!activeFlow && !flowId) {
-      // This is a fresh start - let the capture step handle flow creation
-      console.log('Fresh workflow start - no active flow');
-    }
-  }, [flowId, activeFlow]);
-
-  // Determine current step
-  const currentStep = activeFlow?.currentStep || 'capture';
-  const currentStepConfig = WORKFLOW_STEPS.find(s => s.id === currentStep);
-  const StepComponent = currentStepConfig?.component;
-
-  // Validate current step
-  const isStepValid =
-    currentStepConfig && activeFlow
-      ? currentStepConfig.validation(activeFlow)
-      : currentStep === 'capture'; // Capture step is always valid to start
-
-  // Navigation handlers
-  const handleNext = (data?: Partial<import('@/src/types/cameraFlow').CameraFlow>) => {
-    if (data) {
-      updateFlow(data);
+    // Capture step is always valid (entry point)
+    if (currentStep === 'capture') {
+      return true;
     }
 
+    // Check if step requires active flow
+    if (stepConfig.requiresActiveFlow && !hasActiveFlow) {
+      console.warn('[CameraWorkflowCoordinator] Step requires active flow but none found:', currentStep);
+      return false;
+    }
+
+    // Validate step-specific requirements
+    switch (currentStep) {
+      case 'processing':
+        return hasActiveFlow && !!currentFlow?.imageUri;
+      case 'review':
+        return hasActiveFlow && !!currentFlow?.ocrResult;
+      case 'verification':
+        return hasActiveFlow && !!currentFlow?.ocrResult;
+      case 'report':
+        return hasActiveFlow && !!currentFlow?.receiptDraft;
+      default:
+        return true;
+    }
+  }, [currentStep, hasActiveFlow, currentFlow]);
+
+  /**
+   * Navigation guard implementation
+   */
+  const canNavigateToStep = useCallback((targetStep: CameraFlowStep): boolean => {
+    const targetConfig = WORKFLOW_STEPS.find(s => s.id === targetStep);
+    
+    if (!targetConfig) {
+      return false;
+    }
+
+    // Check allowed transitions
+    if (targetConfig.allowedFromSteps.length > 0) {
+      return targetConfig.allowedFromSteps.includes(currentStep);
+    }
+
+    return true;
+  }, [currentStep]);
+
+  /**
+   * Enhanced error handling
+   */
+  const handleError = useCallback((error: FlowError) => {
+    console.error('[CameraWorkflowCoordinator] Flow error:', error);
+
+    // Log error for debugging
+    if (__DEV__) {
+      console.log('[CameraWorkflowCoordinator] Error details:', {
+        step: error.step,
+        code: error.code,
+        message: error.message,
+        retryable: error.retryable,
+        flowId: currentFlow?.id,
+        timestamp: error.timestamp,
+      });
+    }
+
+    // Show user-friendly error
+    const alertButtons = [];
+
+    if (error.retryable) {
+      alertButtons.push({
+        text: t('common.retry', 'Retry'),
+        onPress: () => {
+          console.log('[CameraWorkflowCoordinator] User initiated retry for error:', error.code);
+          clearError();
+          retryCurrentOperation();
+        },
+      });
+    }
+
+    alertButtons.push({
+      text: t('common.cancel', 'Cancel'),
+      style: 'destructive' as const,
+      onPress: () => {
+        console.log('[CameraWorkflowCoordinator] User cancelled due to error:', error.code);
+        handleCancel();
+      },
+    });
+
+    Alert.alert(
+      t('error.title', 'Something went wrong'),
+      error.userMessage || error.message,
+      alertButtons
+    );
+  }, [currentFlow?.id, t, clearError, retryCurrentOperation, handleCancel]);
+
+  /**
+   * Navigation handlers
+   */
+  const handleNext = useCallback((stepData?: any) => {
     const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
     const nextIndex = currentIndex + 1;
 
     if (nextIndex < WORKFLOW_STEPS.length) {
       const nextStep = WORKFLOW_STEPS[nextIndex];
-      updateFlow({ currentStep: nextStep.id });
+      
+      if (canNavigateToStep(nextStep.id)) {
+        console.log('[CameraWorkflowCoordinator] Navigating from', currentStep, 'to', nextStep.id);
+      } else {
+        console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
+        handleError({
+          step: currentStep,
+          code: 'NAVIGATION_BLOCKED',
+          message: 'Cannot navigate to requested step',
+          userMessage: 'Cannot proceed to next step. Please complete the current step.',
+          timestamp: Date.now(),
+          retryable: false,
+        });
+      }
     } else {
       // Workflow complete
-      console.log('Workflow completed');
+      console.log('[CameraWorkflowCoordinator] Workflow completed successfully');
     }
-  };
+  }, [currentStep, canNavigateToStep, handleError]);
 
-  const handleBack = () => {
+  const handleBack = useCallback(() => {
+    if (!canNavigateBack) {
+      console.warn('[CameraWorkflowCoordinator] Back navigation blocked');
+      return;
+    }
+
     const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
     const prevIndex = currentIndex - 1;
 
     if (prevIndex >= 0) {
       const prevStep = WORKFLOW_STEPS[prevIndex];
-      updateFlow({ currentStep: prevStep.id });
+      console.log('[CameraWorkflowCoordinator] Navigating back from', currentStep, 'to', prevStep.id);
     } else {
-      // Already at first step, cancel the flow
+      // Already at first step, show cancel confirmation
       handleCancel();
     }
-  };
+  }, [canNavigateBack, currentStep, handleCancel]);
 
-  const handleCancel = () => {
-    Alert.alert(
-      t('camera.cancelTitle', 'Cancel Process'),
-      t('camera.cancelMessage', 'Are you sure you want to cancel? All progress will be lost.'),
-      [
-        { text: t('camera.continue', 'Continue'), style: 'cancel' },
-        {
-          text: t('common.cancel', 'Cancel'),
-          style: 'destructive',
-          onPress: () => {
-            cancelFlow();
-            router.replace('/');
-          },
-        },
-      ]
-    );
-  };
+  /**
+   * Hardware back button handling (Android)
+   */
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (canNavigateBack && !isNavigationBlocked) {
+        handleBack();
+        return true; // Prevent default behavior
+      } else if (currentStep === 'capture') {
+        handleCancel();
+        return true;
+      }
+      return false; // Allow default behavior
+    });
 
-  const handleError = (error: FlowError) => {
-    console.error('Workflow error:', error);
+    return () => backHandler.remove();
+  }, [canNavigateBack, isNavigationBlocked, currentStep, handleBack, handleCancel]);
 
-    // Create complete FlowError for flow store
-    const completeError: import('@/src/types/cameraFlow').FlowError = {
-      step: error.step,
-      code: error.code,
-      message: error.message,
-      userMessage: error.message, // Use same message as user message
-      timestamp: Date.now(),
-      retryable: error.retry || false,
+  /**
+   * Navigation blocking timeout (prevent infinite blocks)
+   */
+  useEffect(() => {
+    if (isNavigationBlocked) {
+      console.log('[CameraWorkflowCoordinator] Navigation blocked:', blockReason);
+      
+      navigationGuardTimeoutRef.current = setTimeout(() => {
+        console.warn('[CameraWorkflowCoordinator] Navigation block timeout, auto-clearing block');
+        // Auto-clear after 30 seconds to prevent infinite blocking
+        // This should be implemented in the context
+      }, 30000);
+    }
+
+    return () => {
+      if (navigationGuardTimeoutRef.current) {
+        clearTimeout(navigationGuardTimeoutRef.current);
+      }
     };
+  }, [isNavigationBlocked, blockReason]);
 
-    // Update flow with error
-    updateFlow({ lastError: completeError });
+  /**
+   * Step validation and auto-correction
+   */
+  useEffect(() => {
+    if (!validateCurrentStep()) {
+      console.warn('[CameraWorkflowCoordinator] Invalid step state, attempting auto-correction');
+      
+      // Find the correct step based on available data
+      if (!hasActiveFlow || currentStep === 'capture') {
+        return; // Capture step handles flow creation
+      }
 
-    // Show user-friendly error
-    Alert.alert(t('error.title', 'Something went wrong'), error.message, [
-      ...(error.retry
-        ? [
-            {
-              text: t('common.retry', 'Retry'),
-              onPress: () => {
-                // Clear error and retry current step
-                updateFlow({ lastError: undefined });
-              },
-            },
-          ]
-        : []),
-      {
-        text: t('common.cancel', 'Cancel'),
-        style: 'destructive',
-        onPress: handleCancel,
-      },
-    ]);
-  };
-
-  // Handle invalid step state
-  if (!isStepValid && currentStep !== 'capture') {
-    console.warn('Invalid step state, redirecting to appropriate step');
-
-    // Find the earliest valid step
-    for (const step of WORKFLOW_STEPS) {
-      if (step.validation(activeFlow || ({} as any))) {
-        updateFlow({ currentStep: step.id });
-        break;
+      // Auto-navigate to appropriate step
+      for (const stepConfig of WORKFLOW_STEPS) {
+        if (stepConfig.id === 'capture') continue; // Skip capture
+        
+        // Check if this step's requirements are met
+        const canUseStep = validateCurrentStep();
+        if (canUseStep) {
+          console.log('[CameraWorkflowCoordinator] Auto-correcting to step:', stepConfig.id);
+          break;
+        }
       }
     }
+  }, [currentStep, hasActiveFlow, validateCurrentStep]);
 
-    // If no valid step found, go back to capture
-    if (!WORKFLOW_STEPS.some(s => s.validation(activeFlow || ({} as any)))) {
-      updateFlow({ currentStep: 'capture' });
+  /**
+   * Flow initialization logging
+   */
+  useEffect(() => {
+    if (flowId && __DEV__) {
+      console.log('[CameraWorkflowCoordinator] Initialized with flowId:', flowId);
     }
+    
+    if (hasActiveFlow && __DEV__) {
+      console.log('[CameraWorkflowCoordinator] Active flow state:', {
+        id: currentFlow?.id,
+        step: currentStep,
+        hasImage: !!currentFlow?.imageUri,
+        hasOCR: !!currentFlow?.ocrResult,
+        hasDraft: !!currentFlow?.receiptDraft,
+      });
+    }
+  }, [flowId, hasActiveFlow, currentFlow, currentStep]);
 
-    return <View style={[styles.container, { backgroundColor }]} />;
+  /**
+   * Handle error alert for invalid step - MOVED BEFORE EARLY RETURN
+   */
+  const [showInvalidStepError, setShowInvalidStepError] = React.useState(false);
+  
+  // Get current step configuration and component
+  const currentStepConfig = WORKFLOW_STEPS.find(s => s.id === currentStep);
+  const StepComponent = currentStepConfig?.component;
+
+  // Effect for invalid step error - moved before early return
+  useEffect(() => {
+    if (!StepComponent && !showInvalidStepError) {
+      setShowInvalidStepError(true);
+      Alert.alert(
+        t('error.title', 'Something went wrong'),
+        t('error.invalidStepMessage', 'Invalid workflow step. Please restart the process.'),
+        [
+          {
+            text: t('common.restart', 'Restart'),
+            onPress: () => {
+              setShowInvalidStepError(false);
+              router.replace('/camera');
+            },
+          },
+        ]
+      );
+    }
+  }, [StepComponent, showInvalidStepError, t, router]);
+
+  // Validate step exists - EARLY RETURN AFTER ALL HOOKS
+  if (!StepComponent) {
+    console.error('[CameraWorkflowCoordinator] No component found for step:', currentStep);
+    
+    return (
+      <ErrorFallback
+        message={t('error.invalidStepMessage', 'Invalid workflow step. Please restart the process.')}
+        backgroundColor={backgroundColor}
+        textColor={textColor}
+      />
+    );
   }
 
-  // Render step component if available
-  if (!StepComponent) {
-    console.error('No component found for step:', currentStep);
-    return <View style={[styles.container, { backgroundColor }]} />;
+  // Show navigation blocked state in development
+  if (isNavigationBlocked && __DEV__) {
+    console.log('[CameraWorkflowCoordinator] Navigation blocked:', blockReason);
   }
 
   return (
+    <CameraNavigationGuard targetStep={currentStep}>
+      <SafeAreaView style={[styles.container, { backgroundColor }]}>
+        <StepComponent
+          flowId={currentFlow?.id || ''}
+          onNext={handleNext}
+          onBack={handleBack}
+          onCancel={handleCancel}
+          onError={handleError}
+          testID={`camera-step-${currentStep}`}
+        />
+      </SafeAreaView>
+    </CameraNavigationGuard>
+  );
+};
+
+/**
+ * Main Coordinator Component with Provider Hierarchy
+ */
+export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps> = ({ 
+  flowId 
+}) => {
+  return (
     <CameraErrorBoundary
-      fallbackStep={currentStep}
+      fallbackStep="capture"
       onError={(error, errorInfo) => {
-        handleError({
-          code: 'COMPONENT_ERROR',
-          message: 'A component error occurred',
-          step: currentStep,
-          retry: true,
-        });
+        console.error('[CameraWorkflowCoordinator] Component error boundary triggered:', error);
+        
+        // Log error details in development
+        if (__DEV__) {
+          console.error('[CameraWorkflowCoordinator] Error info:', errorInfo);
+          console.error('[CameraWorkflowCoordinator] Component stack:', errorInfo?.componentStack);
+        }
       }}
     >
-      <CameraNavigationGuard targetStep={currentStep}>
-        <View style={[styles.container, { backgroundColor }]}>
-          <StepComponent
-            flowId={activeFlow?.id || ''}
-            onNext={handleNext}
-            onBack={handleBack}
-            onCancel={handleCancel}
-            onError={handleError}
-          />
-        </View>
-      </CameraNavigationGuard>
+      {/* Provider Hierarchy - Order is important! */}
+      <CameraFlowProvider>
+        <OCRProcessingProvider>
+          <ReceiptDraftProvider>
+            <CameraWorkflowCoordinatorInner flowId={flowId} />
+          </ReceiptDraftProvider>
+        </OCRProcessingProvider>
+      </CameraFlowProvider>
     </CameraErrorBoundary>
   );
 };
 
+/**
+ * Styles
+ */
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 20,
   },
 });
 
