@@ -68,7 +68,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
 
       // Launch camera
       const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: false,
         quality: 0.9,
         base64: false,
@@ -106,7 +106,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: 'images',
         allowsEditing: false,
         quality: 0.9,
         base64: false,
