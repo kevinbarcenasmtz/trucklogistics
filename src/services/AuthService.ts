@@ -36,13 +36,15 @@ export class AuthService {
 
     if (!/[A-Z]/.test(password)) {
       errors.push(
-        'PasswordUppercaseRequired', 'Password must contain at least one uppercase letter'
+        'PasswordUppercaseRequired',
+        'Password must contain at least one uppercase letter'
       );
     }
 
     if (!/[a-z]/.test(password)) {
       errors.push(
-        'PasswordLowercaseRequired', 'Password must contain at least one lowercase letter'
+        'PasswordLowercaseRequired',
+        'Password must contain at least one lowercase letter'
       );
     }
 
@@ -52,7 +54,8 @@ export class AuthService {
 
     if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password)) {
       errors.push(
-        'PasswordSpecialCharRequired', 'Password must contain at least one special character'
+        'PasswordSpecialCharRequired',
+        'Password must contain at least one special character'
       );
     }
 

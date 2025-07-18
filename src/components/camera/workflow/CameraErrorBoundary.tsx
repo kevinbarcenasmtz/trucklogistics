@@ -312,26 +312,29 @@ function CameraErrorFallback({
  */
 export function useCameraErrorHandler() {
   const { updateFlow } = useCameraFlow();
-  
+
   // Create addError function that uses updateFlow
-  const addError = React.useCallback((error: {
-    step: string;
-    code: string;
-    message: string;
-    userMessage?: string;
-    retryable?: boolean;
-  }) => {
-    updateFlow({
-      lastError: {
-        step: error.step as any, // Cast to match CameraFlowStep type
-        code: error.code,
-        message: error.message,
-        userMessage: error.userMessage || error.message,
-        timestamp: Date.now(),
-        retryable: error.retryable ?? true,
-      }
-    });
-  }, [updateFlow]);
+  const addError = React.useCallback(
+    (error: {
+      step: string;
+      code: string;
+      message: string;
+      userMessage?: string;
+      retryable?: boolean;
+    }) => {
+      updateFlow({
+        lastError: {
+          step: error.step as any, // Cast to match CameraFlowStep type
+          code: error.code,
+          message: error.message,
+          userMessage: error.userMessage || error.message,
+          timestamp: Date.now(),
+          retryable: error.retryable ?? true,
+        },
+      });
+    },
+    [updateFlow]
+  );
 
   // Store the addError function globally for the error boundary to access
   React.useEffect(() => {

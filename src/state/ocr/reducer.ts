@@ -52,17 +52,19 @@ export function ocrReducer(current: OCRStateWithContext, action: OCRAction): OCR
   });
 
   /**
- * Convert confidence from AIClassifiedReceipt to a single number
- */
-const getConfidenceValue = (confidence: { [key: string]: number } | number | undefined): number => {
-  if (typeof confidence === 'number') return confidence;
-  if (typeof confidence === 'object' && confidence) {
-    // Calculate average confidence from all fields
-    const values = Object.values(confidence);
-    return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0.8;
-  }
-  return 0.8; // Default confidence
-};
+   * Convert confidence from AIClassifiedReceipt to a single number
+   */
+  const getConfidenceValue = (
+    confidence: { [key: string]: number } | number | undefined
+  ): number => {
+    if (typeof confidence === 'number') return confidence;
+    if (typeof confidence === 'object' && confidence) {
+      // Calculate average confidence from all fields
+      const values = Object.values(confidence);
+      return values.length > 0 ? values.reduce((a, b) => a + b) / values.length : 0.8;
+    }
+    return 0.8; // Default confidence
+  };
 
   switch (action.type) {
     // ===== CAPTURE ACTIONS =====
@@ -268,16 +270,16 @@ const getConfidenceValue = (confidence: { [key: string]: number } | number | und
 
     case 'CLASSIFY_COMPLETE': {
       if (current.state.status !== 'classifying') return current;
-      
+
       const classificationTime =
         Date.now() -
         (current.context.startTime +
           (current.context.metrics.imageOptimizationTime || 0) +
           (current.context.metrics.uploadTime || 0) +
           (current.context.metrics.ocrProcessingTime || 0));
-      
+
       const totalProcessingTime = Date.now() - current.context.startTime;
-      
+
       return updateState(
         {
           status: 'reviewing',

@@ -1,9 +1,9 @@
 // src/services/camera/CameraFlowService.ts
 
 import * as FileSystem from 'expo-file-system';
-import { BackendOCRService, BackendOCRError, FileInfo } from '../api/BackendOCRService';
-import { ProcessedReceipt, OptimizationMetrics } from '../../state/ocr/types';
+import { OptimizationMetrics, ProcessedReceipt } from '../../state/ocr/types';
 import { AIClassifiedReceipt } from '../../types/ReceiptInterfaces';
+import { BackendOCRError, BackendOCRService, FileInfo } from '../api/BackendOCRService';
 
 /**
  * Progress update callback for workflow orchestration
@@ -108,9 +108,9 @@ export class CameraFlowService {
     try {
       // Stage 1: File validation and preparation (0-5%)
       onProgress?.(0, 'validation', 'Validating image file...');
-      
+
       const fileInfo = await this.validateAndPrepareFile(imageUri);
-      
+
       if (onCancellationCheck?.()) {
         throw new CameraFlowError('CANCELLED', 'Operation cancelled by user', 'validation');
       }
@@ -119,9 +119,9 @@ export class CameraFlowService {
 
       // Stage 2: Image optimization (5-10%)
       onProgress?.(5, 'optimization', 'Optimizing image...');
-      
+
       const { optimizedUri, optimizationMetrics } = await this.optimizeImage(imageUri, fileInfo);
-      
+
       if (onCancellationCheck?.()) {
         throw new CameraFlowError('CANCELLED', 'Operation cancelled by user', 'optimization');
       }
@@ -130,7 +130,7 @@ export class CameraFlowService {
 
       // Stage 3: Upload preparation (10-15%)
       onProgress?.(10, 'upload_prep', 'Preparing upload session...');
-      
+
       uploadStartTime = Date.now();
       const optimizedFileInfo = await this.getFileInfo(optimizedUri);
       const uploadSession = await this.backendService.createUploadSession(optimizedFileInfo, {
@@ -138,7 +138,7 @@ export class CameraFlowService {
       });
 
       this.currentUploadId = uploadSession.uploadId;
-      
+
       if (onCancellationCheck?.()) {
         throw new CameraFlowError('CANCELLED', 'Operation cancelled by user', 'upload_prep');
       }
@@ -147,14 +147,14 @@ export class CameraFlowService {
 
       // Stage 4: File upload (15-30%)
       onProgress?.(15, 'uploading', 'Uploading image...');
-      
+
       await this.backendService.uploadFileChunks(
         optimizedUri,
         uploadSession.uploadId,
         uploadSession.maxChunks,
         (uploadProgress, chunkIndex, totalChunks) => {
           // Map upload progress to 15-30% of total workflow
-          const workflowProgress = 15 + (uploadProgress * 0.15);
+          const workflowProgress = 15 + uploadProgress * 0.15;
           onProgress?.(
             workflowProgress,
             'uploading',
@@ -165,7 +165,7 @@ export class CameraFlowService {
       );
 
       uploadEndTime = Date.now();
-      
+
       if (onCancellationCheck?.()) {
         throw new CameraFlowError('CANCELLED', 'Operation cancelled by user', 'uploading');
       }
@@ -174,14 +174,14 @@ export class CameraFlowService {
 
       // Stage 5: Start backend processing (30-35%)
       onProgress?.(30, 'processing_start', 'Starting OCR processing...');
-      
+
       processingStartTime = Date.now();
       const processingJob = await this.backendService.startProcessing(uploadSession.uploadId, {
         correlationId,
       });
 
       this.currentJobId = processingJob.jobId;
-      
+
       if (onCancellationCheck?.()) {
         throw new CameraFlowError('CANCELLED', 'Operation cancelled by user', 'processing_start');
       }
@@ -190,10 +190,10 @@ export class CameraFlowService {
 
       // Stage 6: Monitor processing progress (35-95%)
       onProgress?.(35, 'processing', 'Processing image...');
-      
+
       const processingResult = await this.backendService.pollJobStatus(
         processingJob.jobId,
-        (status) => {
+        status => {
           if (onCancellationCheck?.()) {
             // Don't throw here, let the polling handle it
             return;
@@ -201,13 +201,13 @@ export class CameraFlowService {
 
           // Map backend progress to 35-95% of total workflow
           const backendProgress = status.progress || 0;
-          const workflowProgress = 35 + (backendProgress * 0.6);
-          
+          const workflowProgress = 35 + backendProgress * 0.6;
+
           const stageDescription = this.mapBackendStageToDescription(
             status.stage,
             status.stageDescription
           );
-          
+
           onProgress?.(workflowProgress, status.stage || 'processing', stageDescription);
         },
         { correlationId }
@@ -250,7 +250,7 @@ export class CameraFlowService {
       );
 
       const endTime = Date.now();
-      
+
       onProgress?.(100, 'complete', 'Processing complete');
 
       return {
@@ -259,7 +259,6 @@ export class CameraFlowService {
         processingTime: processingEndTime - processingStartTime,
         totalTime: endTime - startTime,
       };
-
     } catch (error) {
       if (error instanceof CameraFlowError) {
         throw error;
@@ -343,13 +342,9 @@ export class CameraFlowService {
     // Check if file exists
     const fileInfo = await FileSystem.getInfoAsync(imageUri);
     if (!fileInfo.exists) {
-      throw new CameraFlowError(
-        'FILE_NOT_FOUND',
-        'Image file not found',
-        'validation',
-        false,
-        { imageUri }
-      );
+      throw new CameraFlowError('FILE_NOT_FOUND', 'Image file not found', 'validation', false, {
+        imageUri,
+      });
     }
 
     if (!('size' in fileInfo)) {
@@ -424,7 +419,7 @@ export class CameraFlowService {
       // For now, we'll just return the original image
       // In a real implementation, you would use expo-image-manipulator
       // or similar to resize, compress, and optimize the image
-      
+
       const processingTime = Date.now() - startTime;
 
       return {

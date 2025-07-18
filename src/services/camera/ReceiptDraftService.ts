@@ -1,12 +1,12 @@
 // src/services/camera/ReceiptDraftService.ts
 
-import { Receipt } from '../../types/ReceiptInterfaces';
-import { ProcessedReceipt } from '../../state/ocr/types';
-import { 
-  FieldValidationError, 
-  FieldValidationResult, 
-  FormValidationResult 
+import {
+  FieldValidationError,
+  FieldValidationResult,
+  FormValidationResult,
 } from '../../context/ReceiptDraftContext';
+import { ProcessedReceipt } from '../../state/ocr/types';
+import { Receipt } from '../../types/ReceiptInterfaces';
 
 /**
  * Validation rules configuration
@@ -81,10 +81,11 @@ export class ReceiptDraftService {
   createDraftFromProcessedData(processedData: ProcessedReceipt): Receipt {
     const classification = processedData.classification;
     const currentTimestamp = new Date().toISOString();
-    
+
     return {
       id: '', // Will be set when saved
-      date: this.validateAndFormatDate(classification.date) || new Date().toISOString().split('T')[0],
+      date:
+        this.validateAndFormatDate(classification.date) || new Date().toISOString().split('T')[0],
       type: this.validateAndFormatType(classification.type),
       amount: this.validateAndFormatAmount(classification.amount),
       vehicle: classification.vehicle || '',
@@ -150,7 +151,6 @@ export class ReceiptDraftService {
       if (fullDraft && errors.length === 0) {
         this.validateCrossField(field, value, fullDraft, errors);
       }
-
     } catch (error) {
       errors.push({
         code: VALIDATION_ERROR_CODES.INVALID_FORMAT,
@@ -178,7 +178,7 @@ export class ReceiptDraftService {
       const result = this.validateField(field, draft[field], draft);
       if (result.errors.length > 0) {
         fieldErrors[field] = result.errors;
-        
+
         if (result.errors.some(e => e.severity === 'error')) {
           hasErrors = true;
         }
@@ -190,7 +190,7 @@ export class ReceiptDraftService {
 
     // Business rule validation
     this.validateBusinessRules(draft, fieldErrors);
-    
+
     // Check if business rules added any errors
     Object.values(fieldErrors).forEach(errors => {
       if (errors.some(e => e.severity === 'error')) hasErrors = true;
@@ -210,7 +210,7 @@ export class ReceiptDraftService {
    */
   transformToFinalReceipt(draft: Receipt, receiptId?: string): Receipt {
     const now = new Date().toISOString();
-    
+
     return {
       ...draft,
       id: receiptId || this.generateReceiptId(),
@@ -274,7 +274,7 @@ export class ReceiptDraftService {
     Object.entries(validation.fieldErrors).forEach(([field, errors]) => {
       const hasErrors = errors.some(e => e.severity === 'error');
       const hasWarnings = errors.some(e => e.severity === 'warning');
-      
+
       if (hasErrors) {
         errorFields.push(field);
         errorCount += errors.filter(e => e.severity === 'error').length;
@@ -395,7 +395,7 @@ export class ReceiptDraftService {
 
     // Convert to number if string
     const amount = typeof value === 'string' ? parseFloat(value) : value;
-    
+
     if (isNaN(amount)) {
       errors.push({
         code: VALIDATION_ERROR_CODES.INVALID_AMOUNT,
@@ -530,9 +530,14 @@ export class ReceiptDraftService {
     }
   }
 
-  private validateCrossField(field: keyof Receipt, value: any, draft: Receipt, errors: FieldValidationError[]): void {
+  private validateCrossField(
+    field: keyof Receipt,
+    value: any,
+    draft: Receipt,
+    errors: FieldValidationError[]
+  ): void {
     // Cross-field validation rules
-    
+
     // Example: If type is Fuel, amount should be reasonable for fuel
     if (field === 'amount' && draft.type === 'Fuel') {
       const amount = typeof value === 'string' ? parseFloat(value) : value;
@@ -549,8 +554,9 @@ export class ReceiptDraftService {
     if (field === 'date' && draft.timestamp) {
       const receiptDate = new Date(value);
       const timestampDate = new Date(draft.timestamp);
-      const daysDifference = Math.abs(receiptDate.getTime() - timestampDate.getTime()) / (1000 * 60 * 60 * 24);
-      
+      const daysDifference =
+        Math.abs(receiptDate.getTime() - timestampDate.getTime()) / (1000 * 60 * 60 * 24);
+
       if (daysDifference > 30) {
         errors.push({
           code: VALIDATION_ERROR_CODES.BUSINESS_RULE,
@@ -561,7 +567,10 @@ export class ReceiptDraftService {
     }
   }
 
-  private validateBusinessRules(draft: Receipt, fieldErrors: Record<string, FieldValidationError[]>): void {
+  private validateBusinessRules(
+    draft: Receipt,
+    fieldErrors: Record<string, FieldValidationError[]>
+  ): void {
     // Business rule: Maintenance expenses should have reasonable amounts
     if (draft.type === 'Maintenance') {
       const amount = typeof draft.amount === 'string' ? parseFloat(draft.amount) : draft.amount;
@@ -580,7 +589,7 @@ export class ReceiptDraftService {
       const receiptDate = new Date(draft.date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
+
       if (receiptDate > today) {
         if (!fieldErrors.date) fieldErrors.date = [];
         fieldErrors.date.push({
@@ -596,11 +605,11 @@ export class ReceiptDraftService {
 
   private validateAndFormatDate(date: any): string | null {
     if (!date) return null;
-    
+
     try {
       const parsed = new Date(date);
       if (isNaN(parsed.getTime())) return null;
-      
+
       return parsed.toISOString().split('T')[0];
     } catch {
       return null;
@@ -614,10 +623,10 @@ export class ReceiptDraftService {
 
   private validateAndFormatAmount(amount: any): string {
     if (!amount) return '0.00';
-    
+
     const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     if (isNaN(num)) return '0.00';
-    
+
     return Math.max(0, num).toFixed(2);
   }
 
@@ -643,11 +652,11 @@ export class ReceiptDraftService {
     if (a === b) return true;
     if (a == null || b == null) return false;
     if (typeof a !== typeof b) return false;
-    
+
     if (typeof a === 'object') {
       return JSON.stringify(a) === JSON.stringify(b);
     }
-    
+
     return false;
   }
 }

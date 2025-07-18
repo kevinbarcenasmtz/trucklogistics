@@ -1,6 +1,6 @@
 // src/context/OCRProcessingContext.tsx
 
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useCallback, useContext, useReducer } from 'react';
 
 /**
  * Processing stages that match backend OCR pipeline stages
@@ -10,9 +10,9 @@ export type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'complete' 
 /**
  * Detailed processing stage descriptions from backend
  */
-export type ProcessingStage = 
+export type ProcessingStage =
   | 'initializing'
-  | 'uploading_chunks' 
+  | 'uploading_chunks'
   | 'combining_chunks'
   | 'extracting_text'
   | 'classifying_data'
@@ -39,24 +39,24 @@ export interface OCRProcessingState {
   readonly status: ProcessingStatus;
   readonly stage?: ProcessingStage;
   readonly stageDescription?: string;
-  
+
   // Progress tracking (0-100)
   readonly uploadProgress: number;
   readonly processingProgress: number;
   readonly totalProgress: number;
-  
+
   // Backend operation tracking
   readonly jobId?: string;
   readonly uploadSessionId?: string;
-  
+
   // Error handling
   readonly error?: ProcessingError;
   readonly canRetry: boolean;
-  
+
   // Timing
   readonly startTimestamp?: number;
   readonly completedTimestamp?: number;
-  
+
   // Utility flags
   readonly isProcessing: boolean;
   readonly isUploading: boolean;
@@ -72,7 +72,12 @@ export type OCRProcessingAction =
   | { type: 'UPDATE_UPLOAD_PROGRESS'; progress: number }
   | { type: 'UPLOAD_COMPLETE' }
   | { type: 'START_BACKEND_PROCESSING'; jobId: string }
-  | { type: 'UPDATE_PROCESSING_PROGRESS'; progress: number; stage?: ProcessingStage; description?: string }
+  | {
+      type: 'UPDATE_PROCESSING_PROGRESS';
+      progress: number;
+      stage?: ProcessingStage;
+      description?: string;
+    }
   | { type: 'PROCESSING_COMPLETE' }
   | { type: 'PROCESSING_ERROR'; error: ProcessingError }
   | { type: 'CLEAR_ERROR' }
@@ -100,21 +105,25 @@ const initialState: OCRProcessingState = {
  * Upload phase: 0-30% of total
  * Processing phase: 30-100% of total
  */
-function calculateTotalProgress(uploadProgress: number, processingProgress: number, status: ProcessingStatus): number {
+function calculateTotalProgress(
+  uploadProgress: number,
+  processingProgress: number,
+  status: ProcessingStatus
+): number {
   if (status === 'idle') return 0;
   if (status === 'complete') return 100;
   if (status === 'error') return 0;
-  
+
   if (status === 'uploading') {
     return Math.round(uploadProgress * 0.3); // Upload is 30% of total
   }
-  
+
   if (status === 'processing') {
     const uploadPhase = 30; // Upload phase complete
     const processingPhase = Math.round(processingProgress * 0.7); // Processing is 70% of total
     return uploadPhase + processingPhase;
   }
-  
+
   return 0;
 }
 
@@ -123,11 +132,11 @@ function calculateTotalProgress(uploadProgress: number, processingProgress: numb
  * Handles all state transitions with immutable updates
  */
 function ocrProcessingReducer(
-  state: OCRProcessingState, 
+  state: OCRProcessingState,
   action: OCRProcessingAction
 ): OCRProcessingState {
   const timestamp = Date.now();
-  
+
   switch (action.type) {
     case 'START_PROCESSING':
       return {
@@ -153,7 +162,11 @@ function ocrProcessingReducer(
       return {
         ...state,
         uploadProgress,
-        totalProgress: calculateTotalProgress(uploadProgress, state.processingProgress, state.status),
+        totalProgress: calculateTotalProgress(
+          uploadProgress,
+          state.processingProgress,
+          state.status
+        ),
       };
 
     case 'UPLOAD_COMPLETE':
@@ -183,7 +196,11 @@ function ocrProcessingReducer(
         processingProgress,
         stage: action.stage || state.stage,
         stageDescription: action.description || state.stageDescription,
-        totalProgress: calculateTotalProgress(state.uploadProgress, processingProgress, state.status),
+        totalProgress: calculateTotalProgress(
+          state.uploadProgress,
+          processingProgress,
+          state.status
+        ),
       };
 
     case 'PROCESSING_COMPLETE':
@@ -252,13 +269,17 @@ function ocrProcessingReducer(
 export interface OCRProcessingContextValue {
   readonly state: OCRProcessingState;
   readonly dispatch: React.Dispatch<OCRProcessingAction>;
-  
+
   // Convenience methods
   readonly startProcessing: (uploadSessionId: string, jobId?: string) => void;
   readonly updateUploadProgress: (progress: number) => void;
   readonly completeUpload: () => void;
   readonly startBackendProcessing: (jobId: string) => void;
-  readonly updateProcessingProgress: (progress: number, stage?: ProcessingStage, description?: string) => void;
+  readonly updateProcessingProgress: (
+    progress: number,
+    stage?: ProcessingStage,
+    description?: string
+  ) => void;
   readonly completeProcessing: () => void;
   readonly setError: (error: ProcessingError) => void;
   readonly clearError: () => void;
@@ -303,13 +324,12 @@ export const OCRProcessingProvider: React.FC<OCRProcessingProviderProps> = ({ ch
     dispatch({ type: 'START_BACKEND_PROCESSING', jobId });
   }, []);
 
-  const updateProcessingProgress = useCallback((
-    progress: number, 
-    stage?: ProcessingStage, 
-    description?: string
-  ) => {
-    dispatch({ type: 'UPDATE_PROCESSING_PROGRESS', progress, stage, description });
-  }, []);
+  const updateProcessingProgress = useCallback(
+    (progress: number, stage?: ProcessingStage, description?: string) => {
+      dispatch({ type: 'UPDATE_PROCESSING_PROGRESS', progress, stage, description });
+    },
+    []
+  );
 
   const completeProcessing = useCallback(() => {
     dispatch({ type: 'PROCESSING_COMPLETE' });
@@ -336,8 +356,8 @@ export const OCRProcessingProvider: React.FC<OCRProcessingProviderProps> = ({ ch
   }, []);
 
   // Development logging
-    React.useEffect(() => {
-      if (process.env.NODE_ENV === 'development') {
+  React.useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
       console.log('[OCRProcessingContext] State updated:', {
         status: state.status,
         stage: state.stage,
@@ -348,9 +368,8 @@ export const OCRProcessingProvider: React.FC<OCRProcessingProviderProps> = ({ ch
         hasError: state.hasError,
         timestamp: new Date().toISOString(),
       });
-      }   
-    }, [state]);
-
+    }
+  }, [state]);
 
   const contextValue: OCRProcessingContextValue = {
     state,
@@ -369,9 +388,7 @@ export const OCRProcessingProvider: React.FC<OCRProcessingProviderProps> = ({ ch
   };
 
   return (
-    <OCRProcessingContext.Provider value={contextValue}>
-      {children}
-    </OCRProcessingContext.Provider>
+    <OCRProcessingContext.Provider value={contextValue}>{children}</OCRProcessingContext.Provider>
   );
 };
 
@@ -381,11 +398,11 @@ export const OCRProcessingProvider: React.FC<OCRProcessingProviderProps> = ({ ch
  */
 export function useOCRProcessing(): OCRProcessingContextValue {
   const context = useContext(OCRProcessingContext);
-  
+
   if (!context) {
     throw new Error('useOCRProcessing must be used within an OCRProcessingProvider');
   }
-  
+
   return context;
 }
 
@@ -400,9 +417,11 @@ export const OCRProcessingStateGuards = {
   hasError: (state: OCRProcessingState): boolean => state.status === 'error',
   canCancel: (state: OCRProcessingState): boolean => state.isProcessing || state.isUploading,
   canRetry: (state: OCRProcessingState): boolean => state.hasError && state.canRetry,
-  hasJobId: (state: OCRProcessingState): state is OCRProcessingState & { jobId: string } => 
+  hasJobId: (state: OCRProcessingState): state is OCRProcessingState & { jobId: string } =>
     typeof state.jobId === 'string' && state.jobId.length > 0,
-  hasSessionId: (state: OCRProcessingState): state is OCRProcessingState & { uploadSessionId: string } => 
+  hasSessionId: (
+    state: OCRProcessingState
+  ): state is OCRProcessingState & { uploadSessionId: string } =>
     typeof state.uploadSessionId === 'string' && state.uploadSessionId.length > 0,
 };
 
@@ -411,9 +430,9 @@ export const OCRProcessingStateGuards = {
  */
 export const OCRProcessingErrorUtils = {
   createError: (
-    code: string, 
-    message: string, 
-    userMessage: string, 
+    code: string,
+    message: string,
+    userMessage: string,
     retryable: boolean = false,
     context?: Record<string, any>
   ): ProcessingError => ({

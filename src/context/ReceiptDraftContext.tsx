@@ -1,8 +1,8 @@
 // src/context/ReceiptDraftContext.tsx
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect } from 'react';
-import { Receipt } from '../types/ReceiptInterfaces';
+import React, { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import { ProcessedReceipt } from '../state/ocr/types';
+import { Receipt } from '../types/ReceiptInterfaces';
 
 /**
  * Field validation error
@@ -39,28 +39,28 @@ export interface ReceiptDraftState {
   // Core draft data
   readonly draft?: Receipt;
   readonly originalData?: ProcessedReceipt;
-  
+
   // Change tracking
   readonly modifiedFields: Set<keyof Receipt>;
   readonly isDirty: boolean;
   readonly hasChanges: boolean;
-  
+
   // Validation state
   readonly fieldErrors: Record<string, FieldValidationError[]>;
   readonly formValidation?: FormValidationResult;
   readonly isValid: boolean;
-  
+
   // Save state
   readonly isSaving: boolean;
   readonly lastSavedTimestamp?: number;
   readonly saveError?: string;
-  
+
   // History (for undo/redo)
   readonly history: Receipt[];
   readonly historyIndex: number;
   readonly canUndo: boolean;
   readonly canRedo: boolean;
-  
+
   // Utility flags
   readonly isInitialized: boolean;
 }
@@ -107,7 +107,7 @@ const initialState: ReceiptDraftState = {
 function createDraftFromProcessedData(processedData: ProcessedReceipt): Receipt {
   const classification = processedData.classification;
   const currentTimestamp = new Date().toISOString();
-  
+
   return {
     id: '', // Will be set when saved
     date: classification.date || currentTimestamp.split('T')[0], // Convert to date string
@@ -153,21 +153,18 @@ function receiptDraftReducer(
 
     case 'UPDATE_FIELD':
       if (!state.draft) return state;
-      
+
       const updatedDraft = {
         ...state.draft,
         [action.field]: action.value,
         timestamp: new Date().toISOString(),
       };
-      
+
       const newModifiedFields = new Set(state.modifiedFields);
       newModifiedFields.add(action.field);
-      
-      const newHistory = addToHistory(
-        state.history.slice(0, state.historyIndex + 1),
-        updatedDraft
-      );
-      
+
+      const newHistory = addToHistory(state.history.slice(0, state.historyIndex + 1), updatedDraft);
+
       return {
         ...state,
         draft: updatedDraft,
@@ -187,23 +184,23 @@ function receiptDraftReducer(
 
     case 'UPDATE_MULTIPLE_FIELDS':
       if (!state.draft) return state;
-      
+
       const multiUpdatedDraft = {
         ...state.draft,
         ...action.updates,
         timestamp: new Date().toISOString(),
       };
-      
+
       const multiModifiedFields = new Set(state.modifiedFields);
       Object.keys(action.updates).forEach(field => {
         multiModifiedFields.add(field as keyof Receipt);
       });
-      
+
       const multiNewHistory = addToHistory(
         state.history.slice(0, state.historyIndex + 1),
         multiUpdatedDraft
       );
-      
+
       return {
         ...state,
         draft: multiUpdatedDraft,
@@ -275,7 +272,7 @@ function receiptDraftReducer(
 
     case 'UNDO':
       if (!state.canUndo || state.historyIndex <= 0) return state;
-      
+
       const undoIndex = state.historyIndex - 1;
       return {
         ...state,
@@ -288,7 +285,7 @@ function receiptDraftReducer(
 
     case 'REDO':
       if (!state.canRedo || state.historyIndex >= state.history.length - 1) return state;
-      
+
       const redoIndex = state.historyIndex + 1;
       return {
         ...state,
@@ -301,7 +298,7 @@ function receiptDraftReducer(
 
     case 'RESET_TO_ORIGINAL':
       if (!state.originalData) return state;
-      
+
       const originalDraft = createDraftFromProcessedData(state.originalData);
       return {
         ...state,
@@ -334,7 +331,7 @@ function receiptDraftReducer(
 export interface ReceiptDraftContextValue {
   readonly state: ReceiptDraftState;
   readonly dispatch: React.Dispatch<ReceiptDraftAction>;
-  
+
   // Convenience methods
   readonly initializeDraft: (originalData: ProcessedReceipt, draft?: Receipt) => void;
   readonly updateField: (field: keyof Receipt, value: any) => void;
@@ -372,7 +369,11 @@ export const ReceiptDraftProvider: React.FC<ReceiptDraftProviderProps> = ({ chil
 
   // Convenience action creators
   const initializeDraft = useCallback((originalData: ProcessedReceipt, draft?: Receipt) => {
-    dispatch({ type: 'INITIALIZE_DRAFT', originalData, draft: draft || createDraftFromProcessedData(originalData) });
+    dispatch({
+      type: 'INITIALIZE_DRAFT',
+      originalData,
+      draft: draft || createDraftFromProcessedData(originalData),
+    });
   }, []);
 
   const updateField = useCallback((field: keyof Receipt, value: any) => {
@@ -465,9 +466,7 @@ export const ReceiptDraftProvider: React.FC<ReceiptDraftProviderProps> = ({ chil
   };
 
   return (
-    <ReceiptDraftContext.Provider value={contextValue}>
-      {children}
-    </ReceiptDraftContext.Provider>
+    <ReceiptDraftContext.Provider value={contextValue}>{children}</ReceiptDraftContext.Provider>
   );
 };
 
@@ -476,11 +475,11 @@ export const ReceiptDraftProvider: React.FC<ReceiptDraftProviderProps> = ({ chil
  */
 export function useReceiptDraft(): ReceiptDraftContextValue {
   const context = useContext(ReceiptDraftContext);
-  
+
   if (!context) {
     throw new Error('useReceiptDraft must be used within a ReceiptDraftProvider');
   }
-  
+
   return context;
 }
 
@@ -489,7 +488,7 @@ export function useReceiptDraft(): ReceiptDraftContextValue {
  */
 export const ReceiptDraftStateGuards = {
   isInitialized: (state: ReceiptDraftState): boolean => state.isInitialized,
-  hasDraft: (state: ReceiptDraftState): state is ReceiptDraftState & { draft: Receipt } => 
+  hasDraft: (state: ReceiptDraftState): state is ReceiptDraftState & { draft: Receipt } =>
     state.isInitialized && !!state.draft,
   hasChanges: (state: ReceiptDraftState): boolean => state.hasChanges,
   isDirty: (state: ReceiptDraftState): boolean => state.isDirty,
@@ -498,8 +497,9 @@ export const ReceiptDraftStateGuards = {
   hasErrors: (state: ReceiptDraftState): boolean => Object.keys(state.fieldErrors).length > 0,
   canUndo: (state: ReceiptDraftState): boolean => state.canUndo,
   canRedo: (state: ReceiptDraftState): boolean => state.canRedo,
-  hasOriginalData: (state: ReceiptDraftState): state is ReceiptDraftState & { originalData: ProcessedReceipt } =>
-    !!state.originalData,
+  hasOriginalData: (
+    state: ReceiptDraftState
+  ): state is ReceiptDraftState & { originalData: ProcessedReceipt } => !!state.originalData,
 };
 
 export default ReceiptDraftProvider;

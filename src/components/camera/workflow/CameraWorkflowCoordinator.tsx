@@ -20,7 +20,7 @@ interface CameraWorkflowCoordinatorProps {
 }
 
 export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps> = ({ flowId }) => {
-const { activeFlow, updateFlow, cancelFlow } = useCameraFlow();
+  const { activeFlow, updateFlow, cancelFlow } = useCameraFlow();
   const { backgroundColor } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();

@@ -52,7 +52,11 @@ export interface CancelJobResponse {
 /**
  * Upload progress callback
  */
-export type UploadProgressCallback = (progress: number, chunkIndex: number, totalChunks: number) => void;
+export type UploadProgressCallback = (
+  progress: number,
+  chunkIndex: number,
+  totalChunks: number
+) => void;
 
 /**
  * Service configuration
@@ -143,7 +147,7 @@ export class BackendOCRService {
     options: RequestOptions = {}
   ): Promise<CreateUploadSessionResponse> {
     const correlationId = options.correlationId || this.generateCorrelationId();
-    
+
     const requestBody = {
       fileName: fileInfo.name,
       fileSize: fileInfo.size,
@@ -164,8 +168,8 @@ export class BackendOCRService {
       options
     );
 
-    this.logDevelopment('Upload session created', { 
-      uploadId: response.uploadId, 
+    this.logDevelopment('Upload session created', {
+      uploadId: response.uploadId,
       correlationId,
       fileSize: fileInfo.size,
       chunkSize: response.chunkSize,
@@ -188,7 +192,7 @@ export class BackendOCRService {
     const correlationId = options.correlationId || this.generateCorrelationId();
     const abortController = new AbortController();
     const requestKey = `upload_${uploadId}`;
-    
+
     this.activeRequests.set(requestKey, abortController);
 
     try {
@@ -314,7 +318,7 @@ export class BackendOCRService {
     const correlationId = options.correlationId || this.generateCorrelationId();
     const abortController = new AbortController();
     const requestKey = `poll_${jobId}`;
-    
+
     this.activeRequests.set(requestKey, abortController);
 
     try {
@@ -354,12 +358,7 @@ export class BackendOCRService {
         attempts++;
       }
 
-      throw new BackendOCRError(
-        'POLLING_TIMEOUT',
-        'Job status polling timed out',
-        undefined,
-        true
-      );
+      throw new BackendOCRError('POLLING_TIMEOUT', 'Job status polling timed out', undefined, true);
     } finally {
       this.activeRequests.delete(requestKey);
     }
@@ -368,10 +367,7 @@ export class BackendOCRService {
   /**
    * Get job status (single request)
    */
-  async getJobStatus(
-    jobId: string,
-    options: RequestOptions = {}
-  ): Promise<JobStatusResponse> {
+  async getJobStatus(jobId: string, options: RequestOptions = {}): Promise<JobStatusResponse> {
     const correlationId = options.correlationId || this.generateCorrelationId();
 
     return await this.makeRequest<JobStatusResponse>(
@@ -390,10 +386,7 @@ export class BackendOCRService {
   /**
    * Cancel active job
    */
-  async cancelJob(
-    jobId: string,
-    options: RequestOptions = {}
-  ): Promise<CancelJobResponse> {
+  async cancelJob(jobId: string, options: RequestOptions = {}): Promise<CancelJobResponse> {
     const correlationId = options.correlationId || this.generateCorrelationId();
 
     // Cancel any active requests for this job
@@ -446,7 +439,7 @@ export class BackendOCRService {
     const timeout = options.timeout || this.config.timeout;
     const maxRetries = options.retries ?? this.config.maxRetries;
     const correlationId = options.correlationId || this.generateCorrelationId();
-    
+
     let lastError: Error = new Error('Unknown error occurred');
     let retryCount = 0;
 
@@ -461,9 +454,9 @@ export class BackendOCRService {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
-        
+
         // Combine signals if provided
-        const combinedSignal = options.signal 
+        const combinedSignal = options.signal
           ? this.combineAbortSignals([controller.signal, options.signal])
           : controller.signal;
 
@@ -491,7 +484,7 @@ export class BackendOCRService {
         if (!response.ok) {
           const errorText = await response.text();
           let errorData: any = {};
-          
+
           try {
             errorData = JSON.parse(errorText);
           } catch {
@@ -499,7 +492,7 @@ export class BackendOCRService {
           }
 
           const isRetryableStatus = response.status >= 500 || response.status === 429;
-          
+
           throw new BackendOCRError(
             errorData.code || `HTTP_${response.status}`,
             errorData.message || `HTTP ${response.status}: ${response.statusText}`,
@@ -512,11 +505,11 @@ export class BackendOCRService {
         // Parse response
         const contentType = response.headers.get('content-type');
         let data: T;
-        
+
         if (contentType && contentType.includes('application/json')) {
           data = await response.json();
         } else {
-          data = await response.text() as any;
+          data = (await response.text()) as any;
         }
 
         // Validate response structure
@@ -538,7 +531,6 @@ export class BackendOCRService {
         });
 
         return data;
-
       } catch (error) {
         lastError = error as Error;
         retryCount++;
@@ -610,7 +602,7 @@ export class BackendOCRService {
    */
   private combineAbortSignals(signals: AbortSignal[]): AbortSignal {
     const controller = new AbortController();
-    
+
     signals.forEach(signal => {
       if (signal.aborted) {
         controller.abort();
@@ -618,7 +610,7 @@ export class BackendOCRService {
         signal.addEventListener('abort', () => controller.abort());
       }
     });
-    
+
     return controller.signal;
   }
 

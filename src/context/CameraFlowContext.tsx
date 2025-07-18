@@ -1,7 +1,13 @@
 // src/context/CameraFlowContext.tsx
 
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
-import { CameraFlow, CameraFlowStep, FlowError, FlowMetrics, FlowTransition } from '../types/cameraFlow';
+import React, { createContext, useCallback, useContext, useReducer } from 'react';
+import {
+  CameraFlow,
+  CameraFlowStep,
+  FlowError,
+  FlowMetrics,
+  FlowTransition,
+} from '../types/cameraFlow';
 // import { ProcessedReceipt } from '../state/ocr/types';
 // import { Receipt } from '../types/ReceiptInterfaces';
 
@@ -13,21 +19,21 @@ export interface CameraFlowState {
   // Active flow
   readonly activeFlow?: CameraFlow;
   readonly hasActiveFlow: boolean;
-  
+
   // Flow management
   readonly flows: Record<string, CameraFlow>;
   readonly flowHistory: string[]; // Recently used flow IDs
-  
+
   // Navigation state
   readonly canNavigateBack: boolean;
   readonly canNavigateForward: boolean;
   readonly navigationBlocked: boolean;
   readonly blockReason?: string;
-  
+
   // Flow persistence
   readonly persistedFlows: string[]; // Flows saved for app backgrounding
   readonly autoSaveEnabled: boolean;
-  
+
   // Analytics
   readonly sessionMetrics: {
     readonly totalFlows: number;
@@ -89,7 +95,7 @@ function generateFlowId(): string {
 function createNewFlow(imageUri: string, flowId?: string): CameraFlow {
   const id = flowId || generateFlowId();
   const timestamp = Date.now();
-  
+
   return {
     id,
     imageUri,
@@ -131,7 +137,7 @@ function createTransition(
 function updateFlowMetrics(flow: CameraFlow, newStep: CameraFlowStep): FlowMetrics {
   const now = Date.now();
   const stepDuration = now - flow.timestamp;
-  
+
   return {
     ...flow.metrics,
     stepDurations: {
@@ -145,14 +151,18 @@ function updateFlowMetrics(flow: CameraFlow, newStep: CameraFlowStep): FlowMetri
 /**
  * Validate step transition
  */
-function canTransitionToStep(currentStep: CameraFlowStep, targetStep: CameraFlowStep, flow: CameraFlow): boolean {
+function canTransitionToStep(
+  currentStep: CameraFlowStep,
+  targetStep: CameraFlowStep,
+  flow: CameraFlow
+): boolean {
   const stepOrder: CameraFlowStep[] = ['capture', 'processing', 'review', 'verification', 'report'];
   const currentIndex = stepOrder.indexOf(currentStep);
   const targetIndex = stepOrder.indexOf(targetStep);
-  
+
   // Can always go backwards
   if (targetIndex < currentIndex) return true;
-  
+
   // Can go forward if we have required data
   switch (targetStep) {
     case 'processing':
@@ -171,16 +181,13 @@ function canTransitionToStep(currentStep: CameraFlowStep, targetStep: CameraFlow
 /**
  * Camera Flow Reducer
  */
-function cameraFlowReducer(
-  state: CameraFlowState,
-  action: CameraFlowAction
-): CameraFlowState {
+function cameraFlowReducer(state: CameraFlowState, action: CameraFlowAction): CameraFlowState {
   switch (action.type) {
     case 'CREATE_FLOW':
       const newFlow = createNewFlow(action.imageUri, action.flowId);
       const newFlows = { ...state.flows, [newFlow.id]: newFlow };
       const newHistory = [newFlow.id, ...state.flowHistory].slice(0, 10); // Keep last 10
-      
+
       return {
         ...state,
         activeFlow: newFlow,
@@ -199,7 +206,7 @@ function cameraFlowReducer(
     case 'SET_ACTIVE_FLOW':
       const targetFlow = state.flows[action.flowId];
       if (!targetFlow) return state;
-      
+
       return {
         ...state,
         activeFlow: targetFlow,
@@ -210,18 +217,22 @@ function cameraFlowReducer(
 
     case 'UPDATE_CURRENT_STEP':
       if (!state.activeFlow) return state;
-      
-      const canTransition = canTransitionToStep(state.activeFlow.currentStep, action.step, state.activeFlow);
+
+      const canTransition = canTransitionToStep(
+        state.activeFlow.currentStep,
+        action.step,
+        state.activeFlow
+      );
       if (!canTransition) return state;
-      
+
       const transition = createTransition(
         state.activeFlow.currentStep,
         action.step,
         action.reason === 'auto' ? 'auto_advance' : 'user_action'
       );
-      
+
       const updatedMetrics = updateFlowMetrics(state.activeFlow, action.step);
-      
+
       const updatedFlow: CameraFlow = {
         ...state.activeFlow,
         currentStep: action.step,
@@ -230,7 +241,7 @@ function cameraFlowReducer(
         metrics: updatedMetrics,
         timestamp: Date.now(),
       };
-      
+
       return {
         ...state,
         activeFlow: updatedFlow,
@@ -241,13 +252,13 @@ function cameraFlowReducer(
 
     case 'UPDATE_FLOW_DATA':
       if (!state.activeFlow) return state;
-      
+
       const dataUpdatedFlow: CameraFlow = {
         ...state.activeFlow,
         ...action.data,
         timestamp: Date.now(),
       };
-      
+
       return {
         ...state,
         activeFlow: dataUpdatedFlow,
@@ -256,7 +267,7 @@ function cameraFlowReducer(
 
     case 'ADD_ERROR':
       if (!state.activeFlow) return state;
-      
+
       const errorUpdatedFlow: CameraFlow = {
         ...state.activeFlow,
         lastError: action.error,
@@ -266,7 +277,7 @@ function cameraFlowReducer(
           errorCount: state.activeFlow.metrics.errorCount + 1,
         },
       };
-      
+
       return {
         ...state,
         activeFlow: errorUpdatedFlow,
@@ -275,12 +286,12 @@ function cameraFlowReducer(
 
     case 'CLEAR_ERROR':
       if (!state.activeFlow) return state;
-      
+
       const errorClearedFlow: CameraFlow = {
         ...state.activeFlow,
         lastError: undefined,
       };
-      
+
       return {
         ...state,
         activeFlow: errorClearedFlow,
@@ -289,7 +300,7 @@ function cameraFlowReducer(
 
     case 'COMPLETE_FLOW':
       if (!state.activeFlow) return state;
-      
+
       const completedFlow: CameraFlow = {
         ...state.activeFlow,
         isComplete: true,
@@ -299,7 +310,7 @@ function cameraFlowReducer(
           completionRate: 100,
         },
       };
-      
+
       return {
         ...state,
         activeFlow: completedFlow,
@@ -312,7 +323,7 @@ function cameraFlowReducer(
 
     case 'CANCEL_FLOW':
       if (!state.activeFlow) return state;
-      
+
       const cancelledFlow: CameraFlow = {
         ...state.activeFlow,
         metrics: {
@@ -320,7 +331,7 @@ function cameraFlowReducer(
           abandonmentStep: state.activeFlow.currentStep,
         },
       };
-      
+
       return {
         ...state,
         activeFlow: undefined,
@@ -360,7 +371,7 @@ function cameraFlowReducer(
       action.flows.forEach(flow => {
         restoredFlows[flow.id] = flow;
       });
-      
+
       return {
         ...state,
         flows: { ...state.flows, ...restoredFlows },
@@ -368,15 +379,15 @@ function cameraFlowReducer(
 
     case 'CLEANUP_FLOWS':
       // Remove completed flows older than 24 hours
-      const cutoff = Date.now() - (24 * 60 * 60 * 1000);
+      const cutoff = Date.now() - 24 * 60 * 60 * 1000;
       const cleanedFlows: Record<string, CameraFlow> = {};
-      
+
       Object.values(state.flows).forEach(flow => {
         if (!flow.isComplete || flow.timestamp > cutoff) {
           cleanedFlows[flow.id] = flow;
         }
       });
-      
+
       return {
         ...state,
         flows: cleanedFlows,
@@ -400,7 +411,7 @@ function cameraFlowReducer(
 export interface CameraFlowContextValue {
   readonly state: CameraFlowState;
   readonly dispatch: React.Dispatch<CameraFlowAction>;
-  
+
   // Flow management
   readonly createFlow: (imageUri: string, flowId?: string) => string;
   readonly setActiveFlow: (flowId: string) => void;
@@ -408,17 +419,17 @@ export interface CameraFlowContextValue {
   readonly updateFlowData: (data: Partial<Pick<CameraFlow, 'ocrResult' | 'receiptDraft'>>) => void;
   readonly completeFlow: () => void;
   readonly cancelFlow: (reason?: string) => void;
-  
+
   // Navigation
   readonly navigateToStep: (step: CameraFlowStep) => boolean;
   readonly navigateBack: () => boolean;
   readonly blockNavigation: (reason: string) => void;
   readonly unblockNavigation: () => void;
-  
+
   // Error handling
   readonly addError: (error: FlowError) => void;
   readonly clearError: () => void;
-  
+
   // Persistence
   readonly persistFlow: (flowId: string) => void;
   readonly restoreFlows: (flows: CameraFlow[]) => void;
@@ -459,9 +470,12 @@ export const CameraFlowProvider: React.FC<CameraFlowProviderProps> = ({ children
     dispatch({ type: 'UPDATE_CURRENT_STEP', step, reason });
   }, []);
 
-  const updateFlowData = useCallback((data: Partial<Pick<CameraFlow, 'ocrResult' | 'receiptDraft'>>) => {
-    dispatch({ type: 'UPDATE_FLOW_DATA', data });
-  }, []);
+  const updateFlowData = useCallback(
+    (data: Partial<Pick<CameraFlow, 'ocrResult' | 'receiptDraft'>>) => {
+      dispatch({ type: 'UPDATE_FLOW_DATA', data });
+    },
+    []
+  );
 
   const completeFlow = useCallback(() => {
     dispatch({ type: 'COMPLETE_FLOW' });
@@ -472,19 +486,26 @@ export const CameraFlowProvider: React.FC<CameraFlowProviderProps> = ({ children
   }, []);
 
   // Navigation methods
-  const navigateToStep = useCallback((step: CameraFlowStep): boolean => {
-    if (!state.activeFlow || state.navigationBlocked) return false;
-    
-    const canTransition = canTransitionToStep(state.activeFlow.currentStep, step, state.activeFlow);
-    if (canTransition) {
-      dispatch({ type: 'UPDATE_CURRENT_STEP', step });
-    }
-    return canTransition;
-  }, [state.activeFlow, state.navigationBlocked]);
+  const navigateToStep = useCallback(
+    (step: CameraFlowStep): boolean => {
+      if (!state.activeFlow || state.navigationBlocked) return false;
+
+      const canTransition = canTransitionToStep(
+        state.activeFlow.currentStep,
+        step,
+        state.activeFlow
+      );
+      if (canTransition) {
+        dispatch({ type: 'UPDATE_CURRENT_STEP', step });
+      }
+      return canTransition;
+    },
+    [state.activeFlow, state.navigationBlocked]
+  );
 
   const navigateBack = useCallback((): boolean => {
     if (!state.activeFlow || !state.canNavigateBack || state.navigationBlocked) return false;
-    
+
     const history = state.activeFlow.stepHistory;
     if (history.length > 1) {
       const previousStep = history[history.length - 2];
@@ -565,11 +586,7 @@ export const CameraFlowProvider: React.FC<CameraFlowProviderProps> = ({ children
     resetSession,
   };
 
-  return (
-    <CameraFlowContext.Provider value={contextValue}>
-      {children}
-    </CameraFlowContext.Provider>
-  );
+  return <CameraFlowContext.Provider value={contextValue}>{children}</CameraFlowContext.Provider>;
 };
 
 /**
@@ -577,11 +594,11 @@ export const CameraFlowProvider: React.FC<CameraFlowProviderProps> = ({ children
  */
 export function useCameraFlow(): CameraFlowContextValue {
   const context = useContext(CameraFlowContext);
-  
+
   if (!context) {
     throw new Error('useCameraFlow must be used within a CameraFlowProvider');
   }
-  
+
   return context;
 }
 
@@ -591,8 +608,10 @@ export function useCameraFlow(): CameraFlowContextValue {
 export const CameraFlowStateGuards = {
   hasActiveFlow: (state: CameraFlowState): state is CameraFlowState & { activeFlow: CameraFlow } =>
     state.hasActiveFlow && !!state.activeFlow,
-  canNavigateBack: (state: CameraFlowState): boolean => state.canNavigateBack && !state.navigationBlocked,
-  canNavigateForward: (state: CameraFlowState): boolean => state.canNavigateForward && !state.navigationBlocked,
+  canNavigateBack: (state: CameraFlowState): boolean =>
+    state.canNavigateBack && !state.navigationBlocked,
+  canNavigateForward: (state: CameraFlowState): boolean =>
+    state.canNavigateForward && !state.navigationBlocked,
   isNavigationBlocked: (state: CameraFlowState): boolean => state.navigationBlocked,
   hasFlows: (state: CameraFlowState): boolean => Object.keys(state.flows).length > 0,
   isCurrentStep: (state: CameraFlowState, step: CameraFlowStep): boolean =>

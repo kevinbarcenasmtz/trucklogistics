@@ -1,4 +1,4 @@
-import { ProcessedReceipt, OptimizationMetrics } from '../../state/ocr/types';
+import { OptimizationMetrics, ProcessedReceipt } from '../../state/ocr/types';
 import { AIClassifiedReceipt } from '../../types/ReceiptInterfaces';
 // Types for service
 interface OCRProgressCallback {
@@ -32,22 +32,24 @@ class OCRProcessingServiceClass {
    * Main processing method - orchestrates the entire OCR workflow
    */
   async processImage(
-    imageUri: string, 
+    imageUri: string,
     options: OCRProcessingOptions = {}
   ): Promise<ProcessedReceipt> {
     const { onProgress, signal, retryAttempts = 2, timeout = this.DEFAULT_TIMEOUT } = options;
-    
+
     // Create abort controller if not provided
     this.currentAbortController = new AbortController();
-    const combinedSignal = signal ? this.combineSignals([signal, this.currentAbortController.signal]) : this.currentAbortController.signal;
+    const combinedSignal = signal
+      ? this.combineSignals([signal, this.currentAbortController.signal])
+      : this.currentAbortController.signal;
 
     try {
       onProgress?.(0.05, 'Starting image processing...');
-      
+
       // Step 1: Optimize image (5% - 25%)
       const optimizationResult = await this.optimizeImage(imageUri, {
         signal: combinedSignal,
-        onProgress: (progress) => onProgress?.(0.05 + (progress * 0.2), 'Optimizing image...')
+        onProgress: progress => onProgress?.(0.05 + progress * 0.2, 'Optimizing image...'),
       });
 
       onProgress?.(0.25, 'Image optimization complete');
@@ -55,33 +57,33 @@ class OCRProcessingServiceClass {
       // Step 2: Upload optimized image (25% - 40%)
       const uploadResult = await this.uploadImage(optimizationResult.optimizedUri, {
         signal: combinedSignal,
-        onProgress: (progress) => onProgress?.(0.25 + (progress * 0.15), 'Uploading image...')
+        onProgress: progress => onProgress?.(0.25 + progress * 0.15, 'Uploading image...'),
       });
 
-      onProgress?.(0.40, 'Upload complete');
+      onProgress?.(0.4, 'Upload complete');
 
       // Step 3: Perform OCR (40% - 70%)
       const ocrResult = await this.performOCR(uploadResult.jobId, {
         signal: combinedSignal,
         timeout,
         retryAttempts,
-        onProgress: (progress) => onProgress?.(0.40 + (progress * 0.3), 'Extracting text...')
+        onProgress: progress => onProgress?.(0.4 + progress * 0.3, 'Extracting text...'),
       });
 
-      onProgress?.(0.70, 'Text extraction complete');
+      onProgress?.(0.7, 'Text extraction complete');
 
       // Step 4: Extract structured data (70% - 90%)
       const extractedData = await this.extractReceiptData(ocrResult, {
         signal: combinedSignal,
-        onProgress: (progress) => onProgress?.(0.70 + (progress * 0.2), 'Extracting receipt data...')
+        onProgress: progress => onProgress?.(0.7 + progress * 0.2, 'Extracting receipt data...'),
       });
 
-      onProgress?.(0.90, 'Data extraction complete');
+      onProgress?.(0.9, 'Data extraction complete');
 
       // Step 5: Classify receipt (90% - 100%)
       const classifiedReceipt = await this.classifyReceipt(extractedData, {
         signal: combinedSignal,
-        onProgress: (progress) => onProgress?.(0.90 + (progress * 0.1), 'Classifying receipt...')
+        onProgress: progress => onProgress?.(0.9 + progress * 0.1, 'Classifying receipt...'),
       });
 
       onProgress?.(1.0, 'Processing complete');
@@ -94,18 +96,19 @@ class OCRProcessingServiceClass {
         classification: classifiedReceipt,
         optimizationMetrics: optimizationResult.metrics,
         processedAt: new Date().toISOString(),
-        confidence: ocrResult.confidence
+        confidence: ocrResult.confidence,
       };
 
       return processedReceipt;
-
     } catch (error) {
       if (combinedSignal.aborted) {
         throw new Error('OCR processing was cancelled');
       }
-      
+
       // Re-throw with more context
-      throw new Error(`OCR processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `OCR processing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     } finally {
       this.currentAbortController = undefined;
     }
@@ -115,7 +118,7 @@ class OCRProcessingServiceClass {
    * Optimize image for better OCR results
    */
   async optimizeImage(
-    imageUri: string, 
+    imageUri: string,
     options: { signal?: AbortSignal; onProgress?: OCRProgressCallback } = {}
   ): Promise<ImageOptimizationResult> {
     const { signal, onProgress } = options;
@@ -140,7 +143,7 @@ class OCRProcessingServiceClass {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        signal
+        signal,
       });
 
       if (!response.ok) {
@@ -150,7 +153,7 @@ class OCRProcessingServiceClass {
       onProgress?.(0.7, 'Processing optimization...');
 
       const result = await response.json();
-      
+
       onProgress?.(1.0, 'Optimization complete');
 
       return {
@@ -162,15 +165,16 @@ class OCRProcessingServiceClass {
           optimizedDimensions: result.optimizedDimensions,
           reductionPercentage: result.reductionPercentage,
           processingTime: Date.now() - startTime,
-          format: result.format
-        }
+          format: result.format,
+        },
       };
-
     } catch (error) {
       if (signal?.aborted) {
         throw new Error('Image optimization was cancelled');
       }
-      throw new Error(`Image optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Image optimization failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -201,7 +205,7 @@ class OCRProcessingServiceClass {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        signal
+        signal,
       });
 
       if (!response.ok) {
@@ -213,14 +217,15 @@ class OCRProcessingServiceClass {
 
       return {
         jobId: result.jobId,
-        uploadUrl: result.uploadUrl
+        uploadUrl: result.uploadUrl,
       };
-
     } catch (error) {
       if (signal?.aborted) {
         throw new Error('Image upload was cancelled');
       }
-      throw new Error(`Image upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Image upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -229,9 +234,9 @@ class OCRProcessingServiceClass {
    */
   async performOCR(
     jobId: string,
-    options: { 
-      signal?: AbortSignal; 
-      timeout?: number; 
+    options: {
+      signal?: AbortSignal;
+      timeout?: number;
       retryAttempts?: number;
       onProgress?: OCRProgressCallback;
     } = {}
@@ -250,7 +255,7 @@ class OCRProcessingServiceClass {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ jobId }),
-          signal
+          signal,
         });
 
         if (!startResponse.ok) {
@@ -263,20 +268,21 @@ class OCRProcessingServiceClass {
         const result = await this.pollForOCRCompletion(jobId, {
           signal,
           timeout,
-          onProgress: (progress) => onProgress?.(0.2 + (progress * 0.8), 'Processing text...')
+          onProgress: progress => onProgress?.(0.2 + progress * 0.8, 'Processing text...'),
         });
 
         return result;
-
       } catch (error) {
         attempt++;
-        
+
         if (signal?.aborted) {
           throw new Error('OCR processing was cancelled');
         }
 
         if (attempt > retryAttempts) {
-          throw new Error(`OCR failed after ${retryAttempts + 1} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          throw new Error(
+            `OCR failed after ${retryAttempts + 1} attempts: ${error instanceof Error ? error.message : 'Unknown error'}`
+          );
         }
 
         // Wait before retry
@@ -305,7 +311,7 @@ class OCRProcessingServiceClass {
 
       try {
         const response = await fetch(`${this.API_BASE_URL}/api/ocr/status/${jobId}`, {
-          signal
+          signal,
         });
 
         if (!response.ok) {
@@ -313,7 +319,7 @@ class OCRProcessingServiceClass {
         }
 
         const status = await response.json();
-        
+
         const progress = Math.min(status.progress || 0, 0.95); // Cap at 95% until complete
         onProgress?.(progress, status.currentOperation || 'Processing...');
 
@@ -322,7 +328,7 @@ class OCRProcessingServiceClass {
           return {
             text: status.result.text,
             confidence: status.result.confidence,
-            boundingBoxes: status.result.boundingBoxes
+            boundingBoxes: status.result.boundingBoxes,
           };
         }
 
@@ -332,7 +338,6 @@ class OCRProcessingServiceClass {
 
         // Wait before next poll
         await new Promise(resolve => setTimeout(resolve, pollInterval));
-
       } catch (error) {
         if (signal?.aborted) {
           throw new Error('OCR polling was cancelled');
@@ -363,9 +368,9 @@ class OCRProcessingServiceClass {
         },
         body: JSON.stringify({
           text: ocrResult.text,
-          boundingBoxes: ocrResult.boundingBoxes
+          boundingBoxes: ocrResult.boundingBoxes,
         }),
-        signal
+        signal,
       });
 
       if (!response.ok) {
@@ -374,12 +379,13 @@ class OCRProcessingServiceClass {
 
       onProgress?.(1.0, 'Data extraction complete');
       return await response.json();
-
     } catch (error) {
       if (signal?.aborted) {
         throw new Error('Data extraction was cancelled');
       }
-      throw new Error(`Data extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Data extraction failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -401,7 +407,7 @@ class OCRProcessingServiceClass {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(extractedData),
-        signal
+        signal,
       });
 
       if (!response.ok) {
@@ -410,12 +416,13 @@ class OCRProcessingServiceClass {
 
       onProgress?.(1.0, 'Classification complete');
       return await response.json();
-
     } catch (error) {
       if (signal?.aborted) {
         throw new Error('Receipt classification was cancelled');
       }
-      throw new Error(`Receipt classification failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(
+        `Receipt classification failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
     }
   }
 
@@ -434,7 +441,7 @@ class OCRProcessingServiceClass {
    */
   private combineSignals(signals: AbortSignal[]): AbortSignal {
     const controller = new AbortController();
-    
+
     for (const signal of signals) {
       if (signal.aborted) {
         controller.abort();
@@ -442,11 +449,11 @@ class OCRProcessingServiceClass {
       }
       signal.addEventListener('abort', () => controller.abort());
     }
-    
+
     return controller.signal;
   }
 }
 
 // Export singleton instance
 export const OCRProcessingService = new OCRProcessingServiceClass();
-export type { OCRProgressCallback, OCRProcessingOptions, ImageOptimizationResult, OCRResult };
+export type { ImageOptimizationResult, OCRProcessingOptions, OCRProgressCallback, OCRResult };
