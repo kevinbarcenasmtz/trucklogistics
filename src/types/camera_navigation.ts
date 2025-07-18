@@ -1,37 +1,54 @@
 // src/types/camera_navigation.ts
-import { CameraFlow, CameraFlowStep } from './cameraFlow';
+
+import { CameraFlowStep } from './cameraFlow';
 
 /**
- * Camera Stack Parameter List - Flow-based only
+ * Camera Stack Parameter List - Flow-based navigation only
+ * Removes JSON serialization and complex route parameters
  */
 export type CameraStackParamList = {
+  /** Camera capture screen - entry point */
   index: {
-    flowId?: string; // Optional - for resuming existing flow
+    /** Optional flow ID for resuming existing flow */
+    flowId?: string;
   };
+  /** Image processing and review screen */
   imagedetails: {
-    flowId: string; // Required - must have active flow
+    /** Required active flow ID */
+    flowId: string;
   };
+  /** Receipt verification and editing screen */
   verification: {
-    flowId: string; // Required - must have active flow
+    /** Required active flow ID */
+    flowId: string;
   };
+  /** Receipt completion and report screen */
   report: {
-    flowId: string; // Required - must have active flow
+    /** Required active flow ID */
+    flowId: string;
   };
 };
 
 /**
- * Route configuration for each camera step
+ * Navigation route configuration for each camera step
  */
 export interface CameraRouteConfig {
+  /** Associated workflow step */
   step: CameraFlowStep;
+  /** Route name in navigation stack */
   routeName: keyof CameraStackParamList;
+  /** URL path for deep linking */
   path: string;
-  requiredFlowData: (keyof CameraFlow)[];
+  /** Required flow data for this route */
+  requiredFlowData: string[];
+  /** Steps that can navigate to this route */
   allowedFromSteps: CameraFlowStep[];
+  /** Whether route requires active flow */
+  requiresActiveFlow: boolean;
 }
 
 /**
- * Camera route configurations
+ * Camera route configurations mapping
  */
 export const CAMERA_ROUTE_CONFIGS: Record<CameraFlowStep, CameraRouteConfig> = {
   capture: {
@@ -39,7 +56,8 @@ export const CAMERA_ROUTE_CONFIGS: Record<CameraFlowStep, CameraRouteConfig> = {
     routeName: 'index',
     path: '/camera',
     requiredFlowData: [],
-    allowedFromSteps: [], // Can be accessed from anywhere
+    allowedFromSteps: [],
+    requiresActiveFlow: false,
   },
   processing: {
     step: 'processing',
@@ -47,13 +65,15 @@ export const CAMERA_ROUTE_CONFIGS: Record<CameraFlowStep, CameraRouteConfig> = {
     path: '/camera/imagedetails',
     requiredFlowData: ['imageUri'],
     allowedFromSteps: ['capture'],
+    requiresActiveFlow: true,
   },
   review: {
     step: 'review',
-    routeName: 'imagedetails',
+    routeName: 'imagedetails', 
     path: '/camera/imagedetails',
     requiredFlowData: ['imageUri', 'ocrResult'],
     allowedFromSteps: ['processing', 'verification'],
+    requiresActiveFlow: true,
   },
   verification: {
     step: 'verification',
@@ -61,6 +81,7 @@ export const CAMERA_ROUTE_CONFIGS: Record<CameraFlowStep, CameraRouteConfig> = {
     path: '/camera/verification',
     requiredFlowData: ['imageUri', 'ocrResult'],
     allowedFromSteps: ['review', 'report'],
+    requiresActiveFlow: true,
   },
   report: {
     step: 'report',
@@ -68,73 +89,92 @@ export const CAMERA_ROUTE_CONFIGS: Record<CameraFlowStep, CameraRouteConfig> = {
     path: '/camera/report',
     requiredFlowData: ['imageUri', 'receiptDraft'],
     allowedFromSteps: ['verification'],
+    requiresActiveFlow: true,
   },
 };
+
+/**
+ * Navigation guard result for route validation
+ */
+export interface NavigationGuardResult {
+  /** Whether navigation is allowed */
+  allowed: boolean;
+  /** Reason if navigation blocked */
+  reason?: string;
+  /** Suggested action if navigation blocked */
+  suggestedAction?: {
+    type: 'redirect' | 'retry' | 'cancel' | 'create_flow';
+    target?: CameraFlowStep;
+    message?: string;
+  };
+}
 
 /**
  * Type guards for route validation
  */
 export const RouteTypeGuards = {
+  /** Check if params contain valid flow ID */
   hasFlowId: (params: any): params is { flowId: string } => {
     return typeof params?.flowId === 'string' && params.flowId.length > 0;
   },
 
+  /** Validate if route params are valid for given route */
   isValidFlowRoute: (routeName: keyof CameraStackParamList, params: any): boolean => {
-    // Index route doesn't require flowId
-    if (routeName === 'index') return true;
-
-    // All other routes require flowId
+    if (routeName === 'index') return true; // Index doesn't require flowId
     return RouteTypeGuards.hasFlowId(params);
+  },
+
+  /** Check if route requires active flow */
+  requiresActiveFlow: (routeName: keyof CameraStackParamList): boolean => {
+    const config = Object.values(CAMERA_ROUTE_CONFIGS).find(
+      config => config.routeName === routeName
+    );
+    return config?.requiresActiveFlow ?? false;
   },
 };
 
 /**
- * Navigation utilities
+ * Navigation utilities for flow-based routing
  */
 export const NavigationUtils = {
-  /**
-   * Get the route configuration for a step
-   */
-  getRouteForStep: (step: CameraFlowStep): CameraRouteConfig => {
+  /** Get route config for given step */
+  getRouteConfig: (step: CameraFlowStep): CameraRouteConfig => {
     return CAMERA_ROUTE_CONFIGS[step];
   },
 
-  /**
-   * Build route params for navigation
-   */
-  buildRouteParams: (flowId: string): { flowId: string } => {
-    return { flowId };
+  /** Get step from route name */
+  getStepFromRoute: (routeName: keyof CameraStackParamList): CameraFlowStep | undefined => {
+    return Object.values(CAMERA_ROUTE_CONFIGS).find(
+      config => config.routeName === routeName
+    )?.step;
   },
 
-  /**
-   * Get the route path for a step with flow ID
-   */
-  getRoutePathWithFlow: (step: CameraFlowStep, flowId: string): string => {
-    const config = CAMERA_ROUTE_CONFIGS[step];
-    return `${config.path}?flowId=${flowId}`;
-  },
-
-  /**
-   * Determine if a route transition is valid
-   */
-  canTransitionTo: (from: CameraFlowStep, to: CameraFlowStep): boolean => {
-    const toConfig = CAMERA_ROUTE_CONFIGS[to];
-
-    // Capture can be accessed from anywhere
-    if (to === 'capture') return true;
-
-    // Check if the transition is allowed
-    return toConfig.allowedFromSteps.includes(from);
+  /** Validate navigation transition */
+  canNavigateToStep: (
+    fromStep: CameraFlowStep, 
+    toStep: CameraFlowStep
+  ): NavigationGuardResult => {
+    const toConfig = CAMERA_ROUTE_CONFIGS[toStep];
+    
+    if (toConfig.allowedFromSteps.length === 0) {
+      return { allowed: true }; // No restrictions
+    }
+    
+    if (toConfig.allowedFromSteps.includes(fromStep)) {
+      return { allowed: true };
+    }
+    
+    return {
+      allowed: false,
+      reason: `Cannot navigate from ${fromStep} to ${toStep}`,
+      suggestedAction: {
+        type: 'redirect',
+        target: 'capture',
+        message: 'Please restart the workflow',
+      },
+    };
   },
 };
 
-/**
- * Navigation state for tracking current position
- */
-export interface NavigationState {
-  currentRoute: keyof CameraStackParamList;
-  currentStep: CameraFlowStep;
-  flowId?: string;
-  canGoBack: boolean;
-  isTransitioning: boolean;
-}
+// Remove deprecated types
+// OLD: CameraScreenParams, OCRNavigationParams, etc.
