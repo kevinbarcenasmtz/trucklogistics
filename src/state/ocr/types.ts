@@ -5,7 +5,7 @@ import { AIClassifiedReceipt } from '../../types/ReceiptInterfaces';
 /**
  * Processing stage definitions for backend OCR operations
  */
-export type ProcessingStage = 
+export type ProcessingStage =
   | 'initializing'
   | 'uploading_chunks'
   | 'combining_chunks'
@@ -16,12 +16,7 @@ export type ProcessingStage =
 /**
  * Processing status definitions
  */
-export type ProcessingStatus = 
-  | 'idle'
-  | 'uploading'
-  | 'processing'
-  | 'complete'
-  | 'error';
+export type ProcessingStatus = 'idle' | 'uploading' | 'processing' | 'complete' | 'error';
 
 /**
  * Optimization metrics from backend processing
@@ -61,7 +56,7 @@ export interface ProcessingError {
 
 // REMOVED ALL LEGACY TYPES:
 // ❌ OCRAction - replaced by context-specific actions
-// ❌ OCRState - replaced by context-specific states  
+// ❌ OCRState - replaced by context-specific states
 // ❌ OCRStateWithContext - no longer needed with new architecture
 // ❌ ERROR_CODES - moved to context-specific error handling
 // ❌ OCRContextValue - replaced by specific context values

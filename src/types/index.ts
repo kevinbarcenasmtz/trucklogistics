@@ -1,22 +1,22 @@
 // src/types/index.ts
 
 // Core domain types
-export * from './ReceiptInterfaces';
 export * from './cameraFlow';
+export * from './ReceiptInterfaces';
 
 // Navigation types - explicit exports to avoid conflicts
 export type {
-  CameraStackParamList,
   CameraRouteConfig,
-  RouteTypeGuards,
+  CameraStackParamList,
   NavigationUtils,
+  NavigationGuardResult as RouteNavigationGuardResult,
+  RouteTypeGuards,
 } from './camera_navigation';
-export type { NavigationGuardResult as RouteNavigationGuardResult } from './camera_navigation';
 
 // Component types
 export * from './component_props';
 
-// Hook types  
+// Hook types
 export * from './hook_types';
 
 // Context types
@@ -24,19 +24,16 @@ export * from './context_types';
 
 // Service types
 export type {
-  FileInfo,
-  CreateUploadSessionResponse,
-  UploadChunkResponse,
-  StartProcessingResponse,
-  JobStatusResponse,
-  CancelJobResponse,
   BackendOCRError,
+  CancelJobResponse,
+  CreateUploadSessionResponse,
+  FileInfo,
+  JobStatusResponse,
+  StartProcessingResponse,
+  UploadChunkResponse,
 } from '../services/api/BackendOCRService';
 
-export type {
-  WorkflowResult,
-  CameraFlowError,
-} from '../services/camera/CameraFlowService';
+export type { CameraFlowError, WorkflowResult } from '../services/camera/CameraFlowService';
 
 export type {
   FieldValidationError,
@@ -44,17 +41,10 @@ export type {
   FormValidationResult,
 } from '../context/ReceiptDraftContext';
 
-export type {
-  DraftComparison,
-  FieldDifference,
-} from '../services/camera/ReceiptDraftService';
+export type { DraftComparison, FieldDifference } from '../services/camera/ReceiptDraftService';
 
 // Processing state types
-export type {
-  ProcessedReceipt,
-  OptimizationMetrics,
-  OCRError,
-} from '../state/ocr/types';
+export type { OCRError, OptimizationMetrics, ProcessedReceipt } from '../state/ocr/types';
 
 /**
  * Type utility helpers

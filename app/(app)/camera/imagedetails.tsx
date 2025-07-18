@@ -1,11 +1,11 @@
 // app/(app)/camera/imagedetails.tsx
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Alert, BackHandler } from 'react-native';
 import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator';
 import { useCameraFlow } from '@/src/hooks/useCameraFlow';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, BackHandler } from 'react-native';
 
 /**
  * Image Details Screen - Processing and Review steps
@@ -15,13 +15,9 @@ export default function ImageDetailsScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   // Get flow management from camera flow hook
-  const {
-    hasActiveFlow,
-    currentFlow,
-    currentStep,
-  } = useCameraFlow();
+  const { hasActiveFlow, currentFlow, currentStep } = useCameraFlow();
 
   // Extract flowId from params
   const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
@@ -33,7 +29,7 @@ export default function ImageDetailsScreen() {
     if (!currentFlow) return;
 
     const flowId = currentFlow.id;
-    
+
     switch (currentStep) {
       case 'capture':
         router.replace('/camera');
@@ -165,9 +161,5 @@ export default function ImageDetailsScreen() {
     });
   }
 
-  return (
-    <CameraWorkflowCoordinator 
-      flowId={currentFlow.id}
-    />
-  );
+  return <CameraWorkflowCoordinator flowId={currentFlow.id} />;
 }

@@ -1,8 +1,8 @@
 // src/types/component_props.ts
 
+import { ProcessedReceipt } from '../state/ocr/types';
 import { CameraFlow, CameraFlowStep, FlowError } from './cameraFlow';
 import { Receipt } from './ReceiptInterfaces';
-import { ProcessedReceipt } from '../state/ocr/types';
 
 /**
  * Base props that every camera step component receives
@@ -38,7 +38,7 @@ export interface CaptureStepProps extends BaseCameraStepProps {
 }
 
 /**
- * Processing step specific props  
+ * Processing step specific props
  */
 export interface ProcessingStepProps extends BaseCameraStepProps {
   /** Current image being processed */

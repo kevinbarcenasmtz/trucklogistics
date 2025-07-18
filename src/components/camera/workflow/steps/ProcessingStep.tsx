@@ -4,34 +4,41 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import { useBackendOCR } from '../../../../hooks/useBackendOCR';
-import StepTransition from '../StepTransition';
+import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import { BaseCameraStepProps } from '../../../../types';
+import StepTransition from '../StepTransition';
 
 /**
  * ProcessingStep Component - Displays real backend OCR processing progress
  * Migrated from OCR Context to useBackendOCR and useCameraFlow hooks
  */
-export const ProcessingStep: React.FC<BaseCameraStepProps> = ({ 
-  flowId, 
-  onNext, 
+export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
+  flowId,
+  onNext,
   onBack,
-  onCancel, 
+  onCancel,
   onError,
-  testID = 'processing-step'
+  testID = 'processing-step',
 }) => {
-  const { 
+  const {
     processCurrentImage,
     getCurrentImage,
     isProcessing: flowIsProcessing,
     processingError,
     canRetryProcessing,
-    clearError
+    clearError,
   } = useCameraFlow();
-  
+
   const {
     status,
     stage,
@@ -44,25 +51,25 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
     canCancel,
     cancelProcessing,
     retryProcessing,
-    getProgressDescription
+    getProgressDescription,
   } = useBackendOCR();
-  
-  const { 
-    backgroundColor, 
-    surfaceColor, 
-    textColor, 
-    secondaryTextColor, 
+
+  const {
+    backgroundColor,
+    surfaceColor,
+    textColor,
+    secondaryTextColor,
     primaryColor,
     errorColor,
-    successColor
+    successColor,
   } = useAppTheme();
-  
+
   const { t } = useTranslation();
 
   // Animation refs
   const progressAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  
+
   // Auto-start processing on mount
   useEffect(() => {
     const startProcessing = async () => {
@@ -166,11 +173,11 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   const handleCancel = async () => {
     try {
       console.log('[ProcessingStep] User cancelled processing');
-      
+
       if (isProcessing && canCancel) {
         await cancelProcessing();
       }
-      
+
       onCancel();
     } catch (error) {
       console.error('[ProcessingStep] Cancel failed:', error);
@@ -186,7 +193,7 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
     try {
       console.log('[ProcessingStep] User retrying processing');
       clearError(); // Clear flow errors
-      
+
       const imageUri = getCurrentImage();
       if (imageUri) {
         if (canRetryProcessing) {
@@ -217,15 +224,15 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
     if (hasError) {
       return error?.userMessage || t('processing.error', 'Processing failed');
     }
-    
+
     if (isCompleted) {
       return t('processing.complete', 'Processing complete!');
     }
-    
+
     if (stageDescription) {
       return stageDescription;
     }
-    
+
     return getProgressDescription();
   };
 
@@ -236,11 +243,11 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
     if (hasError) {
       return <MaterialIcons name="error" size={60} color={errorColor} />;
     }
-    
+
     if (isCompleted) {
       return <MaterialIcons name="check-circle" size={60} color={successColor} />;
     }
-    
+
     return (
       <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
         <ActivityIndicator size={60} color={primaryColor} />
@@ -388,39 +395,28 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
         <View style={styles.content}>
           {/* Status indicator */}
           <View style={styles.statusContainer}>
-            <View style={styles.statusIcon}>
-              {getStatusIcon()}
-            </View>
-            
+            <View style={styles.statusIcon}>{getStatusIcon()}</View>
+
             <Text style={styles.title}>
-              {hasError 
+              {hasError
                 ? t('processing.failed', 'Processing Failed')
                 : isCompleted
-                ? t('processing.success', 'Processing Complete')
-                : t('processing.title', 'Processing Receipt')
-              }
+                  ? t('processing.success', 'Processing Complete')
+                  : t('processing.title', 'Processing Receipt')}
             </Text>
-            
-            <Text style={styles.statusMessage}>
-              {getStatusMessage()}
-            </Text>
-            
+
+            <Text style={styles.statusMessage}>{getStatusMessage()}</Text>
+
             {!hasError && !isCompleted && (
-              <Text style={styles.stageDetails}>
-                {getStageDetails()}
-              </Text>
+              <Text style={styles.stageDetails}>{getStageDetails()}</Text>
             )}
           </View>
 
           {/* Error details */}
           {hasError && error && (
             <View style={styles.errorContainer}>
-              <Text style={styles.errorTitle}>
-                {t('processing.errorTitle', 'What happened?')}
-              </Text>
-              <Text style={styles.errorMessage}>
-                {error.userMessage || error.message}
-              </Text>
+              <Text style={styles.errorTitle}>{t('processing.errorTitle', 'What happened?')}</Text>
+              <Text style={styles.errorMessage}>{error.userMessage || error.message}</Text>
             </View>
           )}
 
@@ -428,7 +424,7 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
           {!hasError && !isCompleted && (
             <View style={styles.progressContainer}>
               <View style={styles.progressBarContainer}>
-                <Animated.View 
+                <Animated.View
                   style={[
                     styles.progressBar,
                     {
@@ -456,31 +452,26 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
                   onPress={handleRetry}
                   testID="retry-button"
                 >
-                  <Text style={styles.retryButtonText}>
-                    {t('processing.retry', 'Try Again')}
-                  </Text>
+                  <Text style={styles.retryButtonText}>{t('processing.retry', 'Try Again')}</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={handleCancel}
                   testID="cancel-button"
                 >
-                  <Text style={styles.cancelButtonText}>
-                    {t('processing.cancel', 'Cancel')}
-                  </Text>
+                  <Text style={styles.cancelButtonText}>{t('processing.cancel', 'Cancel')}</Text>
                 </TouchableOpacity>
               </>
             ) : (
-              canCancel && isProcessing && (
+              canCancel &&
+              isProcessing && (
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={handleCancel}
                   testID="cancel-button"
                 >
-                  <Text style={styles.cancelButtonText}>
-                    {t('processing.cancel', 'Cancel')}
-                  </Text>
+                  <Text style={styles.cancelButtonText}>{t('processing.cancel', 'Cancel')}</Text>
                 </TouchableOpacity>
               )
             )}

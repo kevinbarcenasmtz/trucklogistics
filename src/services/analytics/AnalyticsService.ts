@@ -103,7 +103,7 @@
 //       // Firebase has limits on event name length and property keys
 //       const sanitizedName = this.sanitizeEventName(event.name);
 //       const sanitizedProperties = this.sanitizeProperties(event.properties);
-      
+
 //       await this.analytics.logEvent(sanitizedName, sanitizedProperties);
 //     } catch (error) {
 //       console.error('[Analytics] Firebase event tracking failed:', error);
@@ -150,11 +150,11 @@
 
 //   private sanitizeProperties(properties: Record<string, any>): Record<string, any> {
 //     const sanitized: Record<string, any> = {};
-    
+
 //     Object.entries(properties).forEach(([key, value]) => {
 //       // Firebase property keys must be <= 24 characters
 //       const sanitizedKey = key.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 24);
-      
+
 //       // Convert values to supported types
 //       if (typeof value === 'string') {
 //         sanitized[sanitizedKey] = value.substring(0, 100); // Firebase string limit
@@ -537,10 +537,10 @@
 
 //   measure<T>(operation: string, fn: () => T | Promise<T>, metadata?: Record<string, any>): T | Promise<T> {
 //     this.start(operation);
-    
+
 //     try {
 //       const result = fn();
-      
+
 //       if (result instanceof Promise) {
 //         return result.finally(() => {
 //           this.end(operation, metadata);
@@ -573,9 +573,9 @@
 //   },
 
 //   trackWorkflowCompleted: (flowId: string, totalSteps: number, completionTime: number) => {
-//     AnalyticsService.trackCameraEvent('workflow_completed', { 
-//       flowId, 
-//       totalSteps, 
+//     AnalyticsService.trackCameraEvent('workflow_completed', {
+//       flowId,
+//       totalSteps,
 //       completionTime,
 //       completion_rate: 100
 //     });

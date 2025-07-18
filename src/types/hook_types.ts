@@ -1,8 +1,8 @@
 // src/types/hook_types.ts
 
+import { ProcessedReceipt } from '../state/ocr/types';
 import { CameraFlow, CameraFlowStep } from './cameraFlow';
 import { Receipt } from './ReceiptInterfaces';
-import { ProcessedReceipt } from '../state/ocr/types';
 
 /**
  * Camera flow hook return type
@@ -19,7 +19,7 @@ export interface UseCameraFlowReturn {
   readonly isNavigationBlocked: boolean;
   readonly blockReason?: string;
 
-  // Processing state  
+  // Processing state
   readonly isProcessing: boolean;
   readonly processingProgress: number;
   readonly processingStage?: string;
@@ -34,15 +34,30 @@ export interface UseCameraFlowReturn {
   readonly isSaving: boolean;
 
   // Flow management functions
-  readonly startFlow: (imageUri: string) => Promise<{ success: boolean; flowId?: string; error?: string }>;
-  readonly processCurrentImage: () => Promise<{ success: boolean; processedReceipt?: ProcessedReceipt; flowId: string }>;
-  readonly saveCurrentReceipt: () => Promise<{ success: boolean; savedReceipt?: Receipt; receiptId?: string; error?: string }>;
+  readonly startFlow: (
+    imageUri: string
+  ) => Promise<{ success: boolean; flowId?: string; error?: string }>;
+  readonly processCurrentImage: () => Promise<{
+    success: boolean;
+    processedReceipt?: ProcessedReceipt;
+    flowId: string;
+  }>;
+  readonly saveCurrentReceipt: () => Promise<{
+    success: boolean;
+    savedReceipt?: Receipt;
+    receiptId?: string;
+    error?: string;
+  }>;
   readonly completeFlow: () => Promise<{ success: boolean; flowId?: string; error?: string }>;
   readonly cancelFlow: (reason?: string) => Promise<void>;
   readonly resetFlow: () => void;
 
   // Navigation functions
-  readonly navigateToStep: (step: CameraFlowStep) => { success: boolean; currentStep: CameraFlowStep; reason?: string };
+  readonly navigateToStep: (step: CameraFlowStep) => {
+    success: boolean;
+    currentStep: CameraFlowStep;
+    reason?: string;
+  };
   readonly navigateBack: () => { success: boolean; currentStep: CameraFlowStep };
   readonly navigateNext: () => { success: boolean; currentStep: CameraFlowStep; reason?: string };
 
@@ -85,9 +100,12 @@ export interface UseBackendOCRReturn {
   readonly uploadSessionId?: string;
   readonly startTimestamp?: number;
   readonly completedTimestamp?: number;
-  
+
   // Action functions
-  readonly processImage: (imageUri: string, correlationId?: string) => Promise<{
+  readonly processImage: (
+    imageUri: string,
+    correlationId?: string
+  ) => Promise<{
     processedReceipt: ProcessedReceipt;
     processingTime: number;
     uploadTime: number;
@@ -101,7 +119,7 @@ export interface UseBackendOCRReturn {
     totalTime: number;
   }>;
   readonly resetProcessing: () => void;
-  
+
   // Utility functions
   readonly getProcessingDuration: () => number;
   readonly getProgressDescription: () => string;
@@ -133,29 +151,34 @@ export interface UseReceiptDraftReturn {
   readonly warningCount: number;
 
   // Action functions
-  readonly updateField: (field: keyof Receipt, value: any, options?: {
-    skipValidation?: boolean;
-    skipAutoSave?: boolean;
-  }) => void;
-  readonly updateMultipleFields: (updates: Partial<Receipt>, options?: {
-    skipValidation?: boolean;
-    skipAutoSave?: boolean;
-  }) => void;
-  readonly validateField: (field: keyof Receipt, options?: {
-    showWarnings?: boolean;
-    validateCrossFields?: boolean;
-  }) => boolean;
-  readonly validateAll: (options?: {
-    showWarnings?: boolean;
-  }) => boolean;
+  readonly updateField: (
+    field: keyof Receipt,
+    value: any,
+    options?: {
+      skipValidation?: boolean;
+      skipAutoSave?: boolean;
+    }
+  ) => void;
+  readonly updateMultipleFields: (
+    updates: Partial<Receipt>,
+    options?: {
+      skipValidation?: boolean;
+      skipAutoSave?: boolean;
+    }
+  ) => void;
+  readonly validateField: (
+    field: keyof Receipt,
+    options?: {
+      showWarnings?: boolean;
+      validateCrossFields?: boolean;
+    }
+  ) => boolean;
+  readonly validateAll: (options?: { showWarnings?: boolean }) => boolean;
   readonly saveChanges: (options?: {
     validateBeforeSave?: boolean;
     skipIfNotDirty?: boolean;
   }) => Promise<boolean>;
-  readonly resetChanges: (options?: {
-    confirmIfDirty?: boolean;
-    clearHistory?: boolean;
-  }) => void;
+  readonly resetChanges: (options?: { confirmIfDirty?: boolean; clearHistory?: boolean }) => void;
 
   // History functions
   readonly undo: () => boolean;

@@ -1,11 +1,11 @@
 // app/(app)/camera/index.tsx
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Alert, BackHandler } from 'react-native';
 import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator';
 import { useCameraFlow } from '@/src/hooks/useCameraFlow';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, BackHandler } from 'react-native';
 
 /**
  * Camera Index Screen - Entry point for camera workflow
@@ -15,14 +15,9 @@ export default function CameraIndexScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   // Get flow management from camera flow hook
-  const {
-    hasActiveFlow,
-    currentFlow,
-    currentStep,
-    cancelFlow,
-  } = useCameraFlow();
+  const { hasActiveFlow, currentFlow, currentStep, cancelFlow } = useCameraFlow();
 
   // Extract flowId from params if provided (for deep linking)
   const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
@@ -34,7 +29,7 @@ export default function CameraIndexScreen() {
     if (!hasActiveFlow || !currentFlow) return;
 
     const flowId = currentFlow.id;
-    
+
     switch (currentStep) {
       case 'processing':
       case 'review':
@@ -89,7 +84,10 @@ export default function CameraIndexScreen() {
         // Show confirmation dialog
         Alert.alert(
           t('camera.exitTitle', 'Exit Camera'),
-          t('camera.exitMessage', 'Are you sure you want to exit? Any unsaved progress will be lost.'),
+          t(
+            'camera.exitMessage',
+            'Are you sure you want to exit? Any unsaved progress will be lost.'
+          ),
           [
             {
               text: t('common.cancel', 'Cancel'),
@@ -130,9 +128,5 @@ export default function CameraIndexScreen() {
     });
   }
 
-  return (
-    <CameraWorkflowCoordinator 
-      flowId={currentFlow?.id || paramFlowId}
-    />
-  );
+  return <CameraWorkflowCoordinator flowId={currentFlow?.id || paramFlowId} />;
 }

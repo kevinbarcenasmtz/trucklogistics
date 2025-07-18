@@ -4,42 +4,46 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  Alert,
+  Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
+import { BaseCameraStepProps } from '../../../../types/component_props';
 import { ImagePreview } from '../../ImageDetailComponents';
 import StepTransition from '../StepTransition';
-import { BaseCameraStepProps } from '../../../../types/component_props';
 
 /**
  * ReviewStep Component - Pure UI component for reviewing OCR results
  * Migrated from OCR Context to useCameraFlow hook
  */
-export const ReviewStep: React.FC<BaseCameraStepProps> = ({ 
-  flowId, 
-  onNext, 
-  onBack, 
-  onCancel, 
+export const ReviewStep: React.FC<BaseCameraStepProps> = ({
+  flowId,
+  onNext,
+  onBack,
+  onCancel,
   onError,
-  testID = 'review-step'
+  testID = 'review-step',
 }) => {
-  const { 
-    getCurrentImage,
-    getCurrentProcessedData,
-    navigateBack,
-    navigateToStep
-  } = useCameraFlow();
-  
-  const { 
-    backgroundColor, 
-    surfaceColor, 
-    textColor, 
+  const { getCurrentImage, getCurrentProcessedData, navigateBack, navigateToStep } =
+    useCameraFlow();
+
+  const {
+    backgroundColor,
+    surfaceColor,
+    textColor,
     secondaryTextColor,
     primaryColor,
     borderColor,
-    successColor
+    successColor,
   } = useAppTheme();
-  
+
   const { t } = useTranslation();
 
   // Animation refs for smooth transitions
@@ -159,7 +163,10 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
   const handleRetake = () => {
     Alert.alert(
       t('review.retakeTitle', 'Retake Photo'),
-      t('review.retakeMessage', 'Are you sure you want to retake the photo? This will restart the process.'),
+      t(
+        'review.retakeMessage',
+        'Are you sure you want to retake the photo? This will restart the process.'
+      ),
       [
         {
           text: t('common.cancel', 'Cancel'),
@@ -338,7 +345,7 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
   return (
     <SafeAreaView style={styles.container} testID={testID}>
       <StepTransition entering={true}>
-        <Animated.View 
+        <Animated.View
           style={[
             { flex: 1 },
             {
@@ -347,16 +354,14 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
             },
           ]}
         >
-          <ScrollView 
+          <ScrollView
             style={styles.scrollContent}
             showsVerticalScrollIndicator={false}
             bounces={false}
           >
             {/* Header */}
             <View style={styles.header}>
-              <Text style={styles.title}>
-                {t('review.title', 'Review Results')}
-              </Text>
+              <Text style={styles.title}>{t('review.title', 'Review Results')}</Text>
               <Text style={styles.subtitle}>
                 {t('review.subtitle', 'Check the extracted information below')}
               </Text>
@@ -380,58 +385,44 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
 
             {/* Image preview */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>
-                {t('review.image', 'Captured Image')}
-              </Text>
+              <Text style={styles.sectionTitle}>{t('review.image', 'Captured Image')}</Text>
               <ImagePreview uri={imageUri} onScanPress={handleScanPress} />
             </View>
 
             {/* Classification results */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>
-                {t('review.details', 'Receipt Details')}
-              </Text>
+              <Text style={styles.sectionTitle}>{t('review.details', 'Receipt Details')}</Text>
               <View style={styles.classificationContainer}>
                 <View style={styles.classificationRow}>
-                  <Text style={styles.classificationLabel}>
-                    {t('receipt.date', 'Date')}
-                  </Text>
+                  <Text style={styles.classificationLabel}>{t('receipt.date', 'Date')}</Text>
                   <Text style={styles.classificationValue}>
                     {classification.date || t('common.notDetected', 'Not detected')}
                   </Text>
                 </View>
 
                 <View style={styles.classificationRow}>
-                  <Text style={styles.classificationLabel}>
-                    {t('receipt.type', 'Type')}
-                  </Text>
+                  <Text style={styles.classificationLabel}>{t('receipt.type', 'Type')}</Text>
                   <Text style={styles.classificationValue}>
                     {classification.type || t('common.notDetected', 'Not detected')}
                   </Text>
                 </View>
 
                 <View style={styles.classificationRow}>
-                  <Text style={styles.classificationLabel}>
-                    {t('receipt.amount', 'Amount')}
-                  </Text>
+                  <Text style={styles.classificationLabel}>{t('receipt.amount', 'Amount')}</Text>
                   <Text style={[styles.classificationValue, styles.amountValue]}>
                     {formatCurrency(classification.amount)}
                   </Text>
                 </View>
 
                 <View style={styles.classificationRow}>
-                  <Text style={styles.classificationLabel}>
-                    {t('receipt.vehicle', 'Vehicle')}
-                  </Text>
+                  <Text style={styles.classificationLabel}>{t('receipt.vehicle', 'Vehicle')}</Text>
                   <Text style={styles.classificationValue}>
                     {classification.vehicle || t('common.notDetected', 'Not detected')}
                   </Text>
                 </View>
 
                 <View style={styles.classificationRow}>
-                  <Text style={styles.classificationLabel}>
-                    {t('receipt.vendor', 'Vendor')}
-                  </Text>
+                  <Text style={styles.classificationLabel}>{t('receipt.vendor', 'Vendor')}</Text>
                   <Text style={styles.classificationValue}>
                     {classification.vendorName || t('common.notDetected', 'Not detected')}
                   </Text>
@@ -450,9 +441,7 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
 
             {/* Extracted text preview */}
             <View style={styles.sectionContainer}>
-              <Text style={styles.sectionTitle}>
-                {t('review.extractedText', 'Extracted Text')}
-              </Text>
+              <Text style={styles.sectionTitle}>{t('review.extractedText', 'Extracted Text')}</Text>
               <View style={styles.textPreviewContainer}>
                 <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false}>
                   <Text style={styles.extractedText}>
@@ -471,9 +460,7 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
                 onPress={handleBack}
                 testID="back-button"
               >
-                <Text style={styles.secondaryButtonText}>
-                  {t('common.back', 'Back')}
-                </Text>
+                <Text style={styles.secondaryButtonText}>{t('common.back', 'Back')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -481,9 +468,7 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
                 onPress={handleProceed}
                 testID="proceed-button"
               >
-                <Text style={styles.primaryButtonText}>
-                  {t('review.proceed', 'Looks Good')}
-                </Text>
+                <Text style={styles.primaryButtonText}>{t('review.proceed', 'Looks Good')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -492,9 +477,7 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
               onPress={handleRetake}
               testID="retake-button"
             >
-              <Text style={styles.retakeButtonText}>
-                {t('review.retake', 'Retake Photo')}
-              </Text>
+              <Text style={styles.retakeButtonText}>{t('review.retake', 'Retake Photo')}</Text>
             </TouchableOpacity>
           </View>
         </Animated.View>

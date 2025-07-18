@@ -1,11 +1,11 @@
 // app/(app)/camera/verification.tsx
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Alert, BackHandler } from 'react-native';
 import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator';
 import { useCameraFlow } from '@/src/hooks/useCameraFlow';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, BackHandler } from 'react-native';
 
 /**
  * Verification Screen - Receipt data verification and editing
@@ -15,14 +15,9 @@ export default function VerificationScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   // Get flow management from camera flow hook
-  const {
-    hasActiveFlow,
-    currentFlow,
-    currentStep,
-    isDraftDirty,
-  } = useCameraFlow();
+  const { hasActiveFlow, currentFlow, currentStep, isDraftDirty } = useCameraFlow();
 
   // Extract flowId from params
   const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
@@ -34,7 +29,7 @@ export default function VerificationScreen() {
     if (!currentFlow) return;
 
     const flowId = currentFlow.id;
-    
+
     switch (currentStep) {
       case 'capture':
         router.replace('/camera');
@@ -55,27 +50,33 @@ export default function VerificationScreen() {
   /**
    * Handle unsaved changes warning
    */
-  const handleUnsavedChangesWarning = useCallback((onConfirm: () => void) => {
-    if (isDraftDirty) {
-      Alert.alert(
-        t('verification.unsavedChangesTitle', 'Unsaved Changes'),
-        t('verification.unsavedChangesMessage', 'You have unsaved changes. Are you sure you want to leave?'),
-        [
-          {
-            text: t('common.cancel', 'Cancel'),
-            style: 'cancel',
-          },
-          {
-            text: t('verification.discardChanges', 'Discard Changes'),
-            style: 'destructive',
-            onPress: onConfirm,
-          },
-        ]
-      );
-    } else {
-      onConfirm();
-    }
-  }, [isDraftDirty, t]);
+  const handleUnsavedChangesWarning = useCallback(
+    (onConfirm: () => void) => {
+      if (isDraftDirty) {
+        Alert.alert(
+          t('verification.unsavedChangesTitle', 'Unsaved Changes'),
+          t(
+            'verification.unsavedChangesMessage',
+            'You have unsaved changes. Are you sure you want to leave?'
+          ),
+          [
+            {
+              text: t('common.cancel', 'Cancel'),
+              style: 'cancel',
+            },
+            {
+              text: t('verification.discardChanges', 'Discard Changes'),
+              style: 'destructive',
+              onPress: onConfirm,
+            },
+          ]
+        );
+      } else {
+        onConfirm();
+      }
+    },
+    [isDraftDirty, t]
+  );
 
   /**
    * Validate navigation and flow state
@@ -163,7 +164,16 @@ export default function VerificationScreen() {
       );
       return;
     }
-  }, [paramFlowId, hasActiveFlow, currentFlow, currentStep, isDraftDirty, t, router, redirectToCorrectStep]);
+  }, [
+    paramFlowId,
+    hasActiveFlow,
+    currentFlow,
+    currentStep,
+    isDraftDirty,
+    t,
+    router,
+    redirectToCorrectStep,
+  ]);
 
   /**
    * Handle hardware back button (Android)
@@ -214,9 +224,5 @@ export default function VerificationScreen() {
     });
   }
 
-  return (
-    <CameraWorkflowCoordinator 
-      flowId={currentFlow.id}
-    />
-  );
+  return <CameraWorkflowCoordinator flowId={currentFlow.id} />;
 }

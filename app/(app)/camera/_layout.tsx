@@ -1,11 +1,10 @@
 // app/(app)/camera/_layout.tsx
 
-import React, { Component, ReactNode } from 'react';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { Stack } from 'expo-router';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import React, { Component, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 /**
  * Error Info interface for error boundary
@@ -75,12 +74,7 @@ class CameraErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
 
   render() {
     if (this.state.hasError) {
-      return (
-        <CameraErrorFallback
-          error={this.state.error}
-          resetError={this.handleReset}
-        />
-      );
+      return <CameraErrorFallback error={this.state.error} resetError={this.handleReset} />;
     }
 
     return this.props.children;
@@ -116,11 +110,9 @@ const CameraErrorFallback: React.FC<{
       <Text style={[styles.errorMessage, { color: textColor }]}>
         {t('camera.errorMessage', 'Something went wrong with the camera workflow.')}
       </Text>
-      
+
       {__DEV__ && error && (
-        <Text style={[styles.errorDetails, { color: textColor }]}>
-          {error.message}
-        </Text>
+        <Text style={[styles.errorDetails, { color: textColor }]}>{error.message}</Text>
       )}
 
       <View style={styles.errorActions}>
@@ -128,11 +120,9 @@ const CameraErrorFallback: React.FC<{
           style={[styles.errorButton, { backgroundColor: primaryColor }]}
           onPress={handleRestart}
         >
-          <Text style={styles.errorButtonText}>
-            {t('camera.restart', 'Restart Camera')}
-          </Text>
+          <Text style={styles.errorButtonText}>{t('camera.restart', 'Restart Camera')}</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
           style={[styles.errorButton, styles.secondaryButton, { borderColor: primaryColor }]}
           onPress={handleGoHome}

@@ -1,7 +1,7 @@
 // src/types/context_types.ts - Phase 3 Context Types Only
 
+import { ProcessedReceipt, ProcessingError, ProcessingStage } from '../state/ocr/types';
 import { CameraFlow, CameraFlowStep, FlowError } from './cameraFlow';
-import { ProcessedReceipt, ProcessingStage, ProcessingError } from '../state/ocr/types';
 import { Receipt } from './ReceiptInterfaces';
 
 /**
@@ -57,11 +57,14 @@ export interface ReceiptDraftContextState {
   readonly modifiedFields: Set<keyof Receipt>;
   readonly isDirty: boolean;
   readonly hasChanges: boolean;
-  readonly fieldErrors: Record<string, {
-    readonly code: string;
-    readonly message: string;
-    readonly severity: 'error' | 'warning';
-  }[]>;
+  readonly fieldErrors: Record<
+    string,
+    {
+      readonly code: string;
+      readonly message: string;
+      readonly severity: 'error' | 'warning';
+    }[]
+  >;
   readonly formValidation?: {
     readonly isValid: boolean;
     readonly fieldErrors: Record<string, any[]>;
@@ -89,7 +92,11 @@ export interface OCRProcessingContextValue {
   readonly updateUploadProgress: (progress: number) => void;
   readonly completeUpload: () => void;
   readonly startBackendProcessing: (jobId: string) => void;
-  readonly updateProcessingProgress: (progress: number, stage?: ProcessingStage, description?: string) => void;
+  readonly updateProcessingProgress: (
+    progress: number,
+    stage?: ProcessingStage,
+    description?: string
+  ) => void;
   readonly completeProcessing: () => void;
   readonly setError: (error: ProcessingError) => void;
   readonly clearError: () => void;

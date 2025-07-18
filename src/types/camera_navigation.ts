@@ -69,7 +69,7 @@ export const CAMERA_ROUTE_CONFIGS: Record<CameraFlowStep, CameraRouteConfig> = {
   },
   review: {
     step: 'review',
-    routeName: 'imagedetails', 
+    routeName: 'imagedetails',
     path: '/camera/imagedetails',
     requiredFlowData: ['imageUri', 'ocrResult'],
     allowedFromSteps: ['processing', 'verification'],
@@ -144,26 +144,21 @@ export const NavigationUtils = {
 
   /** Get step from route name */
   getStepFromRoute: (routeName: keyof CameraStackParamList): CameraFlowStep | undefined => {
-    return Object.values(CAMERA_ROUTE_CONFIGS).find(
-      config => config.routeName === routeName
-    )?.step;
+    return Object.values(CAMERA_ROUTE_CONFIGS).find(config => config.routeName === routeName)?.step;
   },
 
   /** Validate navigation transition */
-  canNavigateToStep: (
-    fromStep: CameraFlowStep, 
-    toStep: CameraFlowStep
-  ): NavigationGuardResult => {
+  canNavigateToStep: (fromStep: CameraFlowStep, toStep: CameraFlowStep): NavigationGuardResult => {
     const toConfig = CAMERA_ROUTE_CONFIGS[toStep];
-    
+
     if (toConfig.allowedFromSteps.length === 0) {
       return { allowed: true }; // No restrictions
     }
-    
+
     if (toConfig.allowedFromSteps.includes(fromStep)) {
       return { allowed: true };
     }
-    
+
     return {
       allowed: false,
       reason: `Cannot navigate from ${fromStep} to ${toStep}`,
@@ -180,7 +175,7 @@ export const NavigationUtils = {
 // ❌ CameraScreenParams - used JSON serialization
 // ❌ OCRNavigationParams - old OCR-specific navigation
 // ❌ ProcessingRouteParams - replaced by flow-based navigation
-// ❌ ReviewRouteParams - replaced by flow-based navigation  
+// ❌ ReviewRouteParams - replaced by flow-based navigation
 // ❌ VerificationRouteParams - replaced by flow-based navigation
 // ❌ ReportRouteParams - replaced by flow-based navigation
 // ❌ RouteParamsList with JSON.stringify types

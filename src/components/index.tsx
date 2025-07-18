@@ -5,20 +5,23 @@ export { default as CameraWorkflowCoordinator } from './camera/workflow/CameraWo
 
 // === CAMERA STEP COMPONENTS (Phase 3) ===
 export { default as CaptureStep } from './camera/workflow/steps/CaptureStep';
+export { default as CompletionStep } from './camera/workflow/steps/CompletionStep';
 export { default as ProcessingStep } from './camera/workflow/steps/ProcessingStep';
 export { default as ReviewStep } from './camera/workflow/steps/ReviewStep';
 export { default as VerificationStep } from './camera/workflow/steps/VerificationStep';
-export { default as CompletionStep } from './camera/workflow/steps/CompletionStep';
 
 // === CAMERA UI COMPONENTS ===
 export * from './camera/CameraUIComponents';
+export * from './camera/ImageDetailComponents';
 export * from './camera/ReportComponents';
 export * from './camera/VerificationComponents';
-export * from './camera/ImageDetailComponents';
 
 // === WORKFLOW UTILITIES ===
 export { CameraErrorBoundary } from './camera/workflow/CameraErrorBoundary';
-export { CameraNavigationGuard, useGuardedNavigation } from './camera/workflow/CameraNavigationGuard';
+export {
+  CameraNavigationGuard,
+  useGuardedNavigation,
+} from './camera/workflow/CameraNavigationGuard';
 export { StepTransition } from './camera/workflow/StepTransition';
 
 // REMOVED LEGACY COMPONENT EXPORTS:

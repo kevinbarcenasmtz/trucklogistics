@@ -1,11 +1,11 @@
 // app/(app)/camera/report.tsx
 
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Alert, BackHandler } from 'react-native';
 import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator';
 import { useCameraFlow } from '@/src/hooks/useCameraFlow';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Alert, BackHandler } from 'react-native';
 
 /**
  * Report Screen - Receipt completion and report display
@@ -15,14 +15,9 @@ export default function ReportScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useLocalSearchParams();
-  
+
   // Get flow management from camera flow hook
-  const {
-    hasActiveFlow,
-    currentFlow,
-    currentStep,
-    completeFlow,
-  } = useCameraFlow();
+  const { hasActiveFlow, currentFlow, currentStep, completeFlow } = useCameraFlow();
 
   // Extract flowId from params
   const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
@@ -33,7 +28,7 @@ export default function ReportScreen() {
   const handleWorkflowComplete = useCallback(async () => {
     try {
       const result = await completeFlow();
-      
+
       if (result.success) {
         // Navigate to home or receipts list
         router.replace('/home');
@@ -61,7 +56,7 @@ export default function ReportScreen() {
     if (!currentFlow) return;
 
     const flowId = currentFlow.id;
-    
+
     switch (currentStep) {
       case 'capture':
         router.replace('/camera');
@@ -238,9 +233,5 @@ export default function ReportScreen() {
     });
   }
 
-  return (
-    <CameraWorkflowCoordinator 
-      flowId={currentFlow.id}
-    />
-  );
+  return <CameraWorkflowCoordinator flowId={currentFlow.id} />;
 }

@@ -9,33 +9,25 @@ import { useTranslation } from 'react-i18next';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
-import StepTransition from '../StepTransition';
 import { BaseCameraStepProps } from '../../../../types';
+import StepTransition from '../StepTransition';
 
 /**
  * CaptureStep Component - Pure UI component for image capture
  * Migrated from OCR Context to useCameraFlow hook
  */
-export const CaptureStep: React.FC<BaseCameraStepProps> = ({ 
-  flowId, 
-  onNext, 
-  onCancel, 
+export const CaptureStep: React.FC<BaseCameraStepProps> = ({
+  flowId,
+  onNext,
+  onCancel,
   onError,
-  testID = 'capture-step'
+  testID = 'capture-step',
 }) => {
-  const { 
-    startFlow, 
-    getCurrentImage, 
-  } = useCameraFlow();
-  
-  const { 
-    backgroundColor, 
-    surfaceColor, 
-    textColor, 
-    secondaryTextColor, 
-    primaryColor 
-  } = useAppTheme();
-  
+  const { startFlow, getCurrentImage } = useCameraFlow();
+
+  const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor } =
+    useAppTheme();
+
   const { t } = useTranslation();
 
   // Local UI state only
@@ -148,7 +140,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
 
       // Start new camera flow with captured image
       const result = await startFlow(imageUri);
-      
+
       if (result.success) {
         console.log('[CaptureStep] Flow started successfully:', result.flowId);
         // Navigation will be handled by the coordinator based on flow state
@@ -300,16 +292,14 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
         <View style={styles.content}>
           {/* Title and subtitle */}
           <Text style={styles.title}>
-            {showPreview 
+            {showPreview
               ? t('camera.reviewCapture', 'Review Your Capture')
-              : t('camera.captureReceipt', 'Capture Receipt')
-            }
+              : t('camera.captureReceipt', 'Capture Receipt')}
           </Text>
           <Text style={styles.subtitle}>
             {showPreview
               ? t('camera.reviewSubtitle', 'Make sure the receipt is clear and readable')
-              : t('camera.captureSubtitle', 'Take a photo or select from gallery')
-            }
+              : t('camera.captureSubtitle', 'Take a photo or select from gallery')}
           </Text>
 
           {/* Capture area or image preview */}
@@ -342,11 +332,9 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
                   disabled={isCapturing}
                   testID="proceed-button"
                 >
-                  <Text style={styles.primaryButtonText}>
-                    {t('camera.proceed', 'Proceed')}
-                  </Text>
+                  <Text style={styles.primaryButtonText}>{t('camera.proceed', 'Proceed')}</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.secondaryButton}
                   onPress={handleRetake}
@@ -355,9 +343,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
                 >
                   <View style={styles.retakeButton}>
                     <MaterialIcons name="refresh" size={20} color={primaryColor} />
-                    <Text style={styles.secondaryButtonText}>
-                      {t('camera.retake', 'Retake')}
-                    </Text>
+                    <Text style={styles.secondaryButtonText}>{t('camera.retake', 'Retake')}</Text>
                   </View>
                 </TouchableOpacity>
               </View>
@@ -371,13 +357,12 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
                   testID="take-photo-button"
                 >
                   <Text style={styles.primaryButtonText}>
-                    {isCapturing 
-                      ? t('camera.opening', 'Opening Camera...') 
-                      : t('camera.takePhoto', 'Take Photo')
-                    }
+                    {isCapturing
+                      ? t('camera.opening', 'Opening Camera...')
+                      : t('camera.takePhoto', 'Take Photo')}
                   </Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   style={styles.secondaryButton}
                   onPress={handleSelectFromGallery}

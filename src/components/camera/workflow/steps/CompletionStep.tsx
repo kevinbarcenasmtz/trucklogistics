@@ -3,64 +3,57 @@
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import * as Sharing from 'expo-sharing';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import * as Sharing from 'expo-sharing';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Alert, 
-  ScrollView, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View 
-} from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
+import { BaseCameraStepProps } from '../../../../types/component_props';
 import { Receipt } from '../../../../types/ReceiptInterfaces';
 import { SectionContainer } from '../../CameraUIComponents'; // Import SectionContainer from correct source
-import { 
-  ReceiptHeader,
-  ReceiptContent,
+import {
   ActionCard,
+  Divider,
   RawTextSection,
-  Divider
+  ReceiptContent,
+  ReceiptHeader,
 } from '../../ReportComponents'; // Import other components from ReportComponents
 import StepTransition from '../StepTransition';
-import { BaseCameraStepProps } from '../../../../types/component_props';
 
 /**
  * CompletionStep Component - Final step showing completed receipt
  * Migrated to use camera flow state exclusively
  */
-export const CompletionStep: React.FC<BaseCameraStepProps> = ({ 
-  flowId, 
-  onNext, 
-  onBack, 
-  onCancel, 
+export const CompletionStep: React.FC<BaseCameraStepProps> = ({
+  flowId,
+  onNext,
+  onBack,
+  onCancel,
   onError,
-  testID = 'completion-step'
+  testID = 'completion-step',
 }) => {
-  const { 
+  const {
     getCurrentDraft,
     getCurrentImage,
     getCurrentProcessedData,
     getFlowMetrics,
     completeFlow,
-    resetFlow
+    resetFlow,
     // Removed currentFlow - it was unused
   } = useCameraFlow();
-  
-  const { 
-    backgroundColor, 
-    surfaceColor, 
-    textColor, 
+
+  const {
+    backgroundColor,
+    surfaceColor,
+    textColor,
     secondaryTextColor,
     primaryColor,
     borderColor,
-    successColor
+    successColor,
   } = useAppTheme();
-  
+
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -276,15 +269,15 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   const handleDone = async () => {
     try {
       console.log('[CompletionStep] Completing flow and navigating to home');
-      
+
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Complete the flow with proper cleanup
       const result = await completeFlow();
-      
+
       if (result.success) {
         console.log('[CompletionStep] Flow completed successfully');
-        
+
         // Navigate to home
         router.replace('/home');
       } else {
@@ -309,16 +302,16 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   const handleNewScan = async () => {
     try {
       console.log('[CompletionStep] Starting new scan');
-      
+
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Complete current flow first
       const result = await completeFlow();
-      
+
       if (result.success) {
         // Reset flow state for new session
         resetFlow();
-        
+
         // Navigate to camera capture
         router.replace('/camera');
       } else {
@@ -361,7 +354,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       if (imageUri) {
         await Sharing.shareAsync(imageUri, {
           mimeType: 'image/jpeg',
-          dialogTitle: t('completion.shareTitle', 'Receipt Report')
+          dialogTitle: t('completion.shareTitle', 'Receipt Report'),
         });
       } else {
         // Create a text file with receipt content
@@ -369,10 +362,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
         // Note: For text sharing, you might need to create a temporary file
         // or use a different sharing method depending on your requirements
         console.log('Share content:', shareContent);
-        Alert.alert(
-          t('completion.shareTitle', 'Receipt Report'),
-          shareContent
-        );
+        Alert.alert(t('completion.shareTitle', 'Receipt Report'), shareContent);
       }
 
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -410,7 +400,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       await new Promise(resolve => setTimeout(resolve, 500));
 
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
+
       console.log('[CompletionStep] Receipt status updated successfully:', updatedReceipt.status);
     } catch (error) {
       console.error('[CompletionStep] Failed to update status:', error);
@@ -469,7 +459,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   // Create receipt with extracted text for RawTextSection
   const receiptWithExtractedText = {
     ...receipt,
-    extractedText: processedData?.extractedText || receipt.extractedText
+    extractedText: processedData?.extractedText || receipt.extractedText,
   };
 
   return (
@@ -477,10 +467,10 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       <StepTransition entering={true}>
         {/* Header with success message */}
         <View style={styles.header}>
-          <MaterialIcons 
-            name="check-circle" 
-            size={48} 
-            color={successColor} 
+          <MaterialIcons
+            name="check-circle"
+            size={48}
+            color={successColor}
             style={styles.successIcon}
           />
           <Text style={styles.headerTitle}>
@@ -503,10 +493,14 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
                 {t('completion.processingSummary', 'Processing Summary')}
               </Text>
               <Text style={styles.summaryText}>
-                {t('completion.processedIn', 'Processed in {{time}}ms with {{confidence}}% confidence', {
-                  time: Math.round(processingSummary.totalTime),
-                  confidence: Math.round(processingSummary.confidence * 100)
-                })}
+                {t(
+                  'completion.processedIn',
+                  'Processed in {{time}}ms with {{confidence}}% confidence',
+                  {
+                    time: Math.round(processingSummary.totalTime),
+                    confidence: Math.round(processingSummary.confidence * 100),
+                  }
+                )}
               </Text>
             </View>
           )}
@@ -556,9 +550,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
               testID="new-scan-button"
             >
               <MaterialIcons name="add-a-photo" size={20} color={primaryColor} />
-              <Text style={styles.secondaryButtonText}>
-                {t('completion.newScan', 'New Scan')}
-              </Text>
+              <Text style={styles.secondaryButtonText}>{t('completion.newScan', 'New Scan')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -567,9 +559,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
               testID="done-button"
             >
               <MaterialIcons name="check" size={20} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>
-                {t('common.done', 'Done')}
-              </Text>
+              <Text style={styles.primaryButtonText}>{t('common.done', 'Done')}</Text>
             </TouchableOpacity>
           </View>
         </View>
