@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     height: verticalScale(52),
   },
   footerText: {
-    fontSize: moderateScale(14),
+    fontSize: moderateScale(13),
     textAlign: 'center',
     lineHeight: moderateScale(48),
   },

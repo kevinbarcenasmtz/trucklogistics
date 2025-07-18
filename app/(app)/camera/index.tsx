@@ -1,239 +1,132 @@
 // app/(app)/camera/index.tsx
-import { ActionButton } from '@/src/components/camera/CameraUIComponents';
-import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import { MaterialIcons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+
+import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator';
+import { useCameraFlow } from '@/src/hooks/useCameraFlow';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, BackHandler } from 'react-native';
 
-export default function CameraScreen() {
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const router = useRouter();
+/**
+ * Camera Index Screen - Entry point for camera workflow
+ * Updated for Phase 3: Uses flow store instead of route params
+ */
+export default function CameraIndexScreen() {
   const { t } = useTranslation();
+  const router = useRouter();
+  const params = useLocalSearchParams();
 
-  const { backgroundColor, textColor, primaryColor, getSurfaceColor } = useAppTheme();
+  // Get flow management from camera flow hook
+  const { hasActiveFlow, currentFlow, currentStep, cancelFlow } = useCameraFlow();
 
-  // Use useCameraPermissions hook for camera permissions
-  const [cameraPermissionStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
+  // Extract flowId from params if provided (for deep linking)
+  const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
 
-  // Handle selecting image from library
-  const handleSelectImage = async () => {
-    try {
-      // Provide haptic feedback
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (err) {
-        console.warn('Haptic feedback not supported:', err);
-      }
+  /**
+   * Redirect to current step based on flow state
+   */
+  const redirectToCurrentStep = useCallback(() => {
+    if (!hasActiveFlow || !currentFlow) return;
 
-      // Launch image library with the updated MediaType string value instead of enum
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images', // Use string value instead of deprecated enum
-        allowsEditing: true,
-        aspect: [4, 5],
-        quality: 1,
-      });
+    const flowId = currentFlow.id;
 
-      if (!result.canceled) {
-        setSelectedImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Image selection error:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('imageSelectionError', 'Failed to select image. Please try again.')
-      );
+    switch (currentStep) {
+      case 'processing':
+      case 'review':
+        router.replace(`/camera/imagedetails?flowId=${flowId}`);
+        break;
+      case 'verification':
+        router.replace(`/camera/verification?flowId=${flowId}`);
+        break;
+      case 'report':
+        router.replace(`/camera/report?flowId=${flowId}`);
+        break;
+      default:
+        // Stay on capture step
+        break;
     }
-  };
+  }, [hasActiveFlow, currentFlow, currentStep, router]);
 
-  // Handle taking a photo with the camera
-  const handleOpenCamera = async () => {
-    try {
-      // Provide haptic feedback
-      try {
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (err) {
-        console.warn('Haptic feedback not supported:', err);
-      }
-
-      // Check if we need to request camera permissions
-      if (!cameraPermissionStatus?.granted) {
-        const permissionResult = await requestCameraPermission();
-        if (!permissionResult.granted) {
-          Alert.alert(
-            t('permissionRequired', 'Permission Required'),
-            t(
-              'cameraPermissionMessage',
-              'This app needs camera access to scan receipts and documents'
-            )
-          );
-          return;
-        }
-      }
-
-      // Launch camera
-      const result = await ImagePicker.launchCameraAsync({
-        allowsEditing: true,
-        aspect: [4, 5],
-        quality: 1,
-      });
-
-      if (!result.canceled) {
-        setSelectedImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Camera error:', error);
-      Alert.alert(
-        t('error', 'Error'),
-        t('cameraError', 'Failed to open camera. Please try again.')
-      );
-    }
-  };
-
-  // Handle processing the selected image
-  const handleProcess = () => {
-    if (selectedImage) {
-      try {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      } catch (err) {
-        console.warn('Haptic feedback not supported:', err);
-      }
-
-      router.push({
-        pathname: '/camera/imagedetails',
-        params: { uri: selectedImage },
+  /**
+   * Handle flow initialization on mount
+   */
+  useEffect(() => {
+    // Log navigation event
+    if (__DEV__) {
+      console.log('[CameraIndex] Screen mounted', {
+        paramFlowId,
+        hasActiveFlow,
+        currentFlowId: currentFlow?.id,
+        currentStep,
       });
     }
-  };
 
-  // Handle retaking/reselecting an image
-  const handleRetake = () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (err) {
-      console.warn('Haptic feedback not supported:', err);
+    // If we have a flowId param but no active flow, this might be a deep link
+    if (paramFlowId && !hasActiveFlow) {
+      console.warn('[CameraIndex] FlowId provided but no active flow found. Starting fresh flow.');
+      // For now, ignore the paramFlowId and start fresh
+      // In the future, you could implement flow restoration here
     }
 
-    setSelectedImage(null);
-  };
+    // If we have an active flow but we're not on the capture step, redirect
+    if (hasActiveFlow && currentStep !== 'capture') {
+      console.log('[CameraIndex] Active flow detected, redirecting to current step:', currentStep);
+      redirectToCurrentStep();
+    }
+  }, [paramFlowId, hasActiveFlow, currentStep, currentFlow?.id, redirectToCurrentStep]);
 
-  return (
-    <View style={[styles.container, { backgroundColor }]}>
-      {selectedImage ? (
-        // Show selected image and process button
-        <>
-          <Image source={{ uri: selectedImage }} style={styles.imagePreview} resizeMode="contain" />
-          <TouchableOpacity
-            onPress={handleRetake}
-            style={[styles.retakeButton, { backgroundColor: primaryColor }]}
-          >
-            <MaterialIcons name="refresh" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+  /**
+   * Handle hardware back button (Android)
+   */
+  useEffect(() => {
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (hasActiveFlow) {
+        // Show confirmation dialog
+        Alert.alert(
+          t('camera.exitTitle', 'Exit Camera'),
+          t(
+            'camera.exitMessage',
+            'Are you sure you want to exit? Any unsaved progress will be lost.'
+          ),
+          [
+            {
+              text: t('common.cancel', 'Cancel'),
+              style: 'cancel',
+            },
+            {
+              text: t('common.exit', 'Exit'),
+              style: 'destructive',
+              onPress: () => {
+                cancelFlow('user_exit');
+                router.replace('/home');
+              },
+            },
+          ]
+        );
+        return true; // Prevent default back behavior
+      }
+      return false; // Allow default back behavior
+    });
 
-          <View style={styles.buttonContainer}>
-            <ActionButton
-              title={t('processImage', 'Process Image')}
-              icon="arrow-forward"
-              onPress={handleProcess}
-              backgroundColor={primaryColor}
-              style={styles.processImage}
-            />
-          </View>
-        </>
-      ) : (
-        // Show camera and gallery options
-        <View style={styles.bottomButtonsContainer}>
-          <View style={styles.instructionContainer}>
-            <MaterialIcons name="receipt" size={40} color={primaryColor} />
-            <Text style={[styles.instructionText, { color: textColor }]}>
-              {t(
-                'selectOrTakePhoto',
-                'Take a photo of your receipt or select from your photo library'
-              )}
-            </Text>
-          </View>
+    return () => backHandler.remove();
+  }, [hasActiveFlow, t, cancelFlow, router]);
 
-          <View style={styles.buttonRow}>
-            <ActionButton
-              title={t('openCamera', 'Open Camera')}
-              icon="camera-alt"
-              onPress={handleOpenCamera}
-              backgroundColor={primaryColor}
-              style={styles.actionButton}
-            />
+  /**
+   * Handle app state changes (backgrounding/foregrounding)
+   */
+  useEffect(() => {
+    // You could add app state change handling here
+    // For example, pause/resume timers, save state, etc.
+  }, []);
 
-            <ActionButton
-              title={t('gallery', 'Gallery')}
-              icon="photo-library"
-              onPress={handleSelectImage}
-              backgroundColor={primaryColor}
-              style={styles.actionButton}
-            />
-          </View>
-        </View>
-      )}
-    </View>
-  );
+  // Development logging
+  if (__DEV__) {
+    console.log('[CameraIndex] Render state:', {
+      hasActiveFlow,
+      currentStep,
+      flowId: currentFlow?.id,
+    });
+  }
+
+  return <CameraWorkflowCoordinator flowId={currentFlow?.id || paramFlowId} />;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  instructionContainer: {
-    alignItems: 'center',
-    marginBottom: verticalScale(30),
-    paddingHorizontal: horizontalScale(20),
-  },
-  instructionText: {
-    marginTop: verticalScale(16),
-    fontSize: moderateScale(16),
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    width: '100%',
-    paddingHorizontal: horizontalScale(10),
-    justifyContent: 'space-between',
-    gap: horizontalScale(16),
-  },
-  actionButton: {
-    flex: 1,
-    marginHorizontal: horizontalScale(10),
-  },
-  imagePreview: {
-    width: '100%',
-    height: '50%',
-    marginTop: verticalScale(50),
-  },
-  buttonContainer: {
-    position: 'absolute',
-    bottom: verticalScale(120),
-    width: '80%',
-    alignItems: 'center',
-  },
-  processImage: {
-    width: '100%',
-  },
-  retakeButton: {
-    position: 'absolute',
-    top: verticalScale(60),
-    right: horizontalScale(20),
-    padding: moderateScale(10),
-    borderRadius: moderateScale(20),
-    zIndex: 999,
-  },
-  bottomButtonsContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: horizontalScale(10),
-    paddingBottom: verticalScale(100),
-  },
-});

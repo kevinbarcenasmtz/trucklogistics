@@ -133,7 +133,7 @@ export default function EditScreen() {
     },
     {
       key: 'phone',
-      placeholder: t('phoneNumber', 'Phone Number'),
+      placeholder: t('phone', 'Phone Number'),
       icon: 'phone',
       iconComponent: Feather,
       autoCapitalize: 'none' as const,

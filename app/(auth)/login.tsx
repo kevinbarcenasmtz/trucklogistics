@@ -31,7 +31,7 @@ export default function LoginScreen() {
   const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles, isDarkTheme } =
     useAppTheme();
 
-  // ✅ Single state machine replaces all individual useState calls
+  // Single state machine replaces all individual useState calls
   const { state, dispatch } = useAuthFormMachine('login');
 
   // Pure calculations - no useState needed
@@ -206,7 +206,7 @@ export default function LoginScreen() {
         <View style={styles.footer}>
           <View style={styles.footerTextContainer}>
             <Text style={[styles.footerText, { color: secondaryTextColor }]}>
-              {t('dontHaveAccount', "Don't have an account?")}{' '}
+              {t('noAccount', "Don't have an account?")}{' '}
             </Text>
             <TouchableOpacity
               onPress={() => router.push('/(auth)/signup')}

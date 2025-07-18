@@ -17,7 +17,6 @@ Mobile application for logistics management built with React Native and Expo.
 - npm or yarn
 - Expo CLI (`npm install -g expo-cli`)
 - iOS: XCode & CocoaPods (for iOS development)
-- Android: Android Studio & SDK (for Android development)
 
 ### Installation
 
@@ -42,11 +41,9 @@ Mobile application for logistics management built with React Native and Expo.
 Create a development build for testing:
 
 ```bash
-# For iOS
+# For iOS (only on mac)
 npx expo run:ios
 
-# For Android
-npx expo run:android
 ```
 
 ## Building for Production

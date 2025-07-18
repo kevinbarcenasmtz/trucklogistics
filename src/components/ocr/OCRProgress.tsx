@@ -3,89 +3,157 @@ import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '../../hooks/useAppTheme';
-import type { OCRStateWithContext } from '../../state/ocr/types';
-import { OCRSelectors } from '../../state/ocr/types';
 import { horizontalScale, moderateScale, verticalScale } from '../../theme';
+import { useOCRProcessing } from '../../context/OCRProcessingContext';
+import type { ProcessingStage, ProcessingStatus } from '../../state/ocr/types';
 
 interface OCRProgressProps {
-  state: OCRStateWithContext;
   onCancel: () => void;
 }
 
-export function OCRProgress({ state, onCancel }: OCRProgressProps) {
+export function OCRProgress({ onCancel }: OCRProgressProps) {
   const { t } = useTranslation();
   const { surfaceColor, textColor, secondaryTextColor, primaryColor, backgroundColor } =
     useAppTheme();
+  
+  // Get state directly from context
+  const { state } = useOCRProcessing();
+  
+  // Calculate processing time if we have a start timestamp
+  const processingTime = state.startTimestamp 
+    ? Date.now() - state.startTimestamp 
+    : 0;
 
-  const progress = OCRSelectors.getProgress(state);
-  const processingTime = OCRSelectors.getProcessingTime(state);
+  const getStageText = (status: ProcessingStatus, stage?: ProcessingStage): string => {
+    // First check if we have a specific stage description from backend
+    if (state.stageDescription) {
+      return state.stageDescription;
+    }
 
-  const getStageText = (status: string): string => {
+    // Otherwise, use status and stage to determine text
+    if (status === 'uploading') {
+      return t('uploadingImage', 'Uploading Image...');
+    }
+    
+    if (status === 'processing' && stage) {
+      switch (stage) {
+        case 'initializing':
+          return t('initializingProcess', 'Initializing...');
+        case 'uploading_chunks':
+          return t('uploadingChunks', 'Uploading chunks...');
+        case 'combining_chunks':
+          return t('combiningChunks', 'Combining chunks...');
+        case 'extracting_text':
+          return t('extractingText', 'Extracting Text...');
+        case 'classifying_data':
+          return t('analyzingReceipt', 'Analyzing Receipt...');
+        case 'finalizing':
+          return t('finalizingProcess', 'Finalizing...');
+        default:
+          return t('processing', 'Processing...');
+      }
+    }
+
     switch (status) {
-      case 'optimizing':
-        return t('optimizingImage', 'Optimizing Image...');
-      case 'uploading':
-        return t('uploadingImage', 'Uploading Image...');
-      case 'processing':
-        return t('processingImage', 'Processing Image...');
-      case 'extracting':
-        return t('extractingText', 'Extracting Text...');
-      case 'classifying':
-        return t('analyzingReceipt', 'Analyzing Receipt...');
+      case 'complete':
+        return t('processingComplete', 'Complete');
+      case 'error':
+        return t('processingError', 'Error');
       default:
         return t('processing', 'Processing...');
     }
   };
 
-  const getStageIcon = (status: string): any => {
+  const getStageIcon = (status: ProcessingStatus, stage?: ProcessingStage): string => {
+    if (status === 'uploading') {
+      return 'upload-cloud';
+    }
+    
+    if (status === 'processing' && stage) {
+      switch (stage) {
+        case 'initializing':
+          return 'settings';
+        case 'uploading_chunks':
+        case 'combining_chunks':
+          return 'layers';
+        case 'extracting_text':
+          return 'type';
+        case 'classifying_data':
+          return 'search';
+        case 'finalizing':
+          return 'check-circle';
+        default:
+          return 'cpu';
+      }
+    }
+
     switch (status) {
-      case 'optimizing':
-        return 'image';
-      case 'uploading':
-        return 'upload-cloud';
-      case 'processing':
-        return 'cpu';
-      case 'extracting':
-        return 'type';
-      case 'classifying':
-        return 'search';
+      case 'complete':
+        return 'check-circle';
+      case 'error':
+        return 'alert-circle';
       default:
         return 'activity';
     }
   };
 
+  // Don't render if idle
+  if (state.status === 'idle') {
+    return null;
+  }
+
   return (
     <View style={[styles.container, { backgroundColor: surfaceColor }]}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Feather name={getStageIcon(state.state.status)} size={20} color={primaryColor} />
+          <Feather 
+            name={getStageIcon(state.status, state.stage) as any} 
+            size={20} 
+            color={state.hasError ? '#FF3B30' : primaryColor} 
+          />
           <Text style={[styles.title, { color: textColor }]}>
-            {getStageText(state.state.status)}
+            {getStageText(state.status, state.stage)}
           </Text>
         </View>
 
-        <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
-          <Feather name="x" size={20} color={secondaryTextColor} />
-        </TouchableOpacity>
+        {(state.isProcessing || state.isUploading) && (
+          <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
+            <Feather name="x" size={20} color={secondaryTextColor} />
+          </TouchableOpacity>
+        )}
       </View>
 
-      <View style={styles.progressContainer}>
-        <View style={[styles.progressBar, { backgroundColor }]}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                backgroundColor: primaryColor,
-                width: `${Math.round(progress * 100)}%`,
-              },
-            ]}
-          />
+      {!state.hasError && (
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressBar, { backgroundColor }]}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  backgroundColor: primaryColor,
+                  width: `${Math.round(state.totalProgress)}%`,
+                },
+              ]}
+            />
+          </View>
+          <View style={styles.progressDetails}>
+            <Text style={[styles.progressText, { color: secondaryTextColor }]}>
+              {Math.round(state.totalProgress)}%
+            </Text>
+            {processingTime > 0 && (
+              <Text style={[styles.progressText, { color: secondaryTextColor }]}>
+                {Math.round(processingTime / 1000)}s
+              </Text>
+            )}
+          </View>
         </View>
+      )}
 
-        <Text style={[styles.progressText, { color: secondaryTextColor }]}>
-          {Math.round(progress * 100)}% • {Math.round(processingTime / 1000)}s
+      {state.hasError && state.error && (
+        <Text style={[styles.errorText, { color: '#FF3B30' }]}>
+          {state.error.userMessage}
         </Text>
-      </View>
+      )}
     </View>
   );
 }
@@ -127,8 +195,16 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: moderateScale(2),
   },
+  progressDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   progressText: {
     fontSize: moderateScale(12),
-    textAlign: 'center',
+  },
+  errorText: {
+    fontSize: moderateScale(14),
+    marginTop: verticalScale(8),
   },
 });

@@ -29,13 +29,9 @@ export default function ReportsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load receipts on initial render
-  useEffect(() => {
-    loadReceipts();
-  }, []);
 
   // Function to load receipts from storage
-  const loadReceipts = async () => {
+  const loadReceipts = useCallback(async () => {
     try {
       const docs = await DocumentStorage.getAllReceipts();
       setReceipts(docs);
@@ -45,20 +41,27 @@ export default function ReportsScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  },[t]);
+  
+  // Load receipts on initial render
+  useEffect(() => {
+    loadReceipts();
+  }, [loadReceipts]);
+
+
 
   // Handle pull-to-refresh
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await loadReceipts();
     setRefreshing(false);
-  }, []);
+  }, [loadReceipts]);
 
   // Format date for display
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString();
-    } catch (e) {
+    } catch (error) {
       return dateString;
     }
   };
