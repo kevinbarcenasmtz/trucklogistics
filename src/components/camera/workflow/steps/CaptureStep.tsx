@@ -1,289 +1,400 @@
-import { useOCR } from '@/src/context/OCRContext';
+// src/components/camera/steps/CaptureStep.tsx
+
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCameraFlow } from '../../../../store/cameraFlowStore';
-import { ActionButton } from '../../CameraUIComponents';
+import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import StepTransition from '../StepTransition';
-import { StepProps } from '../types';
+import { BaseCameraStepProps } from '../../../../types';
 
-export const CaptureStep: React.FC<StepProps> = ({ flowId, onNext, onCancel, onError }) => {
-  const { activeFlow, startFlow, updateFlow } = useCameraFlow();
-  const { dispatch: dispatchOCR } = useOCR();
-  const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor } =
-    useAppTheme();
+/**
+ * CaptureStep Component - Pure UI component for image capture
+ * Migrated from OCR Context to useCameraFlow hook
+ */
+export const CaptureStep: React.FC<BaseCameraStepProps> = ({ 
+  flowId, 
+  onNext, 
+  onCancel, 
+  onError,
+  testID = 'capture-step'
+}) => {
+  const { 
+    startFlow, 
+    getCurrentImage, 
+  } = useCameraFlow();
+  
+  const { 
+    backgroundColor, 
+    surfaceColor, 
+    textColor, 
+    secondaryTextColor, 
+    primaryColor 
+  } = useAppTheme();
+  
   const { t } = useTranslation();
 
-  // UI-only state
+  // Local UI state only
   const [cameraPermissionStatus, requestCameraPermission] = ImagePicker.useCameraPermissions();
-  const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
 
-  // Derive UI state from flow store
-  const selectedImage = activeFlow?.imageUri;
+  // Get current captured image for preview
+  const selectedImage = getCurrentImage();
   const showPreview = !!selectedImage;
 
-  useEffect(() => {
-    // Reset OCR state when entering capture step
-    dispatchOCR({ type: 'RESET' });
-  }, [dispatchOCR]);
-
+  /**
+   * Handle taking photo with camera
+   */
   const handleTakePhoto = async () => {
+    if (isCapturing) return;
+
     try {
+      setIsCapturing(true);
+
       // Check camera permissions
       if (!cameraPermissionStatus?.granted) {
         const permissionResult = await requestCameraPermission();
         if (!permissionResult.granted) {
           onError({
+            step: 'capture',
             code: 'CAMERA_PERMISSION_DENIED',
             message: 'Camera permission is required to capture receipts',
-            step: 'capture',
-            retry: true,
+            userMessage: 'Please allow camera access to capture receipts',
+            timestamp: Date.now(),
+            retryable: true,
           });
           return;
         }
       }
 
-      // Launch camera
-      const result = await ImagePicker.launchCameraAsync({
-        mediaTypes: 'images',
-        allowsEditing: false,
-        quality: 0.9,
-        base64: false,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        await processImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      onError({
-        code: 'CAMERA_LAUNCH_FAILED',
-        message: 'Failed to open camera. Please try again.',
-        step: 'capture',
-        retry: true,
-      });
-    }
-  };
-
-  const handleSelectFromGallery = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: 'images',
-        allowsEditing: false,
-        quality: 0.9,
-        base64: false,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        await processImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      onError({
-        code: 'GALLERY_SELECTION_FAILED',
-        message: 'Failed to select image. Please try again.',
-        step: 'capture',
-        retry: true,
-      });
-    }
-  };
-
-  const processImage = async (uri: string) => {
-    try {
-      setIsProcessingImage(true);
+      // Haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Reset OCR state for clean start
-      dispatchOCR({ type: 'RESET' });
-      dispatchOCR({ type: 'START_CAPTURE', source: 'camera' });
+      // Launch camera
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+        base64: false,
+        exif: true,
+      });
 
-      // Update flow with captured image
-      if (!activeFlow) {
-        // Start new flow
-        await startFlow(uri);
-      } else {
-        // Update existing flow
-        updateFlow({ imageUri: uri });
+      if (!result.canceled && result.assets[0]) {
+        await handleImageCaptured(result.assets[0].uri);
       }
-
-      // Advance to processing step
-      onNext();
     } catch (error) {
+      console.error('[CaptureStep] Camera launch failed:', error);
       onError({
-        code: 'IMAGE_PROCESSING_FAILED',
-        message: 'Failed to process image. Please try again.',
         step: 'capture',
-        retry: true,
+        code: 'CAMERA_LAUNCH_FAILED',
+        message: error instanceof Error ? error.message : 'Failed to open camera',
+        userMessage: 'Failed to open camera. Please try again.',
+        timestamp: Date.now(),
+        retryable: true,
       });
     } finally {
-      setIsProcessingImage(false);
+      setIsCapturing(false);
     }
   };
 
-  const handleRetake = () => {
-    updateFlow({
-      imageUri: undefined,
-      ocrResult: undefined,
-      currentStep: 'capture',
-    });
-    dispatchOCR({ type: 'RESET' });
+  /**
+   * Handle selecting image from gallery
+   */
+  const handleSelectFromGallery = async () => {
+    if (isCapturing) return;
+
+    try {
+      setIsCapturing(true);
+
+      // Haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+        base64: false,
+        exif: true,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await handleImageCaptured(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('[CaptureStep] Gallery selection failed:', error);
+      onError({
+        step: 'capture',
+        code: 'GALLERY_SELECTION_FAILED',
+        message: error instanceof Error ? error.message : 'Failed to select image',
+        userMessage: 'Failed to select image. Please try again.',
+        timestamp: Date.now(),
+        retryable: true,
+      });
+    } finally {
+      setIsCapturing(false);
+    }
   };
 
-  const handleContinue = () => {
+  /**
+   * Handle image captured - start new flow
+   */
+  const handleImageCaptured = async (imageUri: string) => {
+    try {
+      console.log('[CaptureStep] Image captured, starting flow:', imageUri);
+
+      // Start new camera flow with captured image
+      const result = await startFlow(imageUri);
+      
+      if (result.success) {
+        console.log('[CaptureStep] Flow started successfully:', result.flowId);
+        // Navigation will be handled by the coordinator based on flow state
+        // No need to call onNext here
+      } else {
+        throw new Error(result.error || 'Failed to start flow');
+      }
+    } catch (error) {
+      console.error('[CaptureStep] Failed to start flow:', error);
+      onError({
+        step: 'capture',
+        code: 'FLOW_START_FAILED',
+        message: error instanceof Error ? error.message : 'Failed to start processing flow',
+        userMessage: 'Failed to start processing. Please try again.',
+        timestamp: Date.now(),
+        retryable: true,
+      });
+    }
+  };
+
+  /**
+   * Handle proceeding with current image
+   */
+  const handleProceed = () => {
     if (selectedImage) {
-      updateFlow({ currentStep: 'processing' });
+      // Image already captured and flow started, coordinator will handle navigation
+      console.log('[CaptureStep] Proceeding with captured image');
       onNext();
     }
   };
 
-  const handleCancelFlow = () => {
+  /**
+   * Handle retaking photo
+   */
+  const handleRetake = () => {
     Alert.alert(
-      t('camera.cancelTitle', 'Cancel Scanning'),
-      t('camera.cancelMessage', 'Are you sure you want to cancel? Any progress will be lost.'),
+      t('camera.retakeTitle', 'Retake Photo'),
+      t('camera.retakeMessage', 'Are you sure you want to retake the photo?'),
       [
-        { text: t('camera.continueScan', 'Continue Scanning'), style: 'cancel' },
-        { text: t('common.cancel', 'Cancel'), style: 'destructive', onPress: onCancel },
+        {
+          text: t('common.cancel', 'Cancel'),
+          style: 'cancel',
+        },
+        {
+          text: t('camera.retake', 'Retake'),
+          style: 'destructive',
+          onPress: handleTakePhoto,
+        },
       ]
     );
   };
 
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor,
+    },
+    content: {
+      flex: 1,
+      padding: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    title: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: textColor,
+      textAlign: 'center',
+      marginBottom: 10,
+    },
+    subtitle: {
+      fontSize: 16,
+      color: secondaryTextColor,
+      textAlign: 'center',
+      marginBottom: 40,
+    },
+    captureArea: {
+      width: '100%',
+      maxWidth: 300,
+      aspectRatio: 0.7, // Receipt-like aspect ratio
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: primaryColor,
+      borderStyle: 'dashed',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 30,
+      backgroundColor: surfaceColor,
+    },
+    previewImage: {
+      width: '100%',
+      height: '100%',
+      borderRadius: 10,
+      resizeMode: 'cover',
+    },
+    captureIcon: {
+      marginBottom: 15,
+    },
+    captureText: {
+      fontSize: 16,
+      color: secondaryTextColor,
+      textAlign: 'center',
+    },
+    buttonContainer: {
+      width: '100%',
+      gap: 15,
+    },
+    primaryButton: {
+      backgroundColor: primaryColor,
+      paddingVertical: 15,
+      paddingHorizontal: 30,
+      borderRadius: 8,
+      alignItems: 'center',
+    },
+    primaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: '#FFFFFF',
+    },
+    secondaryButton: {
+      backgroundColor: 'transparent',
+      paddingVertical: 15,
+      paddingHorizontal: 30,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: primaryColor,
+      alignItems: 'center',
+    },
+    secondaryButtonText: {
+      fontSize: 16,
+      fontWeight: '600',
+      color: primaryColor,
+    },
+    previewContainer: {
+      width: '100%',
+      gap: 15,
+    },
+    retakeButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+    },
+  });
+
   return (
-    <StepTransition entering={true}>
-      <SafeAreaView style={[styles.container, { backgroundColor }]}>
-        {/* Image Preview Section */}
-        {showPreview && (
-          <View style={styles.previewContainer}>
-            <Image
-              source={{ uri: selectedImage }}
-              style={styles.previewImage}
-              resizeMode="contain"
-            />
-          </View>
-        )}
+    <SafeAreaView style={styles.container} testID={testID}>
+      <StepTransition entering={true}>
+        <View style={styles.content}>
+          {/* Title and subtitle */}
+          <Text style={styles.title}>
+            {showPreview 
+              ? t('camera.reviewCapture', 'Review Your Capture')
+              : t('camera.captureReceipt', 'Capture Receipt')
+            }
+          </Text>
+          <Text style={styles.subtitle}>
+            {showPreview
+              ? t('camera.reviewSubtitle', 'Make sure the receipt is clear and readable')
+              : t('camera.captureSubtitle', 'Take a photo or select from gallery')
+            }
+          </Text>
 
-        {/* Camera Controls Section */}
-        <View style={[styles.controlsContainer, { backgroundColor: surfaceColor }]}>
-          {!showPreview ? (
-            <>
-              <View style={[styles.placeholder, { backgroundColor: surfaceColor }]}>
-                <MaterialIcons name="receipt" size={64} color={secondaryTextColor} />
-                <Text style={[styles.instructionText, { color: textColor }]}>
-                  {t('camera.instruction', 'Take a photo of your receipt or select from gallery')}
-                </Text>
-              </View>
-
-              <View style={styles.buttonContainer}>
-                <ActionButton
-                  title={t('camera.takePhoto', 'Take Photo')}
-                  icon="camera"
-                  onPress={handleTakePhoto}
-                  disabled={isProcessingImage}
-                  style={styles.primaryButton}
+          {/* Capture area or image preview */}
+          <View style={styles.captureArea}>
+            {showPreview ? (
+              <Image source={{ uri: selectedImage }} style={styles.previewImage} />
+            ) : (
+              <>
+                <MaterialIcons
+                  name="camera-alt"
+                  size={60}
+                  color={primaryColor}
+                  style={styles.captureIcon}
                 />
+                <Text style={styles.captureText}>
+                  {t('camera.tapToCapture', 'Tap to capture receipt')}
+                </Text>
+              </>
+            )}
+          </View>
 
+          {/* Action buttons */}
+          <View style={styles.buttonContainer}>
+            {showPreview ? (
+              // Preview mode buttons
+              <View style={styles.previewContainer}>
                 <TouchableOpacity
-                  style={[styles.secondaryButton, { backgroundColor: surfaceColor }]}
-                  onPress={handleSelectFromGallery}
-                  disabled={isProcessingImage}
+                  style={styles.primaryButton}
+                  onPress={handleProceed}
+                  disabled={isCapturing}
+                  testID="proceed-button"
                 >
-                  <MaterialIcons name="photo-library" size={24} color={primaryColor} />
-                  <Text style={[styles.secondaryButtonText, { color: textColor }]}>
+                  <Text style={styles.primaryButtonText}>
+                    {t('camera.proceed', 'Proceed')}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={handleRetake}
+                  disabled={isCapturing}
+                  testID="retake-button"
+                >
+                  <View style={styles.retakeButton}>
+                    <MaterialIcons name="refresh" size={20} color={primaryColor} />
+                    <Text style={styles.secondaryButtonText}>
+                      {t('camera.retake', 'Retake')}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              // Capture mode buttons
+              <>
+                <TouchableOpacity
+                  style={styles.primaryButton}
+                  onPress={handleTakePhoto}
+                  disabled={isCapturing}
+                  testID="take-photo-button"
+                >
+                  <Text style={styles.primaryButtonText}>
+                    {isCapturing 
+                      ? t('camera.opening', 'Opening Camera...') 
+                      : t('camera.takePhoto', 'Take Photo')
+                    }
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={styles.secondaryButton}
+                  onPress={handleSelectFromGallery}
+                  disabled={isCapturing}
+                  testID="select-gallery-button"
+                >
+                  <Text style={styles.secondaryButtonText}>
                     {t('camera.selectFromGallery', 'Select from Gallery')}
                   </Text>
                 </TouchableOpacity>
-              </View>
-            </>
-          ) : (
-            <View style={styles.buttonContainer}>
-              <ActionButton
-                title={t('camera.retake', 'Retake')}
-                onPress={handleRetake}
-                backgroundColor={surfaceColor}
-                color={textColor}
-                style={styles.secondaryButton}
-              />
-
-              <ActionButton
-                title={t('common.continue', 'Continue')}
-                onPress={handleContinue}
-                style={styles.primaryButton}
-              />
-            </View>
-          )}
-
-          <ActionButton
-            title={t('common.cancel', 'Cancel')}
-            onPress={handleCancelFlow}
-            backgroundColor={surfaceColor}
-            color={textColor}
-            style={styles.cancelButton}
-          />
+              </>
+            )}
+          </View>
         </View>
-      </SafeAreaView>
-    </StepTransition>
+      </StepTransition>
+    </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  previewContainer: {
-    flex: 1,
-    padding: 16,
-    justifyContent: 'center',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 8,
-  },
-  controlsContainer: {
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    minHeight: 200,
-  },
-  placeholder: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 32,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  instructionText: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 24,
-  },
-  buttonContainer: {
-    gap: 12,
-    marginBottom: 16,
-  },
-  primaryButton: {
-    marginBottom: 8,
-  },
-  secondaryButton: {
-    marginBottom: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-  },
-  secondaryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  cancelButton: {
-    marginTop: 8,
-  },
-});
 
 export default CaptureStep;
