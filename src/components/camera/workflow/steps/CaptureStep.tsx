@@ -11,7 +11,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import { BaseCameraStepProps } from '../../../../types';
 import StepTransition from '../StepTransition';
-
 /**
  * CaptureStep Component - Pure UI component for image capture
  * Migrated from OCR Context to useCameraFlow hook
@@ -23,7 +22,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
   onError,
   testID = 'capture-step',
 }) => {
-  const { startFlow, getCurrentImage } = useCameraFlow();
+  const { startFlow, getCurrentImage, resetFlow } = useCameraFlow();
 
   const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor } =
     useAppTheme();
@@ -187,7 +186,12 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
         {
           text: t('camera.retake', 'Retake'),
           style: 'destructive',
-          onPress: handleTakePhoto,
+          onPress: () => {
+            // Reset the flow to clear the current image
+            resetFlow();
+            // This will automatically return to the initial capture state
+            // where users can choose between camera or gallery
+          },
         },
       ]
     );
@@ -200,9 +204,10 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
     },
     content: {
       flex: 1,
-      padding: 20,
+      padding: 15,
       justifyContent: 'center',
       alignItems: 'center',
+      marginBottom: 40,
     },
     title: {
       fontSize: 24,
@@ -215,19 +220,19 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
       fontSize: 16,
       color: secondaryTextColor,
       textAlign: 'center',
-      marginBottom: 40,
+      marginBottom: 20,
     },
     captureArea: {
-      width: '100%',
+      width: '90%',
       maxWidth: 300,
-      aspectRatio: 0.7, // Receipt-like aspect ratio
+      aspectRatio: 0.8, // Receipt-like aspect ratio
       borderRadius: 12,
       borderWidth: 2,
       borderColor: primaryColor,
       borderStyle: 'dashed',
       justifyContent: 'center',
       alignItems: 'center',
-      marginBottom: 30,
+      marginBottom: 10,
       backgroundColor: surfaceColor,
     },
     previewImage: {

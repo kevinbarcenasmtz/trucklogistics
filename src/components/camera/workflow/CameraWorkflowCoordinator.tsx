@@ -118,6 +118,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     cancelFlow,
     clearError,
     retryCurrentOperation,
+    navigateToStep,
   } = useCameraFlow();
 
   const { backgroundColor, textColor } = useAppTheme();
@@ -271,38 +272,53 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
    * Navigation handlers
    */
   const handleNext = useCallback(
-    (stepData?: any) => {
-      const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
-      const nextIndex = currentIndex + 1;
+  (stepData?: any) => {
+    const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
+    const nextIndex = currentIndex + 1;
 
-      if (nextIndex < WORKFLOW_STEPS.length) {
-        const nextStep = WORKFLOW_STEPS[nextIndex];
+    if (nextIndex < WORKFLOW_STEPS.length) {
+      const nextStep = WORKFLOW_STEPS[nextIndex];
 
-        if (canNavigateToStep(nextStep.id)) {
-          console.log(
-            '[CameraWorkflowCoordinator] Navigating from',
-            currentStep,
-            'to',
-            nextStep.id
-          );
-        } else {
-          console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
+      if (canNavigateToStep(nextStep.id)) {
+        console.log(
+          '[CameraWorkflowCoordinator] Navigating from',
+          currentStep,
+          'to',
+          nextStep.id
+        );
+        
+        // ✅ FIX: Actually call the navigation function
+        const result = navigateToStep(nextStep.id);
+        
+        if (!result.success) {
+          console.error('[CameraWorkflowCoordinator] Navigation failed:', result.reason);
           handleError({
             step: currentStep,
-            code: 'NAVIGATION_BLOCKED',
-            message: 'Cannot navigate to requested step',
-            userMessage: 'Cannot proceed to next step. Please complete the current step.',
+            code: 'NAVIGATION_FAILED',
+            message: result.reason || 'Navigation failed',
+            userMessage: 'Could not proceed to next step. Please try again.',
             timestamp: Date.now(),
-            retryable: false,
+            retryable: true,
           });
         }
       } else {
-        // Workflow complete
-        console.log('[CameraWorkflowCoordinator] Workflow completed successfully');
+        console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
+        handleError({
+          step: currentStep,
+          code: 'NAVIGATION_BLOCKED',
+          message: 'Cannot navigate to requested step',
+          userMessage: 'Cannot proceed to next step. Please complete the current step.',
+          timestamp: Date.now(),
+          retryable: false,
+        });
       }
-    },
-    [currentStep, canNavigateToStep, handleError]
-  );
+    } else {
+      // Workflow complete
+      console.log('[CameraWorkflowCoordinator] Workflow completed successfully');
+    }
+  },
+  [currentStep, canNavigateToStep, navigateToStep, handleError] // ✅ Add navigateToStep to dependencies
+);
 
   const handleBack = useCallback(() => {
     if (!canNavigateBack) {
