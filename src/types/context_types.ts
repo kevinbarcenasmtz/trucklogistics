@@ -1,30 +1,22 @@
-// src/types/context_types.ts
+// src/types/context_types.ts - Phase 3 Context Types Only
 
 import { CameraFlow, CameraFlowStep, FlowError } from './cameraFlow';
-import { ProcessedReceipt } from '../state/ocr/types';
+import { ProcessedReceipt, ProcessingStage, ProcessingError } from '../state/ocr/types';
 import { Receipt } from './ReceiptInterfaces';
 
 /**
- * OCR Processing Context state and actions
- * Pure backend processing state tracking
+ * OCR Processing Context State - Pure backend processing tracking
  */
 export interface OCRProcessingContextState {
   readonly status: 'idle' | 'uploading' | 'processing' | 'complete' | 'error';
-  readonly stage?: 'initializing' | 'uploading_chunks' | 'combining_chunks' | 'extracting_text' | 'classifying_data' | 'finalizing';
+  readonly stage?: ProcessingStage;
   readonly stageDescription?: string;
   readonly uploadProgress: number;
   readonly processingProgress: number;
   readonly totalProgress: number;
   readonly jobId?: string;
   readonly uploadSessionId?: string;
-  readonly error?: {
-    readonly code: string;
-    readonly message: string;
-    readonly userMessage: string;
-    readonly retryable: boolean;
-    readonly timestamp: number;
-    readonly context?: Record<string, any>;
-  };
+  readonly error?: ProcessingError;
   readonly canRetry: boolean;
   readonly startTimestamp?: number;
   readonly completedTimestamp?: number;
@@ -35,8 +27,7 @@ export interface OCRProcessingContextState {
 }
 
 /**
- * Camera Flow Context state and actions
- * Workflow orchestration state
+ * Camera Flow Context State - Workflow orchestration
  */
 export interface CameraFlowContextState {
   readonly activeFlow?: CameraFlow;
@@ -58,8 +49,7 @@ export interface CameraFlowContextState {
 }
 
 /**
- * Receipt Draft Context state and actions
- * Form state management
+ * Receipt Draft Context State - Form state management
  */
 export interface ReceiptDraftContextState {
   readonly draft?: Receipt;
@@ -90,7 +80,7 @@ export interface ReceiptDraftContextState {
 }
 
 /**
- * Context value interfaces with actions
+ * OCR Processing Context Value Interface
  */
 export interface OCRProcessingContextValue {
   readonly state: OCRProcessingContextState;
@@ -99,15 +89,18 @@ export interface OCRProcessingContextValue {
   readonly updateUploadProgress: (progress: number) => void;
   readonly completeUpload: () => void;
   readonly startBackendProcessing: (jobId: string) => void;
-  readonly updateProcessingProgress: (progress: number, stage?: any, description?: string) => void;
+  readonly updateProcessingProgress: (progress: number, stage?: ProcessingStage, description?: string) => void;
   readonly completeProcessing: () => void;
-  readonly setError: (error: any) => void;
+  readonly setError: (error: ProcessingError) => void;
   readonly clearError: () => void;
   readonly retryProcessing: () => void;
   readonly resetProcessing: () => void;
   readonly cancelProcessing: () => void;
 }
 
+/**
+ * Camera Flow Context Value Interface
+ */
 export interface CameraFlowContextValue {
   readonly state: CameraFlowContextState;
   readonly dispatch: React.Dispatch<any>;
@@ -129,6 +122,9 @@ export interface CameraFlowContextValue {
   readonly resetSession: () => void;
 }
 
+/**
+ * Receipt Draft Context Value Interface
+ */
 export interface ReceiptDraftContextValue {
   readonly state: ReceiptDraftContextState;
   readonly dispatch: React.Dispatch<any>;
@@ -148,5 +144,10 @@ export interface ReceiptDraftContextValue {
   readonly clearDraft: () => void;
 }
 
-// Remove deprecated context types
-// OLD: OCRContextValue, OCRState, etc.
+// REMOVED ALL LEGACY CONTEXT TYPES:
+// ❌ OCRContextValue - replaced by specific context values
+// ❌ OCRState - replaced by specific context states
+// ❌ OCRActionDispatch - replaced by context-specific dispatchers
+// ❌ OCRProcessingState (old version) - replaced by new ProcessingContextState
+// ❌ Legacy navigation context types
+// ❌ Old route parameter types with JSON serialization

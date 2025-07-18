@@ -1,10 +1,10 @@
-// src/types/camera_navigation.ts
+// src/types/camera_navigation.ts - Phase 3 Flow-based Navigation Only
 
 import { CameraFlowStep } from './cameraFlow';
 
 /**
  * Camera Stack Parameter List - Flow-based navigation only
- * Removes JSON serialization and complex route parameters
+ * NO JSON serialization, clean flow IDs only
  */
 export type CameraStackParamList = {
   /** Camera capture screen - entry point */
@@ -176,5 +176,13 @@ export const NavigationUtils = {
   },
 };
 
-// Remove deprecated types
-// OLD: CameraScreenParams, OCRNavigationParams, etc.
+// REMOVED ALL LEGACY NAVIGATION TYPES:
+// ❌ CameraScreenParams - used JSON serialization
+// ❌ OCRNavigationParams - old OCR-specific navigation
+// ❌ ProcessingRouteParams - replaced by flow-based navigation
+// ❌ ReviewRouteParams - replaced by flow-based navigation  
+// ❌ VerificationRouteParams - replaced by flow-based navigation
+// ❌ ReportRouteParams - replaced by flow-based navigation
+// ❌ RouteParamsList with JSON.stringify types
+// ❌ NavigationScreenProps with complex serialization
+// ❌ OCRCameraStack types
