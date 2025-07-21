@@ -5,9 +5,7 @@ import { Stack, useRouter } from 'expo-router';
 import React, { Component, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { CameraFlowProvider } from '@/src/context/CameraFlowContext';
-import { OCRProcessingProvider } from '@/src/context/OCRProcessingContext';
-import { ReceiptDraftProvider } from '@/src/context/ReceiptDraftContext';
+
 
 /**
  * Error Info interface for error boundary
@@ -141,7 +139,7 @@ const CameraErrorFallback: React.FC<{
 
 /**
  * Camera Layout - Updated for Phase 3
- * Now includes proper provider hierarchy
+ * Providers now at root level
  */
 export default function CameraLayout() {
   const { backgroundColor } = useAppTheme();
@@ -159,51 +157,46 @@ export default function CameraLayout() {
 
   return (
     <CameraErrorBoundary onError={handleError} onReset={handleReset}>
-      {/* Add the provider hierarchy as specified in your migration plan */}
-      <CameraFlowProvider>
-        <OCRProcessingProvider>
-          <ReceiptDraftProvider>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                contentStyle: { backgroundColor },
-                animation: 'slide_from_right',
-                gestureEnabled: false,
-              }}
-            >
-              <Stack.Screen
-                name="index"
-                options={{
-                  title: 'Capture Receipt',
-                  animation: 'slide_from_bottom',
-                }}
-              />
-              <Stack.Screen
-                name="imagedetails"
-                options={{
-                  title: 'Process Receipt',
-                  gestureEnabled: false,
-                }}
-              />
-              <Stack.Screen
-                name="verification"
-                options={{
-                  title: 'Verify Details',
-                }}
-              />
-              <Stack.Screen
-                name="report"
-                options={{
-                  title: 'Report',
-                }}
-              />
-            </Stack>
-          </ReceiptDraftProvider>
-        </OCRProcessingProvider>
-      </CameraFlowProvider>
+      {/* Providers removed - now at root level */}
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor },
+          animation: 'slide_from_right',
+          gestureEnabled: false,
+        }}
+      >
+        <Stack.Screen
+          name="index"
+          options={{
+            title: 'Capture Receipt',
+            animation: 'slide_from_bottom',
+          }}
+        />
+        <Stack.Screen
+          name="imagedetails"
+          options={{
+            title: 'Process Receipt',
+            gestureEnabled: false,
+          }}
+        />
+        <Stack.Screen
+          name="verification"
+          options={{
+            title: 'Verify Details',
+          }}
+        />
+        <Stack.Screen
+          name="report"
+          options={{
+            title: 'Report',
+          }}
+        />
+      </Stack>
     </CameraErrorBoundary>
   );
 }
+
 /**
  * Styles
  */

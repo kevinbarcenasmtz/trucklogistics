@@ -52,27 +52,27 @@ export default function ReportScreen() {
   /**
    * Redirect to correct step based on flow state
    */
-  const redirectToCorrectStep = useCallback(() => {
-    if (!currentFlow) return;
+  // const redirectToCorrectStep = useCallback(() => {
+  //   if (!currentFlow) return;
 
-    const flowId = currentFlow.id;
+  //   const flowId = currentFlow.id;
 
-    switch (currentStep) {
-      case 'capture':
-        router.replace('/camera');
-        break;
-      case 'processing':
-      case 'review':
-        router.replace(`/camera/imagedetails?flowId=${flowId}`);
-        break;
-      case 'verification':
-        router.replace(`/camera/verification?flowId=${flowId}`);
-        break;
-      default:
-        // Stay on report step
-        break;
-    }
-  }, [currentFlow, currentStep, router]);
+  //   switch (currentStep) {
+  //     case 'capture':
+  //       router.replace('/camera');
+  //       break;
+  //     case 'processing':
+  //     case 'review':
+  //       router.replace(`/camera/imagedetails?flowId=${flowId}`);
+  //       break;
+  //     case 'verification':
+  //       router.replace(`/camera/verification?flowId=${flowId}`);
+  //       break;
+  //     default:
+  //       // Stay on report step
+  //       break;
+  //   }
+  // }, [currentFlow, currentStep, router]);
 
   /**
    * Validate navigation and flow state
@@ -124,10 +124,10 @@ export default function ReportScreen() {
     }
 
     // Validate we're on the correct step
-    if (currentStep !== 'report') {
-      console.warn('[Report] Invalid step for this screen:', currentStep);
-      redirectToCorrectStep();
-    }
+    // if (currentStep !== 'report') {
+    //   console.warn('[Report] Invalid step for this screen:', currentStep);
+    //   redirectToCorrectStep();
+    // }
 
     // Validate required data exists
     if (!currentFlow.imageUri) {
@@ -174,7 +174,7 @@ export default function ReportScreen() {
       );
       return;
     }
-  }, [paramFlowId, hasActiveFlow, currentFlow, currentStep, t, router, redirectToCorrectStep]);
+  }, [paramFlowId, hasActiveFlow, currentFlow, currentStep, t, router]);
 
   /**
    * Handle hardware back button (Android)

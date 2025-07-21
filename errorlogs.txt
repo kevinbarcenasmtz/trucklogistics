@@ -1,0 +1,99 @@
+iOS Bundled 39ms node_modules/expo-router/entry.js (1 module)
+ LOG  💧 STORE: Rehydrated from storage: {"activeFlowId": undefined, "hasActiveFlow": false, "totalFlows": 0}
+ LOG  [ReceiptDraftContext] State updated: {"canRedo": false, "canUndo": false, "errorCount": 0, "hasChanges": false, "isDirty": false, "isInitialized": false, "isSaving": false, "isValid": false, "modifiedFieldCount": 0, "timestamp": "2025-07-20T20:21:46.064Z"}
+ LOG  [OCRProcessingContext] State updated: {"hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:21:46.065Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [CameraFlowContext] State updated: {"activeFlowId": undefined, "canNavigateBack": false, "currentStep": undefined, "hasActiveFlow": false, "navigationBlocked": false, "sessionMetrics": {"abandonedFlows": 0, "averageCompletionTime": 0, "completedFlows": 0, "totalFlows": 0}, "timestamp": "2025-07-20T20:21:46.065Z", "totalFlows": 0}
+ LOG  App initialized
+ LOG  No valid saved theme, keeping system
+ LOG  [CameraIndex] Render state: {"currentStep": "capture", "flowId": undefined, "hasActiveFlow": false}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:21:52.145Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": undefined, "hasActiveFlow": false, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:21:52.146Z"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:21:52.147Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": undefined, "hasActiveFlow": false, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:21:52.148Z"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:21:52.149Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": undefined, "hasActiveFlow": false, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:21:52.150Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": undefined, "currentStep": "capture", "hasActiveFlow": false, "paramFlowId": undefined}
+ LOG  [CaptureStep] Image captured, starting flow: file:///var/mobile/Containers/Data/Application/0E671B02-501D-4B48-8833-C789BFF21DB7/Library/Caches/ImagePicker/7C8342DA-EAC5-4009-AE96-BB98889ED6EF.jpg
+ LOG  [useCameraFlow] Starting new flow: {"imageUri": "file:///var/mobile/Containers/Data/Application/0E671B02-501D-4B48-8833-C789BFF21DB7/Library/Caches/ImagePicker/7C8342DA-EAC5-4009-AE96-BB98889ED6EF.jpg"}
+ LOG  [CameraIndex] Render state: {"currentStep": "capture", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useCameraFlow] Flow started successfully: {"flowId": "flow_1753042925277_4e63p4za2"}
+ LOG  [CaptureStep] Flow started successfully: flow_1753042925277_4e63p4za2
+ LOG  [useCameraFlow] State updated: {"currentStep": "capture", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:05.285Z"}
+ LOG  [useCameraFlow] State updated: {"currentStep": "capture", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:05.286Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "capture"}
+ LOG  [useCameraFlow] State updated: {"currentStep": "capture", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:05.288Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "capture", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraFlowContext] State updated: {"activeFlowId": "flow_1753042925277_4e63p4za2", "canNavigateBack": false, "currentStep": "capture", "hasActiveFlow": true, "navigationBlocked": false, "sessionMetrics": {"abandonedFlows": 0, "averageCompletionTime": 0, "completedFlows": 0, "totalFlows": 1}, "timestamp": "2025-07-20T20:22:05.290Z", "totalFlows": 1}
+ LOG  [CaptureStep] Proceeding with captured image
+ LOG  [CameraWorkflowCoordinator] Navigating from capture to processing
+ LOG  [useCameraFlow] Attempting to navigate to step: processing
+ LOG  [useCameraFlow] State navigation completed for step: processing
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.398Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.405Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraFlowContext] State updated: {"activeFlowId": "flow_1753042925277_4e63p4za2", "canNavigateBack": true, "currentStep": "processing", "hasActiveFlow": true, "navigationBlocked": false, "sessionMetrics": {"abandonedFlows": 0, "averageCompletionTime": 0, "completedFlows": 0, "totalFlows": 1}, "timestamp": "2025-07-20T20:22:08.409Z", "totalFlows": 1}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.441Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.442Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.445Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.446Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.468Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.469Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.472Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.472Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.492Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.493Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.496Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.497Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.516Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.516Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.519Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.520Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.540Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.541Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.544Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.544Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.563Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.564Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.567Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.568Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.587Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.588Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.591Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.592Z"}
+ LOG  [CameraIndex] Screen mounted {"currentFlowId": "flow_1753042925277_4e63p4za2", "currentStep": "processing", "hasActiveFlow": true, "paramFlowId": undefined}
+ LOG  [CameraIndex] Render state: {"currentStep": "processing", "flowId": "flow_1753042925277_4e63p4za2", "hasActiveFlow": true}
+ LOG  [useBackendOCR] State updated: {"error": undefined, "hasError": false, "isProcessing": false, "processingProgress": 0, "stage": undefined, "status": "idle", "timestamp": "2025-07-20T20:22:08.611Z", "totalProgress": 0, "uploadProgress": 0}
+ LOG  [useCameraFlow] State updated: {"currentStep": "processing", "hasActiveFlow": true, "hasDraft": false, "isDraftDirty": false, "isProcessing": false, "processingProgress": 0, "timestamp": "2025-07-20T20:22:08.611Z"}
+ LOG  [CameraWorkflowCoordinator] Initialized with flowId: flow_1753042925277_4e63p4za2
+ LOG  [CameraWorkflowCoordinator] Active flow state: {"hasDraft": false, "hasImage": true, "hasOCR": false, "id": "flow_1753042925277_4e63p4za2", "step": "processing"}

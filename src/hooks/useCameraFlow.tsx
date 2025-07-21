@@ -9,6 +9,7 @@ import { ProcessedReceipt } from '../state/ocr/types';
 import { CameraFlowStep, FlowError } from '../types/cameraFlow';
 import { Receipt } from '../types/ReceiptInterfaces';
 import { useBackendOCR } from './useBackendOCR';
+import { useRouter } from 'expo-router';
 
 /**
  * Camera flow hook configuration
@@ -123,7 +124,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   const {
     enableAutoNavigation = true,
     enableAutoSave = false,
-    autoSaveInterval = 30000, // 30 seconds
+    autoSaveInterval = 30000,
     enableLogging = process.env.NODE_ENV === 'development',
   } = config;
 
@@ -131,6 +132,10 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   const flowContext = useCameraFlowContext();
   const ocrProcessingContext = useOCRProcessing();
   const receiptDraftContext = useReceiptDraft();
+
+  // Add router hook here
+  const router = useRouter();
+
 
   // Service hooks
   const backendOCR = useBackendOCR({
@@ -480,33 +485,34 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   // Navigate to step
   const navigateToStep = useCallback(
     (step: CameraFlowStep): NavigationResult => {
-      const currentFlow = flowContext.state.activeFlow;
-      if (!currentFlow) {
-        return {
-          success: false,
-          currentStep: 'capture',
-          reason: 'No active flow',
-        };
-      }
-
-      if (flowContext.state.navigationBlocked) {
-        return {
-          success: false,
-          currentStep: currentFlow.currentStep,
-          reason: flowContext.state.blockReason || 'Navigation blocked',
-        };
-      }
-
-      const success = flowContext.navigateToStep(step);
-
       if (enableLogging) {
-        console.log('[useCameraFlow] Navigate to step:', {
-          step,
-          success,
-          currentStep: flowContext.state.activeFlow?.currentStep,
-        });
+        console.log('[useCameraFlow] Attempting to navigate to step:', step);
       }
-
+  
+      // First update the internal state
+      const success = flowContext.navigateToStep(step);
+  
+      if (success) {
+        // Get the current flow for navigation
+        const currentFlow = flowContext.state.activeFlow;
+        if (!currentFlow) {
+          console.error('[useCameraFlow] No active flow after navigation');
+          return {
+            success: false,
+            currentStep: 'capture',
+            reason: 'No active flow',
+          };
+        }
+  
+        // For now, let's NOT do router navigation
+        // The state change should be enough to render the correct step
+        // The coordinator should handle showing the right component based on currentStep
+        
+        if (enableLogging) {
+          console.log('[useCameraFlow] State navigation completed for step:', step);
+        }
+      }
+  
       return {
         success,
         currentStep: flowContext.state.activeFlow?.currentStep || 'capture',

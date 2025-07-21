@@ -25,27 +25,27 @@ export default function VerificationScreen() {
   /**
    * Redirect to correct step based on flow state
    */
-  const redirectToCorrectStep = useCallback(() => {
-    if (!currentFlow) return;
+  // const redirectToCorrectStep = useCallback(() => {
+  //   if (!currentFlow) return;
 
-    const flowId = currentFlow.id;
+  //   const flowId = currentFlow.id;
 
-    switch (currentStep) {
-      case 'capture':
-        router.replace('/camera');
-        break;
-      case 'processing':
-      case 'review':
-        router.replace(`/camera/imagedetails?flowId=${flowId}`);
-        break;
-      case 'report':
-        router.replace(`/camera/report?flowId=${flowId}`);
-        break;
-      default:
-        // Stay on verification step
-        break;
-    }
-  }, [currentFlow, currentStep, router]);
+  //   switch (currentStep) {
+  //     case 'capture':
+  //       router.replace('/camera');
+  //       break;
+  //     case 'processing':
+  //     case 'review':
+  //       router.replace(`/camera/imagedetails?flowId=${flowId}`);
+  //       break;
+  //     case 'report':
+  //       router.replace(`/camera/report?flowId=${flowId}`);
+  //       break;
+  //     default:
+  //       // Stay on verification step
+  //       break;
+  //   }
+  // }, [currentFlow, currentStep, router]);
 
   /**
    * Handle unsaved changes warning
@@ -129,10 +129,10 @@ export default function VerificationScreen() {
     }
 
     // Validate we're on the correct step
-    if (currentStep !== 'verification') {
-      console.warn('[Verification] Invalid step for this screen:', currentStep);
-      redirectToCorrectStep();
-    }
+    // if (currentStep !== 'verification') {
+    //   console.warn('[Verification] Invalid step for this screen:', currentStep);
+    //   redirectToCorrectStep();
+    // }
 
     // Validate required data exists
     if (!currentFlow.imageUri) {
@@ -172,7 +172,7 @@ export default function VerificationScreen() {
     isDraftDirty,
     t,
     router,
-    redirectToCorrectStep,
+    // redirectToCorrectStep,
   ]);
 
   /**

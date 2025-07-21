@@ -7,11 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { Alert, BackHandler, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// New Context Providers
-import { CameraFlowProvider } from '../../../context/CameraFlowContext';
-import { OCRProcessingProvider } from '../../../context/OCRProcessingContext';
-import { ReceiptDraftProvider } from '../../../context/ReceiptDraftContext';
-
 // Enhanced hook
 import { useCameraFlow } from '../../../hooks/useCameraFlow';
 
@@ -494,7 +489,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
 };
 
 /**
- * Main Coordinator Component with Provider Hierarchy
+ * Main Coordinator Component - NO PROVIDERS (they're at root level now)
  */
 export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps> = ({ flowId }) => {
   return (
@@ -510,14 +505,8 @@ export const CameraWorkflowCoordinator: React.FC<CameraWorkflowCoordinatorProps>
         }
       }}
     >
-      {/* Provider Hierarchy - Order is important! */}
-      <CameraFlowProvider>
-        <OCRProcessingProvider>
-          <ReceiptDraftProvider>
-            <CameraWorkflowCoordinatorInner flowId={flowId} />
-          </ReceiptDraftProvider>
-        </OCRProcessingProvider>
-      </CameraFlowProvider>
+      {/* REMOVED PROVIDERS - They're now at root level in _layout.tsx */}
+      <CameraWorkflowCoordinatorInner flowId={flowId} />
     </CameraErrorBoundary>
   );
 };
