@@ -21,32 +21,27 @@ export interface UploadChunkResponse {
 
 export interface StartProcessingResponse {
   jobId: string;
-  status: 'pending' | 'active';
-  estimatedDuration?: number;
+  message: string;
 }
 
 export interface JobStatusResponse {
   jobId: string;
-  status: 'pending' | 'active' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed';
   progress: number;
-  stage?: 'uploading' | 'processing' | 'extracting' | 'classifying';
-  stageDescription?: string;
+  stage?: string;
   result?: {
-    extractedText: string;
+    text: string;
     confidence: number;
-    classification: any;
+    metadata?: any;
   };
-  error?: {
-    code: string;
-    message: string;
-  };
+  error?: string;
   processingTime?: number;
 }
 
 export interface CancelJobResponse {
   success: boolean;
-  jobId: string;
   message: string;
+  jobId?: string;
 }
 
 /**
@@ -57,6 +52,11 @@ export type UploadProgressCallback = (
   chunkIndex: number,
   totalChunks: number
 ) => void;
+
+/**
+ * Processing progress callback
+ */
+export type ProcessingProgressCallback = (status: JobStatusResponse) => void;
 
 /**
  * Service configuration
@@ -108,19 +108,8 @@ export class BackendOCRError extends Error {
 }
 
 /**
- * Performance metrics
- */
-export interface RequestMetrics {
-  startTime: number;
-  endTime: number;
-  duration: number;
-  retryCount: number;
-  bytesTransferred?: number;
-}
-
-/**
  * Backend OCR Service
- * Clean API client for all backend OCR endpoints
+ * Aligned with trucking-logistics-ocr backend API
  */
 export class BackendOCRService {
   private config: BackendOCRConfig;
@@ -131,7 +120,7 @@ export class BackendOCRService {
       apiUrl: process.env.EXPO_PUBLIC_OCR_API_URL || 'http://localhost:3000',
       timeout: parseInt(process.env.EXPO_PUBLIC_OCR_TIMEOUT || '30000', 10),
       maxRetries: 3,
-      chunkSize: 1024 * 1024, // 1MB
+      chunkSize: 512 * 1024, // 512KB - smaller chunks for mobile
       pollInterval: 1000, // 1 second
       retryDelay: 1000, // 1 second
       maxRetryDelay: 10000, // 10 seconds
@@ -149,14 +138,13 @@ export class BackendOCRService {
     const correlationId = options.correlationId || this.generateCorrelationId();
 
     const requestBody = {
-      fileName: fileInfo.name,
+      filename: fileInfo.name,
       fileSize: fileInfo.size,
-      fileType: fileInfo.type,
       chunkSize: this.config.chunkSize,
     };
 
     const response = await this.makeRequest<CreateUploadSessionResponse>(
-      '/api/ocr/upload/session',
+      '/api/ocr/upload',
       {
         method: 'POST',
         headers: {
@@ -196,7 +184,7 @@ export class BackendOCRService {
     this.activeRequests.set(requestKey, abortController);
 
     try {
-      // Get file info to validate size
+      // Get file info
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (!fileInfo.exists || !('size' in fileInfo)) {
         throw new BackendOCRError('FILE_NOT_FOUND', 'File not found or inaccessible');
@@ -215,27 +203,39 @@ export class BackendOCRService {
         const end = Math.min(start + this.config.chunkSize, fileSize);
         const chunkSize = end - start;
 
-        // Read chunk
-        const chunkData = await FileSystem.readAsStringAsync(fileUri, {
+        // Read chunk as base64
+        const base64Data = await FileSystem.readAsStringAsync(fileUri, {
           encoding: FileSystem.EncodingType.Base64,
           position: start,
           length: chunkSize,
         });
 
-        // Create form data for chunk upload
+        // Create form data for multipart upload
         const formData = new FormData();
-        formData.append('chunk', chunkData);
+        
+        // Convert base64 to blob for proper file upload
+        const byteCharacters = atob(base64Data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/octet-stream' });
+        
+        // Append chunk data
+        formData.append('chunk', blob, `chunk-${chunkIndex}`);
+        formData.append('uploadId', uploadId);
         formData.append('chunkIndex', chunkIndex.toString());
         formData.append('totalChunks', totalChunks.toString());
-        formData.append('uploadId', uploadId);
 
         // Upload chunk with retry logic
         const chunkResponse = await this.makeRequest<UploadChunkResponse>(
-          '/api/ocr/upload/chunk',
+          '/api/ocr/chunk',
           {
             method: 'POST',
             headers: {
               'X-Correlation-ID': correlationId,
+              // Don't set Content-Type for FormData - let browser set it with boundary
             },
             body: formData,
             signal: abortController.signal,
@@ -308,11 +308,34 @@ export class BackendOCRService {
   }
 
   /**
-   * Poll job status with configurable interval
+   * Get job status
+   */
+  async getJobStatus(
+    jobId: string,
+    options: RequestOptions = {}
+  ): Promise<JobStatusResponse> {
+    const correlationId = options.correlationId || this.generateCorrelationId();
+
+    const response = await this.makeRequest<JobStatusResponse>(
+      `/api/ocr/status/${jobId}`,
+      {
+        method: 'GET',
+        headers: {
+          'X-Correlation-ID': correlationId,
+        },
+      },
+      options
+    );
+
+    return response;
+  }
+
+  /**
+   * Poll job status until completion
    */
   async pollJobStatus(
     jobId: string,
-    onProgress?: (status: JobStatusResponse) => void,
+    onProgress?: ProcessingProgressCallback,
     options: RequestOptions = {}
   ): Promise<JobStatusResponse> {
     const correlationId = options.correlationId || this.generateCorrelationId();
@@ -340,16 +363,14 @@ export class BackendOCRService {
         // Call progress callback
         onProgress?.(status);
 
-        this.logDevelopment('Job status polled', {
-          jobId,
-          status: status.status,
-          progress: status.progress,
-          stage: status.stage,
-          correlationId,
-        });
-
-        // Check if job is complete
+        // Check if complete
         if (status.status === 'completed' || status.status === 'failed') {
+          this.logDevelopment('Job completed', {
+            jobId,
+            status: status.status,
+            attempts,
+            correlationId,
+          });
           return status;
         }
 
@@ -358,49 +379,30 @@ export class BackendOCRService {
         attempts++;
       }
 
-      throw new BackendOCRError('POLLING_TIMEOUT', 'Job status polling timed out', undefined, true);
+      throw new BackendOCRError(
+        'TIMEOUT',
+        'Processing timeout - job took too long',
+        undefined,
+        true
+      );
     } finally {
       this.activeRequests.delete(requestKey);
     }
   }
 
   /**
-   * Get job status (single request)
+   * Cancel a job
    */
-  async getJobStatus(jobId: string, options: RequestOptions = {}): Promise<JobStatusResponse> {
+  async cancelJob(
+    jobId: string,
+    options: RequestOptions = {}
+  ): Promise<CancelJobResponse> {
     const correlationId = options.correlationId || this.generateCorrelationId();
-
-    return await this.makeRequest<JobStatusResponse>(
-      `/api/ocr/status/${jobId}`,
-      {
-        method: 'GET',
-        headers: {
-          'X-Correlation-ID': correlationId,
-        },
-        signal: options.signal,
-      },
-      options
-    );
-  }
-
-  /**
-   * Cancel active job
-   */
-  async cancelJob(jobId: string, options: RequestOptions = {}): Promise<CancelJobResponse> {
-    const correlationId = options.correlationId || this.generateCorrelationId();
-
-    // Cancel any active requests for this job
-    const pollRequestKey = `poll_${jobId}`;
-    const pollController = this.activeRequests.get(pollRequestKey);
-    if (pollController) {
-      pollController.abort();
-      this.activeRequests.delete(pollRequestKey);
-    }
 
     const response = await this.makeRequest<CancelJobResponse>(
-      `/api/ocr/cancel/${jobId}`,
+      `/api/ocr/job/${jobId}`,
       {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
           'X-Correlation-ID': correlationId,
         },
@@ -428,201 +430,106 @@ export class BackendOCRService {
   }
 
   /**
-   * Make HTTP request with retry logic and error handling
+   * Make HTTP request with retry logic
    */
   private async makeRequest<T>(
     endpoint: string,
-    requestInit: RequestInit,
+    init: RequestInit,
     options: RequestOptions = {}
   ): Promise<T> {
     const url = `${this.config.apiUrl}${endpoint}`;
     const timeout = options.timeout || this.config.timeout;
     const maxRetries = options.retries ?? this.config.maxRetries;
-    const correlationId = options.correlationId || this.generateCorrelationId();
+    let lastError: Error | undefined;
 
-    let lastError: Error = new Error('Unknown error occurred');
-    let retryCount = 0;
-
-    const metrics: RequestMetrics = {
-      startTime: Date.now(),
-      endTime: 0,
-      duration: 0,
-      retryCount: 0,
-    };
-
-    while (retryCount <= maxRetries) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-        // Combine signals if provided
-        const combinedSignal = options.signal
-          ? this.combineAbortSignals([controller.signal, options.signal])
-          : controller.signal;
+        // Merge abort signals
+        if (options.signal) {
+          options.signal.addEventListener('abort', () => controller.abort());
+        }
 
-        const requestOptions: RequestInit = {
-          ...requestInit,
-          signal: combinedSignal,
-        };
-
-        this.logDevelopment('Making request', {
-          method: requestInit.method,
-          url,
-          attempt: retryCount + 1,
-          maxRetries: maxRetries + 1,
-          correlationId,
+        const response = await fetch(url, {
+          ...init,
+          signal: controller.signal,
         });
 
-        const response = await fetch(url, requestOptions);
         clearTimeout(timeoutId);
 
-        metrics.endTime = Date.now();
-        metrics.duration = metrics.endTime - metrics.startTime;
-        metrics.retryCount = retryCount;
-
-        // Handle HTTP errors
         if (!response.ok) {
-          const errorText = await response.text();
-          let errorData: any = {};
-
-          try {
-            errorData = JSON.parse(errorText);
-          } catch {
-            errorData = { message: errorText };
-          }
-
-          const isRetryableStatus = response.status >= 500 || response.status === 429;
-
+          const errorData = await response.json().catch(() => ({}));
+          
           throw new BackendOCRError(
-            errorData.code || `HTTP_${response.status}`,
-            errorData.message || `HTTP ${response.status}: ${response.statusText}`,
+            errorData.error?.code || 'API_ERROR',
+            errorData.error?.message || `HTTP ${response.status}`,
             response.status,
-            isRetryableStatus,
-            { url, correlationId, metrics }
+            this.isRetryableError(response.status),
+            errorData
           );
         }
 
-        // Parse response
-        const contentType = response.headers.get('content-type');
-        let data: T;
-
-        if (contentType && contentType.includes('application/json')) {
-          data = await response.json();
-        } else {
-          data = (await response.text()) as any;
-        }
-
-        // Validate response structure
-        if (!this.validateResponse(data)) {
-          throw new BackendOCRError(
-            'INVALID_RESPONSE',
-            'Invalid response format from server',
-            response.status,
-            false,
-            { url, correlationId, data }
-          );
-        }
-
-        this.logDevelopment('Request successful', {
-          url,
-          correlationId,
-          duration: metrics.duration,
-          retryCount: metrics.retryCount,
-        });
-
-        return data;
+        return await response.json();
       } catch (error) {
         lastError = error as Error;
-        retryCount++;
 
-        // Don't retry if it's an abort signal
+        // Don't retry if cancelled
         if (error instanceof Error && error.name === 'AbortError') {
-          throw new BackendOCRError('CANCELLED', 'Request was cancelled');
+          throw new BackendOCRError('CANCELLED', 'Request cancelled');
         }
 
-        // Don't retry for non-retryable errors
+        // Don't retry non-retryable errors
         if (error instanceof BackendOCRError && !error.retryable) {
           throw error;
         }
 
-        // Don't retry if we've exceeded max retries
-        if (retryCount > maxRetries) {
-          break;
+        // Calculate retry delay with exponential backoff
+        if (attempt < maxRetries) {
+          const delay = Math.min(
+            this.config.retryDelay * Math.pow(2, attempt),
+            this.config.maxRetryDelay
+          );
+          
+          this.logDevelopment('Retrying request', {
+            endpoint,
+            attempt: attempt + 1,
+            maxRetries,
+            delay,
+            error: lastError.message,
+          });
+
+          await this.delay(delay);
         }
-
-        // Calculate delay with exponential backoff
-        const delay = Math.min(
-          this.config.retryDelay * Math.pow(2, retryCount - 1),
-          this.config.maxRetryDelay
-        );
-
-        this.logDevelopment('Request failed, retrying', {
-          url,
-          error: error instanceof Error ? error.message : String(error),
-          retryCount,
-          maxRetries,
-          delayMs: delay,
-          correlationId,
-        });
-
-        await this.delay(delay);
       }
     }
 
-    // All retries exhausted
-    metrics.endTime = Date.now();
-    metrics.duration = metrics.endTime - metrics.startTime;
-    metrics.retryCount = retryCount;
-
-    if (lastError instanceof BackendOCRError) {
-      throw lastError;
-    }
-
     throw new BackendOCRError(
-      'MAX_RETRIES_EXCEEDED',
-      `Request failed after ${maxRetries + 1} attempts: ${lastError.message}`,
+      'MAX_RETRIES',
+      `Failed after ${maxRetries} retries: ${lastError?.message}`,
       undefined,
       false,
-      { url, correlationId, metrics, lastError: lastError.message }
+      { originalError: lastError?.message }
     );
   }
 
   /**
-   * Validate API response structure
+   * Check if error is retryable
    */
-  private validateResponse(data: any): boolean {
-    if (data === null || data === undefined) return false;
-    if (typeof data === 'string') return true; // Text responses are valid
-    if (typeof data === 'object') return true; // JSON responses are valid
-    return false;
+  private isRetryableError(status: number): boolean {
+    return status >= 500 || status === 429 || status === 408;
   }
 
   /**
-   * Combine multiple abort signals
-   */
-  private combineAbortSignals(signals: AbortSignal[]): AbortSignal {
-    const controller = new AbortController();
-
-    signals.forEach(signal => {
-      if (signal.aborted) {
-        controller.abort();
-      } else {
-        signal.addEventListener('abort', () => controller.abort());
-      }
-    });
-
-    return controller.signal;
-  }
-
-  /**
-   * Generate correlation ID for request tracking
+   * Generate correlation ID
    */
   private generateCorrelationId(): string {
-    return `ocr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
   /**
-   * Delay utility for retries and polling
+   * Delay helper
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -631,25 +538,12 @@ export class BackendOCRService {
   /**
    * Development logging
    */
-  private logDevelopment(message: string, data?: Record<string, any>): void {
-    if (process.env.NODE_ENV === 'development') {
+  private logDevelopment(message: string, data?: any): void {
+    if (__DEV__) {
       console.log(`[BackendOCRService] ${message}`, data || '');
     }
   }
-
-  /**
-   * Get active request count
-   */
-  getActiveRequestCount(): number {
-    return this.activeRequests.size;
-  }
-
-  /**
-   * Check if service has active requests
-   */
-  hasActiveRequests(): boolean {
-    return this.activeRequests.size > 0;
-  }
 }
 
-export default BackendOCRService;
+// Export singleton instance
+export const backendOCRService = new BackendOCRService();

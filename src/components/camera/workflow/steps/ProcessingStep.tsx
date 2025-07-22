@@ -1,4 +1,4 @@
-// src/components/camera/steps/ProcessingStep.tsx
+// src/components/camera/workflow/steps/ProcessingStep.tsx
 
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,7 +20,7 @@ import StepTransition from '../StepTransition';
 
 /**
  * ProcessingStep Component - Displays real backend OCR processing progress
- * Migrated from OCR Context to useBackendOCR and useCameraFlow hooks
+ * Updated to prevent cancellation during navigation
  */
 export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   flowId,
@@ -69,31 +69,56 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   // Animation refs
   const progressAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  
+  // Track if we've started processing and if component is mounted
+  const hasStartedProcessing = useRef(false);
+  const isMounted = useRef(true);
+  const shouldCancelOnUnmount = useRef(true);
+
+  // Track component mount state
+  useEffect(() => {
+    isMounted.current = true;
+    
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   // Auto-start processing on mount
   useEffect(() => {
     const startProcessing = async () => {
       const imageUri = getCurrentImage();
-      if (imageUri && !isProcessing && !isCompleted && !hasError) {
+      
+      // Only start once and only if we haven't started yet
+      if (imageUri && !hasStartedProcessing.current && !isProcessing && !isCompleted && !hasError) {
+        hasStartedProcessing.current = true;
+        
         try {
           console.log('[ProcessingStep] Auto-starting processing for image:', imageUri);
-          await processCurrentImage();
+          const result = await processCurrentImage();
+          
+          // If successful and still mounted, don't cancel on unmount
+          if (result.success && isMounted.current) {
+            shouldCancelOnUnmount.current = false;
+          }
         } catch (error) {
           console.error('[ProcessingStep] Auto-start processing failed:', error);
-          onError({
-            step: 'processing',
-            code: 'AUTO_START_FAILED',
-            message: error instanceof Error ? error.message : 'Failed to start processing',
-            userMessage: 'Failed to start processing. Please try again.',
-            timestamp: Date.now(),
-            retryable: true,
-          });
+          if (isMounted.current) {
+            onError({
+              step: 'processing',
+              code: 'AUTO_START_FAILED',
+              message: error instanceof Error ? error.message : 'Failed to start processing',
+              userMessage: 'Failed to start processing. Please try again.',
+              timestamp: Date.now(),
+              retryable: true,
+            });
+          }
         }
       }
     };
 
     startProcessing();
-  }, [getCurrentImage, hasError, isCompleted, isProcessing, onError, processCurrentImage]); // Only run on mount
+  }, [getCurrentImage, hasError, isCompleted, isProcessing, onError, processCurrentImage]);
 
   // Animate progress changes
   useEffect(() => {
@@ -120,7 +145,7 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
             useNativeDriver: true,
           }),
         ]).start(() => {
-          if (isProcessing) pulse(); // Continue pulsing while processing
+          if (isProcessing) pulse();
         });
       };
       pulse();
@@ -131,18 +156,22 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
 
   // Handle processing completion
   useEffect(() => {
-    if (isCompleted && !hasError) {
+    if (isCompleted && !hasError && isMounted.current) {
       console.log('[ProcessingStep] Processing completed successfully');
+      // Don't cancel when navigating forward
+      shouldCancelOnUnmount.current = false;
       // Small delay to show completion state before navigating
       setTimeout(() => {
-        onNext();
+        if (isMounted.current) {
+          onNext();
+        }
       }, 500);
     }
   }, [isCompleted, hasError, onNext]);
 
   // Handle processing errors
   useEffect(() => {
-    if (hasError && error) {
+    if (hasError && error && isMounted.current) {
       console.error('[ProcessingStep] Processing error:', error);
       onError({
         step: 'processing',
@@ -150,19 +179,24 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
         message: error.message || 'Processing failed',
         userMessage: error.userMessage || 'Failed to process image. Please try again.',
         timestamp: Date.now(),
-        retryable: error.retryable || true,
+        retryable: error.retryable !== false,
+        context: error.context,
       });
     }
   }, [hasError, error, onError]);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - only cancel if we should
   useEffect(() => {
     return () => {
-      if (isProcessing && canCancel) {
-        console.log('[ProcessingStep] Component unmounting, cancelling processing');
+      // Only cancel if we're actually leaving the processing flow
+      // Don't cancel if we're just switching routes but staying in processing
+      if (shouldCancelOnUnmount.current && isProcessing && canCancel) {
+        console.log('[ProcessingStep] Component unmounting with active processing, cancelling');
         cancelProcessing().catch(error => {
           console.warn('[ProcessingStep] Cleanup cancellation failed:', error);
         });
+      } else if (!shouldCancelOnUnmount.current) {
+        console.log('[ProcessingStep] Component unmounting but not cancelling (navigation forward)');
       }
     };
   }, [isProcessing, canCancel, cancelProcessing]);
@@ -173,6 +207,7 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   const handleCancel = async () => {
     try {
       console.log('[ProcessingStep] User cancelled processing');
+      shouldCancelOnUnmount.current = true; // Ensure we cancel on unmount
 
       if (isProcessing && canCancel) {
         await cancelProcessing();
@@ -192,10 +227,14 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   const handleRetry = async () => {
     try {
       console.log('[ProcessingStep] User retrying processing');
-      clearError(); // Clear flow errors
+      clearError();
+      hasStartedProcessing.current = false; // Reset so we can start again
+      shouldCancelOnUnmount.current = true; // Reset cancel flag
 
       const imageUri = getCurrentImage();
       if (imageUri) {
+        hasStartedProcessing.current = true;
+        
         if (canRetryProcessing) {
           await retryProcessing(imageUri);
         } else {
@@ -206,14 +245,16 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
       }
     } catch (error) {
       console.error('[ProcessingStep] Retry failed:', error);
-      onError({
-        step: 'processing',
-        code: 'RETRY_FAILED',
-        message: error instanceof Error ? error.message : 'Retry failed',
-        userMessage: 'Failed to retry processing. Please try again.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
+      if (isMounted.current) {
+        onError({
+          step: 'processing',
+          code: 'RETRY_FAILED',
+          message: error instanceof Error ? error.message : 'Retry failed',
+          userMessage: 'Failed to retry processing. Please try again.',
+          timestamp: Date.now(),
+          retryable: true,
+        });
+      }
     }
   };
 

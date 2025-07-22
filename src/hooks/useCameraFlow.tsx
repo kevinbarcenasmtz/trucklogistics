@@ -133,7 +133,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   const ocrProcessingContext = useOCRProcessing();
   const receiptDraftContext = useReceiptDraft();
 
-  // Add router hook here
+  // Add router hook
   const router = useRouter();
 
 
@@ -147,7 +147,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   // Services
   const draftServiceRef = useRef<ReceiptDraftService | undefined>(undefined);
   const autoSaveTimerRef = useRef<number | undefined>(undefined);
-
+  const isNavigating = useRef(false);
   // Initialize draft service
   if (!draftServiceRef.current) {
     draftServiceRef.current = new ReceiptDraftService({
@@ -485,9 +485,22 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   // Navigate to step
   const navigateToStep = useCallback(
     (step: CameraFlowStep): NavigationResult => {
+      // Prevent concurrent navigation
+      if (isNavigating.current) {
+        console.warn('[useCameraFlow] Navigation already in progress');
+        return {
+          success: false,
+          currentStep: flowContext.state.activeFlow?.currentStep || 'capture',
+          reason: 'Navigation in progress',
+        };
+      }
+  
       if (enableLogging) {
         console.log('[useCameraFlow] Attempting to navigate to step:', step);
       }
+  
+      // Set navigation lock
+      isNavigating.current = true;
   
       // First update the internal state
       const success = flowContext.navigateToStep(step);
@@ -497,6 +510,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         const currentFlow = flowContext.state.activeFlow;
         if (!currentFlow) {
           console.error('[useCameraFlow] No active flow after navigation');
+          isNavigating.current = false; // Clear lock
           return {
             success: false,
             currentStep: 'capture',
@@ -504,13 +518,40 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
           };
         }
   
-        // For now, let's NOT do router navigation
-        // The state change should be enough to render the correct step
-        // The coordinator should handle showing the right component based on currentStep
+        // Perform router navigation based on the step
+        const flowId = currentFlow.id;
         
-        if (enableLogging) {
-          console.log('[useCameraFlow] State navigation completed for step:', step);
-        }
+        // Use requestAnimationFrame to ensure state updates are committed
+        requestAnimationFrame(() => {
+          switch (step) {
+            case 'capture':
+              router.replace('/camera');
+              break;
+            case 'processing':
+            case 'review':
+              // Use push for forward navigation to maintain stack
+              router.push(`/camera/imagedetails?flowId=${flowId}`);
+              break;
+            case 'verification':
+              router.push(`/camera/verification?flowId=${flowId}`);
+              break;
+            case 'report':
+              router.push(`/camera/report?flowId=${flowId}`);
+              break;
+          }
+  
+          if (enableLogging) {
+            console.log('[useCameraFlow] Router navigation completed for step:', step);
+          }
+          
+          // Clear navigation lock after a delay
+          setTimeout(() => {
+            isNavigating.current = false;
+          }, 500);
+        });
+      } else {
+        // Clear lock if navigation failed
+        isNavigating.current = false;
       }
   
       return {
@@ -519,7 +560,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         reason: success ? undefined : 'Navigation not allowed',
       };
     },
-    [flowContext, enableLogging]
+    [flowContext, router, enableLogging]
   );
 
   // Move this useEffect block to after navigateToStep is defined (around line 470, after the navigateToStep function)

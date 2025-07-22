@@ -212,13 +212,25 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     [currentStep]
   );
 
+  const shownErrors = useRef<Set<string>>(new Set()); 
   /**
    * Enhanced error handling
    */
   const handleError = useCallback(
     (error: FlowError) => {
+      // Create a unique error key
+      const errorKey = `${error.code}-${error.timestamp}`;
+      
+      // Don't show the same error twice
+      if (shownErrors.current.has(errorKey)) {
+        console.log('[CameraWorkflowCoordinator] Duplicate error prevented:', errorKey);
+        return;
+      }
+      
+      shownErrors.current.add(errorKey);
+      
       console.error('[CameraWorkflowCoordinator] Flow error:', error);
-
+  
       // Log error for debugging
       if (__DEV__) {
         console.log('[CameraWorkflowCoordinator] Error details:', {
@@ -230,10 +242,10 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
           timestamp: error.timestamp,
         });
       }
-
+  
       // Show user-friendly error
       const alertButtons = [];
-
+  
       if (error.retryable) {
         alertButtons.push({
           text: t('common.retry', 'Retry'),
@@ -241,27 +253,43 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
             console.log('[CameraWorkflowCoordinator] User initiated retry for error:', error.code);
             clearError();
             retryCurrentOperation();
+            // Clear the error from shown set after retry
+            shownErrors.current.delete(errorKey);
           },
         });
       }
-
+  
       alertButtons.push({
         text: t('common.cancel', 'Cancel'),
         style: 'destructive' as const,
         onPress: () => {
           console.log('[CameraWorkflowCoordinator] User cancelled due to error:', error.code);
           handleCancel();
+          // Clear the error from shown set after cancel
+          shownErrors.current.delete(errorKey);
         },
       });
-
+  
       Alert.alert(
         t('error.title', 'Something went wrong'),
         error.userMessage || error.message,
-        alertButtons
+        alertButtons,
+        {
+          onDismiss: () => {
+            // Clear the error from shown set after dismissal
+            shownErrors.current.delete(errorKey);
+          }
+        }
       );
     },
     [currentFlow?.id, t, clearError, retryCurrentOperation, handleCancel]
   );
+  
+  // Also add cleanup for shown errors when step changes:
+  useEffect(() => {
+    // Clear shown errors when step changes
+    shownErrors.current.clear();
+  }, [currentStep]);
 
   /**
    * Navigation handlers

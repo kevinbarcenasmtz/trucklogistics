@@ -3,7 +3,7 @@
 import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator';
 import { useCameraFlow } from '@/src/hooks/useCameraFlow';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, BackHandler } from 'react-native';
 
@@ -22,29 +22,8 @@ export default function ImageDetailsScreen() {
   // Extract flowId from params
   const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
 
-  /**
-   * Redirect to correct step based on flow state
-   */
-  // const redirectToCorrectStep = useCallback(() => {
-  //   if (!currentFlow) return;
-
-  //   const flowId = currentFlow.id;
-
-  //   switch (currentStep) {
-  //     case 'capture':
-  //       router.replace('/camera');
-  //       break;
-  //     case 'verification':
-  //       router.replace(`/camera/verification?flowId=${flowId}`);
-  //       break;
-  //     case 'report':
-  //       router.replace(`/camera/report?flowId=${flowId}`);
-  //       break;
-  //     default:
-  //       // Stay on current screen for processing/review
-  //       break;
-  //   }
-  // }, [currentFlow, currentStep, router]);
+  // Use ref to track if we've already shown an error
+  const hasShownError = useRef(false);
 
   /**
    * Validate navigation and flow state
@@ -60,78 +39,92 @@ export default function ImageDetailsScreen() {
       });
     }
 
-    // Validate we have the required flow
-    if (!hasActiveFlow || !currentFlow) {
-      console.warn('[ImageDetails] No active flow found, redirecting to capture');
-      Alert.alert(
-        t('error.title', 'Session Lost'),
-        t('error.noActiveFlow', 'Your session has expired. Please start over.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+    // Add a delay before validation to allow state to sync
+    const validationTimer = setTimeout(() => {
+      // Only validate if we still don't have a flow after delay
+      if (!hasActiveFlow || !currentFlow) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.warn('[ImageDetails] No active flow found after delay, redirecting to capture');
+          Alert.alert(
+            t('error.title', 'Session Lost'),
+            t('error.noActiveFlow', 'Your session has expired. Please start over.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    // Validate flow ID matches
-    if (paramFlowId && currentFlow.id !== paramFlowId) {
-      console.warn('[ImageDetails] Flow ID mismatch', {
-        paramFlowId,
-        currentFlowId: currentFlow.id,
-      });
-      Alert.alert(
-        t('error.title', 'Session Error'),
-        t('error.flowMismatch', 'Session mismatch detected. Please start over.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+      // Validate flow ID matches
+      if (paramFlowId && currentFlow.id !== paramFlowId) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.warn('[ImageDetails] Flow ID mismatch', {
+            paramFlowId,
+            currentFlowId: currentFlow.id,
+          });
+          Alert.alert(
+            t('error.title', 'Session Error'),
+            t('error.flowMismatch', 'Session mismatch detected. Please start over.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    // Validate we're on the correct step
-    // if (currentStep !== 'processing' && currentStep !== 'review') {
-    //   console.warn('[ImageDetails] Invalid step for this screen:', currentStep);
-    //   redirectToCorrectStep();
-    // }
+      // Validate required data exists
+      if (!currentFlow.imageUri) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.error('[ImageDetails] No image URI in flow');
+          Alert.alert(
+            t('error.title', 'Missing Data'),
+            t('error.missingImage', 'No image found. Please capture an image first.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    // Validate required data exists
-    if (!currentFlow.imageUri) {
-      console.error('[ImageDetails] No image URI in flow');
-      Alert.alert(
-        t('error.title', 'Missing Data'),
-        t('error.missingImage', 'No image found. Please capture an image first.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+      // For review step, validate OCR result exists
+      if (currentStep === 'review' && !currentFlow.ocrResult) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.error('[ImageDetails] No OCR result for review step');
+          Alert.alert(
+            t('error.title', 'Processing Error'),
+            t('error.missingOcrResult', 'No processing results found. Please try again.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    // For review step, validate OCR result exists
-    if (currentStep === 'review' && !currentFlow.ocrResult) {
-      console.error('[ImageDetails] No OCR result for review step');
-      Alert.alert(
-        t('error.title', 'Processing Error'),
-        t('error.missingOcrResult', 'No processing results found. Please try again.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+      // Reset error flag when validation passes
+      hasShownError.current = false;
+    }, 300); // Give time for state to sync
+
+    return () => clearTimeout(validationTimer);
   }, [paramFlowId, hasActiveFlow, currentFlow, currentStep, t, router]);
 
   /**
@@ -146,9 +139,9 @@ export default function ImageDetailsScreen() {
     return () => backHandler.remove();
   }, []);
 
-  // Early return if no valid flow
+  // Early return if no valid flow (will show loading or redirect in useEffect)
   if (!hasActiveFlow || !currentFlow) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   // Development logging

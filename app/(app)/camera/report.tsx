@@ -3,7 +3,7 @@
 import CameraWorkflowCoordinator from '@/src/components/camera/workflow/CameraWorkflowCoordinator';
 import { useCameraFlow } from '@/src/hooks/useCameraFlow';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, BackHandler } from 'react-native';
 
@@ -21,6 +21,9 @@ export default function ReportScreen() {
 
   // Extract flowId from params
   const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
+
+  // Use ref to track if we've already shown an error
+  const hasShownError = useRef(false);
 
   /**
    * Handle completion and navigation
@@ -50,31 +53,6 @@ export default function ReportScreen() {
   }, [completeFlow, router, t]);
 
   /**
-   * Redirect to correct step based on flow state
-   */
-  // const redirectToCorrectStep = useCallback(() => {
-  //   if (!currentFlow) return;
-
-  //   const flowId = currentFlow.id;
-
-  //   switch (currentStep) {
-  //     case 'capture':
-  //       router.replace('/camera');
-  //       break;
-  //     case 'processing':
-  //     case 'review':
-  //       router.replace(`/camera/imagedetails?flowId=${flowId}`);
-  //       break;
-  //     case 'verification':
-  //       router.replace(`/camera/verification?flowId=${flowId}`);
-  //       break;
-  //     default:
-  //       // Stay on report step
-  //       break;
-  //   }
-  // }, [currentFlow, currentStep, router]);
-
-  /**
    * Validate navigation and flow state
    */
   useEffect(() => {
@@ -88,92 +66,109 @@ export default function ReportScreen() {
       });
     }
 
-    // Validate we have the required flow
-    if (!hasActiveFlow || !currentFlow) {
-      console.warn('[Report] No active flow found, redirecting to capture');
-      Alert.alert(
-        t('error.title', 'Session Lost'),
-        t('error.noActiveFlow', 'Your session has expired. Please start over.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+    // Add a delay before validation to allow state to sync
+    const validationTimer = setTimeout(() => {
+      // Only validate if we still don't have a flow after delay
+      if (!hasActiveFlow || !currentFlow) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.warn('[Report] No active flow found after delay, redirecting to capture');
+          Alert.alert(
+            t('error.title', 'Session Lost'),
+            t('error.noActiveFlow', 'Your session has expired. Please start over.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    // Validate flow ID matches
-    if (paramFlowId && currentFlow.id !== paramFlowId) {
-      console.warn('[Report] Flow ID mismatch', {
-        paramFlowId,
-        currentFlowId: currentFlow.id,
-      });
-      Alert.alert(
-        t('error.title', 'Session Error'),
-        t('error.flowMismatch', 'Session mismatch detected. Please start over.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+      // Validate flow ID matches
+      if (paramFlowId && currentFlow.id !== paramFlowId) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.warn('[Report] Flow ID mismatch', {
+            paramFlowId,
+            currentFlowId: currentFlow.id,
+          });
+          Alert.alert(
+            t('error.title', 'Session Error'),
+            t('error.flowMismatch', 'Session mismatch detected. Please start over.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    // Validate we're on the correct step
-    // if (currentStep !== 'report') {
-    //   console.warn('[Report] Invalid step for this screen:', currentStep);
-    //   redirectToCorrectStep();
-    // }
+      // Validate required data exists
+      if (!currentFlow.imageUri) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.error('[Report] No image URI in flow');
+          Alert.alert(
+            t('error.title', 'Missing Data'),
+            t('error.missingImage', 'No image found. Please start over.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    // Validate required data exists
-    if (!currentFlow.imageUri) {
-      console.error('[Report] No image URI in flow');
-      Alert.alert(
-        t('error.title', 'Missing Data'),
-        t('error.missingImage', 'No image found. Please start over.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+      if (!currentFlow.ocrResult) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.error('[Report] No OCR result in flow');
+          Alert.alert(
+            t('error.title', 'Missing Data'),
+            t('error.missingOcrResult', 'No processing results found. Please start over.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace('/camera'),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    if (!currentFlow.ocrResult) {
-      console.error('[Report] No OCR result in flow');
-      Alert.alert(
-        t('error.title', 'Missing Data'),
-        t('error.missingOcrResult', 'No processing results found. Please start over.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace('/camera'),
-          },
-        ]
-      );
-      return;
-    }
+      if (!currentFlow.receiptDraft) {
+        if (!hasShownError.current) {
+          hasShownError.current = true;
+          console.error('[Report] No receipt draft in flow');
+          Alert.alert(
+            t('error.title', 'Missing Data'),
+            t('error.missingDraft', 'No receipt data found. Please complete verification first.'),
+            [
+              {
+                text: t('common.ok', 'OK'),
+                onPress: () => router.replace(`/camera/verification?flowId=${currentFlow.id}`),
+              },
+            ]
+          );
+        }
+        return;
+      }
 
-    if (!currentFlow.receiptDraft) {
-      console.error('[Report] No receipt draft in flow');
-      Alert.alert(
-        t('error.title', 'Missing Data'),
-        t('error.missingDraft', 'No receipt data found. Please complete verification first.'),
-        [
-          {
-            text: t('common.ok', 'OK'),
-            onPress: () => router.replace(`/camera/verification?flowId=${currentFlow.id}`),
-          },
-        ]
-      );
-      return;
-    }
+      // Reset error flag when validation passes
+      hasShownError.current = false;
+    }, 300); // Give time for state to sync
+
+    return () => clearTimeout(validationTimer);
   }, [paramFlowId, hasActiveFlow, currentFlow, currentStep, t, router]);
 
   /**
@@ -192,7 +187,7 @@ export default function ReportScreen() {
           },
           {
             text: t('common.exit', 'Exit'),
-            onPress: () => handleWorkflowComplete(),
+            onPress: handleWorkflowComplete,
           },
         ]
       );
@@ -202,23 +197,9 @@ export default function ReportScreen() {
     return () => backHandler.remove();
   }, [t, handleWorkflowComplete]);
 
-  /**
-   * Handle app backgrounding with completed receipt
-   */
-  useEffect(() => {
-    // Auto-save or persist the completed receipt state
-    // This ensures data isn't lost if the app is backgrounded
-    if (__DEV__) {
-      console.log('[Report] Receipt completion state available', {
-        receiptId: currentFlow?.receiptDraft?.id,
-        flowId: currentFlow?.id,
-      });
-    }
-  }, [currentFlow]);
-
-  // Early return if no valid flow
+  // Early return if no valid flow (will show loading or redirect in useEffect)
   if (!hasActiveFlow || !currentFlow) {
-    return null; // Will redirect in useEffect
+    return null;
   }
 
   // Development logging
@@ -228,7 +209,6 @@ export default function ReportScreen() {
       hasImage: !!currentFlow.imageUri,
       hasOcrResult: !!currentFlow.ocrResult,
       hasDraft: !!currentFlow.receiptDraft,
-      receiptId: currentFlow.receiptDraft?.id,
       flowId: currentFlow.id,
     });
   }

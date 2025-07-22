@@ -11,94 +11,64 @@ interface NavigationGuardProps {
 
 /**
  * Navigation Guard Component - Flow-based navigation only
- * No legacy support - requires active flow for all steps except capture
+ * Updated to be less aggressive about redirects
  */
 export function CameraNavigationGuard({ targetStep, children }: NavigationGuardProps) {
   const router = useRouter();
   const { activeFlow, canNavigateToStep } = useCameraFlow();
-  const hasRedirected = useRef(false);
+  const hasChecked = useRef(false);
+  const isMounted = useRef(true);
 
   useEffect(() => {
-    // Reset redirect flag when target step changes
-    hasRedirected.current = false;
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    // Reset check flag when target step changes
+    hasChecked.current = false;
   }, [targetStep]);
 
   useEffect(() => {
-    // Skip if already redirected to prevent loops
-    if (hasRedirected.current) return;
+    // Skip if already checked or component unmounted
+    if (hasChecked.current || !isMounted.current) return;
 
     // Special case: capture step is always allowed
     if (targetStep === 'capture') return;
 
-    // No active flow - must start from capture
-    if (!activeFlow) {
-      hasRedirected.current = true;
-      setTimeout(() => router.replace('/camera'), 0);
-      return;
-    }
+    // Give time for state to sync before checking
+    const checkTimer = setTimeout(() => {
+      if (!isMounted.current) return;
 
-    // Check if we can navigate to the target step
-    if (!canNavigateToStep(targetStep)) {
-      hasRedirected.current = true;
+      // No active flow - must start from capture
+      if (!activeFlow) {
+        hasChecked.current = true;
+        console.warn('[NavigationGuard] No active flow for step:', targetStep);
+        // Don't redirect here - let the route component handle it
+        return;
+      }
 
-      // Determine appropriate redirect based on flow state
-      setTimeout(() => {
-        switch (targetStep) {
-          case 'processing':
-          case 'review':
-            // Need image first
-            if (!activeFlow.imageUri) {
-              router.replace('/camera');
-            } else {
-              // Stay on current step
-              router.back();
-            }
-            break;
+      // Check if we can navigate to the target step
+      if (!canNavigateToStep(targetStep)) {
+        hasChecked.current = true;
+        console.warn('[NavigationGuard] Cannot navigate to step:', targetStep);
+        // Don't redirect here - let the route component handle it
+        return;
+      }
+    }, 100); // Small delay to allow state to sync
 
-          case 'verification':
-            // Need OCR result
-            if (!activeFlow.imageUri) {
-              router.replace('/camera');
-            } else if (!activeFlow.ocrResult) {
-              router.replace('/camera/imagedetails');
-            } else {
-              router.back();
-            }
-            break;
-
-          case 'report':
-            // Need verified receipt
-            if (!activeFlow.receiptDraft) {
-              if (!activeFlow.imageUri) {
-                router.replace('/camera');
-              } else if (!activeFlow.ocrResult) {
-                router.replace('/camera/imagedetails');
-              } else {
-                router.replace('/camera/verification');
-              }
-            } else {
-              router.back();
-            }
-            break;
-
-          default:
-            router.replace('/camera');
-        }
-      }, 0);
-      return;
-    }
+    return () => clearTimeout(checkTimer);
   }, [targetStep, activeFlow, canNavigateToStep, router]);
 
-  // Don't render children if navigation is not allowed
-  if (targetStep !== 'capture' && (!activeFlow || !canNavigateToStep(targetStep))) {
-    return null;
-  }
-
+  // Always render children - let route components handle validation
   return <>{children}</>;
 }
 
 /**
  * Hook for programmatic navigation with validation
+ * Keep this for components that need to navigate programmatically
  */
 export function useGuardedNavigation() {
   const router = useRouter();
@@ -114,7 +84,6 @@ export function useGuardedNavigation() {
     // Require active flow for other steps
     if (!activeFlow) {
       console.warn('Cannot navigate without active flow');
-      router.replace('/camera');
       return false;
     }
 
