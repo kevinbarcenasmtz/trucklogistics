@@ -1,6 +1,6 @@
-// src/components/camera/workflow/CameraNavigationGuard.tsx
+// src/components/camera/workflow/CameraNavigationGuard.tsx - Phase 3 Simplified
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { useCameraFlow } from '../../../store/cameraFlowStore';
 import { CameraFlowStep } from '../../../types/cameraFlow';
 
@@ -10,60 +10,51 @@ interface NavigationGuardProps {
 }
 
 /**
- * Navigation Guard Component - Flow-based navigation only
- * Updated to be less aggressive about redirects
+ * Navigation Guard Component - Phase 3 User-Driven Navigation
+ * Simplified to pure calculation - no useEffect, no timing dependencies
  */
 export function CameraNavigationGuard({ targetStep, children }: NavigationGuardProps) {
-  const router = useRouter();
   const { activeFlow, canNavigateToStep } = useCameraFlow();
-  const hasChecked = useRef(false);
-  const isMounted = useRef(true);
 
-  useEffect(() => {
-    isMounted.current = true;
-    return () => {
-      isMounted.current = false;
-    };
-  }, []);
+  // Pure calculation - no useEffect or state watching
+  const navigationState = calculateNavigationState(targetStep, activeFlow, canNavigateToStep);
 
-  useEffect(() => {
-    // Reset check flag when target step changes
-    hasChecked.current = false;
-  }, [targetStep]);
-
-  useEffect(() => {
-    if (hasChecked.current || !isMounted.current) return;
-
-    if (targetStep === 'capture') return;
-
-    // Increase delay to allow for state synchronization
-    const checkTimer = setTimeout(() => {
-      if (!isMounted.current) return;
-
-      // Only warn if we're sure there's no flow after sufficient time
-      if (!activeFlow) {
-        hasChecked.current = true;
-        console.warn('[NavigationGuard] No active flow for step:', targetStep);
-        return;
-      }
-
-      if (!canNavigateToStep(targetStep)) {
-        hasChecked.current = true;
-        console.warn('[NavigationGuard] Cannot navigate to step:', targetStep);
-        return;
-      }
-    }, 300); // Increased delay for better state sync
-
-    return () => clearTimeout(checkTimer);
-  }, [targetStep, activeFlow, canNavigateToStep, router]);
-
-  // Always render children - let route components handle validation
+  // Always render children - screens handle their own validation
+  // This follows Phase 3 principle: UI reflects state, user drives navigation
   return <>{children}</>;
 }
 
 /**
+ * Pure function - easy to test and reason about
+ */
+function calculateNavigationState(
+  targetStep: CameraFlowStep, 
+  activeFlow: any, 
+  canNavigateToStep: (step: CameraFlowStep) => boolean
+) {
+  // Capture step is always allowed
+  if (targetStep === 'capture') {
+    return { shouldRedirect: false, reason: null };
+  }
+
+  // No active flow means user should start over
+  if (!activeFlow) {
+    console.warn('[NavigationGuard] No active flow for step:', targetStep);
+    return { shouldRedirect: false, reason: 'No active flow' };
+  }
+
+  // Check business rules
+  if (!canNavigateToStep(targetStep)) {
+    console.warn('[NavigationGuard] Cannot navigate to step:', targetStep);
+    return { shouldRedirect: false, reason: 'Navigation not allowed' };
+  }
+
+  return { shouldRedirect: false, reason: null };
+}
+
+/**
  * Hook for programmatic navigation with validation
- * Keep this for components that need to navigate programmatically
+ * Simplified for Phase 3 - user-driven navigation
  */
 export function useGuardedNavigation() {
   const router = useRouter();
@@ -76,13 +67,13 @@ export function useGuardedNavigation() {
       return true;
     }
 
-    // Require active flow for other steps
+    // Check if we have active flow
     if (!activeFlow) {
       console.warn('Cannot navigate without active flow');
       return false;
     }
 
-    // Check if navigation is allowed
+    // Check business rules
     if (!canNavigateToStep(step)) {
       console.warn(`Cannot navigate to ${step} - requirements not met`);
       return false;

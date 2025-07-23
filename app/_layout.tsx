@@ -1,6 +1,5 @@
 // app/_layout.tsx
 import { AuthProvider } from '@/src/context/AuthContextMigration';
-import { CameraFlowProvider } from '@/src/context/CameraFlowContext';
 import { OCRProcessingProvider } from '@/src/context/OCRProcessingContext';
 import { ReceiptDraftProvider } from '@/src/context/ReceiptDraftContext';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
@@ -57,7 +56,7 @@ function ThemedStack(): JSX.Element {
   );
 }
 
-// Root layout with providers
+// Root layout with providers - Phase 3 Update
 export default function RootLayout(): JSX.Element {
   // Initialize any app-wide services here
   useEffect(() => {
@@ -68,13 +67,12 @@ export default function RootLayout(): JSX.Element {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <CameraFlowProvider>
-          <OCRProcessingProvider>
-            <ReceiptDraftProvider>
-              <ThemedStack />
-            </ReceiptDraftProvider>
-          </OCRProcessingProvider>
-        </CameraFlowProvider>
+        {/* ✅ REMOVED: CameraFlowProvider - Using Zustand store instead */}
+        <OCRProcessingProvider>
+          <ReceiptDraftProvider>
+            <ThemedStack />
+          </ReceiptDraftProvider>
+        </OCRProcessingProvider>
       </AuthProvider>
     </ThemeProvider>
   );

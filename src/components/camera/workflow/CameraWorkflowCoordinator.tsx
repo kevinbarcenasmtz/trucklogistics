@@ -231,7 +231,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
           return !!currentFlow.imageUri && !!currentFlow.ocrResult;
         case 'verification':
           // ✅ CRITICAL FIX: Add receiptDraft requirement
-          return !!currentFlow.imageUri && !!currentFlow.ocrResult && !!currentFlow.receiptDraft;
+          return !!currentFlow.imageUri && !!currentFlow.ocrResult;
         case 'report':
           return !!currentFlow.imageUri && !!currentFlow.receiptDraft;
         default:

@@ -6,7 +6,6 @@ export { default as useCameraFlow } from './useCameraFlow';
 export { useReceiptDraft } from './useReceiptDraft';
 
 // === CONTEXT HOOKS ===
-export { useCameraFlow as useCameraFlowContext } from '../context/CameraFlowContext';
 export { useOCRProcessing } from '../context/OCRProcessingContext';
 export { useReceiptDraft as useReceiptDraftContext } from '../context/ReceiptDraftContext';
 
@@ -27,12 +26,3 @@ export type {
 export type { UseBackendOCRConfig, UseBackendOCRReturn } from './useBackendOCR';
 
 export type { UseReceiptDraftConfig, UseReceiptDraftReturn } from './useReceiptDraft';
-
-// REMOVED LEGACY HOOK EXPORTS:
-// ❌ useOCR - old context hook
-// ❌ useOCRProcessing (old version) - replaced by new context hook
-// ❌ useCameraState - replaced by useCameraFlow
-// ❌ useReceiptState - replaced by useReceiptDraft
-// ❌ Legacy navigation hooks with JSON serialization
-// ❌ Deprecated utility hooks
-// ❌ Development-only hooks

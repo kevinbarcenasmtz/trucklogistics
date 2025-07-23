@@ -2,12 +2,6 @@
 
 // === CORE CONTEXTS (Phase 3) ===
 export {
-  CameraFlowProvider,
-  CameraFlowStateGuards,
-  useCameraFlow as useCameraFlowContext,
-} from './context/CameraFlowContext';
-
-export {
   OCRProcessingErrorUtils,
   OCRProcessingProvider,
   OCRProcessingStateGuards,
@@ -52,15 +46,6 @@ export type {
   NavigationGuardResult,
 } from './types/camera_navigation';
 
-export type {
-  CameraFlowContextState,
-  CameraFlowContextValue,
-  OCRProcessingContextState,
-  OCRProcessingContextValue,
-  ReceiptDraftContextState,
-  ReceiptDraftContextValue,
-} from './types/context_types';
-
 // === UI COMPONENTS (Phase 3) ===
 export { CameraErrorBoundary } from './components/camera/workflow/CameraErrorBoundary';
 export {
@@ -71,14 +56,3 @@ export { default as CameraWorkflowCoordinator } from './components/camera/workfl
 
 // === UTILITIES ===
 export { NavigationUtils, RouteTypeGuards } from './types/camera_navigation';
-
-// REMOVED ALL LEGACY EXPORTS:
-// ❌ OCRProvider, useOCR - old context system
-// ❌ OCRService - old monolithic service
-// ❌ OCRProcessingService - duplicate functionality
-// ❌ Legacy OCR types and interfaces
-// ❌ Deprecated navigation types with JSON serialization
-// ❌ Old component exports that used legacy contexts
-// ❌ Legacy utility functions
-// ❌ Deprecated error handling exports
-// ❌ Old test utilities and mocks

@@ -1,23 +1,20 @@
 // src/hooks/useCameraFlow.tsx
 
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef } from 'react';
-import { useCameraFlow as useCameraFlowContext } from '../context/CameraFlowContext';
+import { useCallback, useRef } from 'react';
 import { useOCRProcessing } from '../context/OCRProcessingContext';
 import { useReceiptDraft } from '../context/ReceiptDraftContext';
 import { ReceiptDraftService } from '../services/camera/ReceiptDraftService';
 import { ProcessedReceipt } from '../state/ocr/types';
+import { useCameraFlow as useCameraFlowStore } from '../store/cameraFlowStore';
 import { CameraFlowStep, FlowError } from '../types/cameraFlow';
 import { Receipt } from '../types/ReceiptInterfaces';
-import { useBackendOCR } from './useBackendOCR';
+import { useBackendOCR, ProcessingResult } from './useBackendOCR';
 
 /**
  * Camera flow hook configuration
  */
 export interface UseCameraFlowConfig {
-  enableAutoNavigation?: boolean;
-  enableAutoSave?: boolean;
-  autoSaveInterval?: number;
   enableLogging?: boolean;
 }
 
@@ -47,6 +44,7 @@ export interface FlowProcessingResult {
   processedReceipt?: ProcessedReceipt;
   flowId: string;
   processingTime?: number;
+  error?: string;
 }
 
 /**
@@ -117,209 +115,108 @@ export interface UseCameraFlowReturn {
 }
 
 /**
- * useCameraFlow Hook
- * Central orchestration point for entire camera workflow
+ * Enhanced Camera Flow Hook - Phase 3 Zustand Store Only
+ * Coordinates camera workflow using centralized Zustand state
  */
 export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowReturn {
-  const {
-    enableAutoNavigation = true,
-    enableAutoSave = false,
-    autoSaveInterval = 30000,
-    enableLogging = process.env.NODE_ENV === 'development',
-  } = config;
+  const { enableLogging = __DEV__ } = config;
 
-  // Context hooks
-  const flowContext = useCameraFlowContext();
-  const ocrProcessingContext = useOCRProcessing();
-  const receiptDraftContext = useReceiptDraft();
-
-  // Add router hook
   const router = useRouter();
 
-  // Service hooks
-  const backendOCR = useBackendOCR({
-    autoRetryAttempts: 2,
-    retryDelay: 1000,
-    enableLogging,
-  });
+  // Zustand store - single source of truth
+  const store = useCameraFlowStore();
 
-  // Services
-  const draftServiceRef = useRef<ReceiptDraftService | undefined>(undefined);
-  const autoSaveTimerRef = useRef<number | undefined>(undefined);
+  // Other contexts (NOT flow management)
+  const ocrProcessingContext = useOCRProcessing();
+  const receiptDraftContext = useReceiptDraft();
+  const backendOCR = useBackendOCR();
+
+  // Navigation lock to prevent concurrent navigation
   const isNavigating = useRef(false);
-  // Initialize draft service
-  if (!draftServiceRef.current) {
-    draftServiceRef.current = new ReceiptDraftService({
-      requiredFields: ['date', 'type', 'amount', 'vehicle'],
-      amountMinimum: 0.01,
-      amountMaximum: 999999.99,
-      dateRangeMonths: 12,
-    });
-  }
 
-  // Auto-save functionality
-  useEffect(() => {
-    if (
-      enableAutoSave &&
-      receiptDraftContext.state.isDirty &&
-      !receiptDraftContext.state.isSaving
-    ) {
-      autoSaveTimerRef.current = setTimeout(() => {
-        if (receiptDraftContext.state.isDirty) {
-          // Trigger auto-save (implement based on your save strategy)
-          if (enableLogging) {
-            console.log('[useCameraFlow] Auto-save triggered');
-          }
-        }
-      }, autoSaveInterval);
+  // Draft service instance - Fixed: Only use valid ValidationConfig properties
+  const draftServiceRef = useRef(new ReceiptDraftService({
+    requiredFields: ['date', 'type', 'amount', 'vehicle'],
+    amountMinimum: 0.01,
+    amountMaximum: 999999.99,
+    dateRangeMonths: 12,
+    locationMaxLength: 100,
+    vendorNameMaxLength: 100,
+  }));
+
+  // Start flow - pure store operation
+  const startFlow = useCallback(async (imageUri: string): Promise<FlowOperationResult> => {
+    try {
+      if (enableLogging) {
+        console.log('[useCameraFlow] Starting new flow with imageUri:', !!imageUri);
+      }
+
+      const newFlow = await store.startFlow(imageUri);
+      
+      return {
+        success: true,
+        flowId: newFlow.id,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start flow';
+      
+      if (enableLogging) {
+        console.error('[useCameraFlow] Start flow failed:', error);
+      }
+
+      return {
+        success: false,
+        error: errorMessage,
+      };
     }
-
-    return () => {
-      if (autoSaveTimerRef.current) {
-        clearTimeout(autoSaveTimerRef.current);
-      }
-    };
-  }, [
-    enableAutoSave,
-    receiptDraftContext.state.isDirty,
-    receiptDraftContext.state.isSaving,
-    autoSaveInterval,
-    enableLogging,
-  ]);
-
-  // Start new flow
-  const startFlow = useCallback(
-    async (imageUri: string): Promise<FlowOperationResult> => {
-      try {
-        if (enableLogging) {
-          console.log('[useCameraFlow] Starting new flow:', { imageUri });
-        }
-
-        // Reset all contexts
-        flowContext.resetSession();
-        ocrProcessingContext.resetProcessing();
-        receiptDraftContext.clearDraft();
-
-        // Create new flow
-        const flowId = flowContext.createFlow(imageUri);
-
-        if (enableLogging) {
-          console.log('[useCameraFlow] Flow started successfully:', { flowId });
-        }
-
-        return {
-          success: true,
-          flowId,
-        };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Failed to start flow';
-
-        if (enableLogging) {
-          console.error('[useCameraFlow] Start flow failed:', error);
-        }
-
-        return {
-          success: false,
-          error: errorMessage,
-        };
-      }
-    },
-    [flowContext, ocrProcessingContext, receiptDraftContext, enableLogging]
-  );
-
-  // ✅ CORRECTED: Helper function to convert ProcessedReceipt to Receipt
-  const convertProcessedDataToReceipt = useCallback((processedData: ProcessedReceipt): Receipt => {
-    // Extract the classification data from ProcessedReceipt
-    const classification = processedData.classification;
-
-    return {
-      id: `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-
-      // Core receipt fields - map from classification
-      date: classification.date || new Date().toISOString().split('T')[0], // YYYY-MM-DD format
-      amount: classification.amount || '0.00', // ✅ STRING as required
-      type: classification.type || 'Fuel', // ✅ Exact type match
-      vehicle: classification.vehicle || '',
-      vendorName: classification.vendorName || '',
-      location: classification.location || '',
-
-      // Fixed fields
-      status: 'Pending' as const, // ✅ Matches Receipt interface
-      extractedText: processedData.extractedText, // ✅ From ProcessedReceipt root
-      imageUri: processedData.imageUri, // ✅ From ProcessedReceipt root
-      timestamp: new Date().toISOString(), // ✅ Current timestamp
-    };
-  }, []);
+  }, [store, enableLogging]);
 
   // Process current image
   const processCurrentImage = useCallback(async (): Promise<FlowProcessingResult> => {
-    const currentFlow = flowContext.state.activeFlow;
-    if (!currentFlow) {
-      throw new Error('No active flow to process');
-    }
-
-    if (!currentFlow.imageUri) {
-      throw new Error('No image URI in current flow');
+    if (!store.activeFlow) {
+      return { 
+        success: false, 
+        flowId: '',
+        error: 'No active flow'
+      };
     }
 
     try {
       if (enableLogging) {
-        console.log('[useCameraFlow] Processing current image:', {
-          flowId: currentFlow.id,
-          imageUri: currentFlow.imageUri,
-        });
+        console.log('[useCameraFlow] Processing image for flow:', store.activeFlow.id);
       }
 
-      // Update flow to processing step
-      flowContext.updateCurrentStep('processing', 'auto');
+      const result: ProcessingResult = await backendOCR.processImage(store.activeFlow.imageUri);
+      
+      if (result.processedReceipt) {
+        // Update store with OCR result
+        store.updateFlow({ ocrResult: result.processedReceipt });
+        
+        // Initialize draft from processed data
+        const draft = draftServiceRef.current.createDraftFromProcessedData(result.processedReceipt);
+        receiptDraftContext.initializeDraft(result.processedReceipt, draft);
 
-      // Process image using backend OCR
-      const result = await backendOCR.processImage(currentFlow.imageUri, currentFlow.id);
-
-      // Update flow with processed data
-      flowContext.updateFlowData({
-        ocrResult: result.processedReceipt,
-      });
-
-      // Initialize draft context with processed data
-      receiptDraftContext.initializeDraft(result.processedReceipt);
-
-      // ✅ CRITICAL FIX: Convert processed data to draft and update flow
-      const initialDraft = convertProcessedDataToReceipt(result.processedReceipt);
-      flowContext.updateFlowData({
-        receiptDraft: initialDraft,
-      });
-
-      if (enableLogging) {
-        console.log('[useCameraFlow] Image processing completed:', {
-          flowId: currentFlow.id,
+        return {
+          success: true,
+          processedReceipt: result.processedReceipt,
+          flowId: store.activeFlow.id,
           processingTime: result.processingTime,
-          hasOCR: true,
-          hasDraft: true,
-          draftId: initialDraft.id,
-          draftAmount: initialDraft.amount,
-          draftType: initialDraft.type,
-        });
+        };
       }
 
-      return {
-        success: true,
-        processedReceipt: result.processedReceipt,
-        flowId: currentFlow.id,
-        processingTime: result.processingTime,
-      };
+      throw new Error('Processing failed - no receipt data');
     } catch (error) {
       const flowError: FlowError = {
-        step: 'processing',
-        code: 'PROCESSING_FAILED',
+        step: store.activeFlow.currentStep,
+        code: 'PROCESSING_ERROR',
         message: error instanceof Error ? error.message : 'Processing failed',
         userMessage: 'Failed to process image. Please try again.',
         timestamp: Date.now(),
         retryable: true,
-        context: { flowId: currentFlow.id, imageUri: currentFlow.imageUri },
+        context: { flowId: store.activeFlow.id, imageUri: store.activeFlow.imageUri },
       };
 
-      flowContext.addError(flowError);
+      store.recordError(flowError);
 
       if (enableLogging) {
         console.error('[useCameraFlow] Image processing failed:', error);
@@ -327,34 +224,32 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
 
       return {
         success: false,
-        flowId: currentFlow.id,
+        flowId: store.activeFlow.id,
+        error: error instanceof Error ? error.message : 'Processing failed',
       };
     }
-  }, [flowContext, enableLogging, backendOCR, receiptDraftContext, convertProcessedDataToReceipt]);
+  }, [store, backendOCR, receiptDraftContext, enableLogging]);
 
   // Save current receipt
   const saveCurrentReceipt = useCallback(async (): Promise<SaveResult> => {
-    const currentFlow = flowContext.state.activeFlow;
-    const draftState = receiptDraftContext.state;
-
-    if (!currentFlow) {
+    if (!store.activeFlow) {
       return { success: false, error: 'No active flow' };
     }
 
-    if (!draftState.draft) {
+    if (!receiptDraftContext.state.draft) {
       return { success: false, error: 'No draft to save' };
     }
 
     try {
       if (enableLogging) {
         console.log('[useCameraFlow] Saving current receipt:', {
-          flowId: currentFlow.id,
-          isDirty: draftState.isDirty,
+          flowId: store.activeFlow.id,
+          isDirty: receiptDraftContext.state.isDirty,
         });
       }
 
       // Validate draft before saving
-      const validation = draftServiceRef.current!.validateReceipt(draftState.draft);
+      const validation = draftServiceRef.current.validateReceipt(receiptDraftContext.state.draft);
       if (!validation.isValid) {
         receiptDraftContext.validateForm(validation);
         return {
@@ -367,16 +262,13 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       receiptDraftContext.startSave();
 
       // Transform draft to final receipt
-      const finalReceipt = draftServiceRef.current!.transformToFinalReceipt(draftState.draft);
+      const finalReceipt = draftServiceRef.current.transformToFinalReceipt(receiptDraftContext.state.draft);
 
-      // Here you would typically call your save service/API
-      // For now, we'll simulate a successful save
+      // Simulate save (replace with actual API call)
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Update flow with saved receipt
-      flowContext.updateFlowData({
-        receiptDraft: finalReceipt,
-      });
+      // Update store with saved receipt
+      store.updateFlow({ receiptDraft: finalReceipt });
 
       // Complete save
       receiptDraftContext.saveSuccess();
@@ -384,7 +276,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       if (enableLogging) {
         console.log('[useCameraFlow] Receipt saved successfully:', {
           receiptId: finalReceipt.id,
-          flowId: currentFlow.id,
+          flowId: store.activeFlow.id,
         });
       }
 
@@ -398,7 +290,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       receiptDraftContext.saveError(errorMessage);
 
       if (enableLogging) {
-        console.error('[useCameraFlow] Save receipt failed:', error);
+        console.error('[useCameraFlow] Save failed:', error);
       }
 
       return {
@@ -406,42 +298,36 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         error: errorMessage,
       };
     }
-  }, [flowContext, receiptDraftContext, enableLogging]);
+  }, [store, receiptDraftContext, enableLogging]);
 
   // Complete flow
   const completeFlow = useCallback(async (): Promise<FlowOperationResult> => {
-    const currentFlow = flowContext.state.activeFlow;
-    if (!currentFlow) {
-      return { success: false, error: 'No active flow to complete' };
+    if (!store.activeFlow) {
+      return { success: false, error: 'No active flow' };
     }
 
     try {
       if (enableLogging) {
-        console.log('[useCameraFlow] Completing flow:', { flowId: currentFlow.id });
+        console.log('[useCameraFlow] Completing flow:', store.activeFlow.id);
       }
 
-      // Ensure all data is saved
+      // Ensure receipt is saved before completion
       if (receiptDraftContext.state.isDirty) {
         const saveResult = await saveCurrentReceipt();
         if (!saveResult.success) {
-          return { success: false, error: `Save failed: ${saveResult.error}` };
+          return { success: false, error: saveResult.error };
         }
       }
 
-      // Complete the flow
-      flowContext.completeFlow();
-
-      // Clean up contexts
-      ocrProcessingContext.resetProcessing();
-      receiptDraftContext.clearDraft();
+      await store.completeFlow();
 
       if (enableLogging) {
-        console.log('[useCameraFlow] Flow completed successfully:', { flowId: currentFlow.id });
+        console.log('[useCameraFlow] Flow completed successfully');
       }
 
       return {
         success: true,
-        flowId: currentFlow.id,
+        flowId: store.activeFlow.id,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Complete flow failed';
@@ -455,40 +341,37 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         error: errorMessage,
       };
     }
-  }, [flowContext, receiptDraftContext, ocrProcessingContext, saveCurrentReceipt, enableLogging]);
+  }, [store, receiptDraftContext, saveCurrentReceipt, enableLogging]);
 
   // Cancel flow
-  const cancelFlow = useCallback(
-    async (reason?: string): Promise<void> => {
-      try {
-        if (enableLogging) {
-          console.log('[useCameraFlow] Cancelling flow:', { reason });
-        }
-
-        // Cancel any active processing
-        if (ocrProcessingContext.state.isProcessing) {
-          await backendOCR.cancelProcessing();
-        }
-
-        // Cancel flow context
-        flowContext.cancelFlow(reason);
-
-        // Reset all contexts
-        ocrProcessingContext.resetProcessing();
-        receiptDraftContext.clearDraft();
-
-        if (enableLogging) {
-          console.log('[useCameraFlow] Flow cancelled successfully');
-        }
-      } catch (error) {
-        if (enableLogging) {
-          console.error('[useCameraFlow] Cancel flow failed:', error);
-        }
-        // Don't throw - cancellation should always succeed from user perspective
+  const cancelFlow = useCallback(async (reason?: string): Promise<void> => {
+    try {
+      if (enableLogging) {
+        console.log('[useCameraFlow] Cancelling flow:', { reason });
       }
-    },
-    [flowContext, ocrProcessingContext, receiptDraftContext, backendOCR, enableLogging]
-  );
+
+      // Cancel any active processing
+      if (ocrProcessingContext.state.isProcessing) {
+        await backendOCR.cancelProcessing();
+      }
+
+      // Cancel flow in store
+      store.cancelFlow();
+
+      // Reset all contexts
+      ocrProcessingContext.resetProcessing();
+      receiptDraftContext.clearDraft();
+
+      if (enableLogging) {
+        console.log('[useCameraFlow] Flow cancelled successfully');
+      }
+    } catch (error) {
+      if (enableLogging) {
+        console.error('[useCameraFlow] Cancel flow failed:', error);
+      }
+      // Don't throw - cancellation should always succeed from user perspective
+    }
+  }, [store, ocrProcessingContext, receiptDraftContext, backendOCR, enableLogging]);
 
   // Reset flow
   const resetFlow = useCallback(() => {
@@ -496,113 +379,71 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       console.log('[useCameraFlow] Resetting flow');
     }
 
-    flowContext.resetSession();
+    store.resetActiveFlow();
     ocrProcessingContext.resetProcessing();
     receiptDraftContext.clearDraft();
-  }, [flowContext, ocrProcessingContext, receiptDraftContext, enableLogging]);
+  }, [store, ocrProcessingContext, receiptDraftContext, enableLogging]);
 
-  // Navigate to step
-  const navigateToStep = useCallback(
-    (step: CameraFlowStep): NavigationResult => {
-      // Prevent concurrent navigation
-      if (isNavigating.current) {
-        console.warn('[useCameraFlow] Navigation already in progress');
-        return {
-          success: false,
-          currentStep: flowContext.state.activeFlow?.currentStep || 'capture',
-          reason: 'Navigation in progress',
-        };
-      }
-
-      if (enableLogging) {
-        console.log('[useCameraFlow] Attempting to navigate to step:', step);
-      }
-
-      // Set navigation lock
-      isNavigating.current = true;
-
-      // First update the internal state
-      const success = flowContext.navigateToStep(step);
-
-      if (success) {
-        // Get the current flow for navigation
-        const currentFlow = flowContext.state.activeFlow;
-        if (!currentFlow) {
-          console.error('[useCameraFlow] No active flow after navigation');
-          isNavigating.current = false; // Clear lock
-          return {
-            success: false,
-            currentStep: 'capture',
-            reason: 'No active flow',
-          };
-        }
-
-        // Perform router navigation based on the step
-        const flowId = currentFlow.id;
-
-        // Use requestAnimationFrame to ensure state updates are committed
-        requestAnimationFrame(() => {
-          switch (step) {
-            case 'capture':
-              router.replace('/camera');
-              break;
-            case 'processing':
-            case 'review':
-              // Use push for forward navigation to maintain stack
-              router.push(`/camera/imagedetails?flowId=${flowId}`);
-              break;
-            case 'verification':
-              router.push(`/camera/verification?flowId=${flowId}`);
-              break;
-            case 'report':
-              router.push(`/camera/report?flowId=${flowId}`);
-              break;
-          }
-
-          if (enableLogging) {
-            console.log('[useCameraFlow] Router navigation completed for step:', step);
-          }
-
-          // Clear navigation lock after a delay
-          setTimeout(() => {
-            isNavigating.current = false;
-          }, 500);
-        });
-      } else {
-        // Clear lock if navigation failed
-        isNavigating.current = false;
-      }
-
+  // Navigate to step - pure calculation, no useEffect
+  const navigateToStep = useCallback((step: CameraFlowStep): NavigationResult => {
+    if (isNavigating.current) {
+      console.warn('[useCameraFlow] Navigation already in progress');
       return {
-        success,
-        currentStep: flowContext.state.activeFlow?.currentStep || 'capture',
-        reason: success ? undefined : 'Navigation not allowed',
+        success: false,
+        currentStep: store.activeFlow?.currentStep || 'capture',
+        reason: 'Navigation in progress',
       };
-    },
-    [flowContext, router, enableLogging]
-  );
-
-  // Navigate back
-  const navigateBack = useCallback((): NavigationResult => {
-    const success = flowContext.navigateBack();
-
-    if (enableLogging) {
-      console.log('[useCameraFlow] Navigate back:', {
-        success,
-        currentStep: flowContext.state.activeFlow?.currentStep,
-      });
     }
 
-    return {
-      success,
-      currentStep: flowContext.state.activeFlow?.currentStep || 'capture',
-    };
-  }, [flowContext, enableLogging]);
+    if (enableLogging) {
+      console.log('[useCameraFlow] Attempting to navigate to step:', step);
+    }
 
-  // Navigate next
-  const navigateNext = useCallback((): NavigationResult => {
-    const currentFlow = flowContext.state.activeFlow;
-    if (!currentFlow) {
+    // Set navigation lock
+    isNavigating.current = true;
+
+    // Check if navigation is allowed
+    if (!store.canNavigateToStep(step)) {
+      isNavigating.current = false;
+      return {
+        success: false,
+        currentStep: store.activeFlow?.currentStep || 'capture',
+        reason: 'Navigation not allowed',
+      };
+    }
+
+    // Update store step
+    store.updateFlow({ currentStep: step });
+    store.recordTransition(step, 'user_action');
+
+    // Perform router navigation
+    switch (step) {
+      case 'capture':
+        router.push('/camera');
+        break;
+      case 'processing':
+      case 'review':
+        router.push(`/camera/imagedetails?flowId=${store.activeFlow?.id}`);
+        break;
+      case 'verification':
+        router.push(`/camera/verification?flowId=${store.activeFlow?.id}`);
+        break;
+      case 'report':
+        router.push(`/camera/report?flowId=${store.activeFlow?.id}`);
+        break;
+    }
+
+    isNavigating.current = false;
+
+    return {
+      success: true,
+      currentStep: step,
+    };
+  }, [store, router, enableLogging]);
+
+  // Navigate back - simple calculation
+  const navigateBack = useCallback((): NavigationResult => {
+    if (!store.activeFlow) {
       return {
         success: false,
         currentStep: 'capture',
@@ -610,106 +451,102 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       };
     }
 
-    const stepOrder: CameraFlowStep[] = [
-      'capture',
-      'processing',
-      'review',
-      'verification',
-      'report',
-    ];
-    const currentIndex = stepOrder.indexOf(currentFlow.currentStep);
-    const nextStep = stepOrder[currentIndex + 1];
-
-    if (!nextStep) {
+    const stepOrder: CameraFlowStep[] = ['capture', 'processing', 'review', 'verification', 'report'];
+    const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
+    
+    if (currentIndex <= 0) {
       return {
         success: false,
-        currentStep: currentFlow.currentStep,
+        currentStep: store.activeFlow.currentStep,
+        reason: 'Already at first step',
+      };
+    }
+
+    const previousStep = stepOrder[currentIndex - 1];
+    return navigateToStep(previousStep);
+  }, [store, navigateToStep]);
+
+  // Navigate next - simple calculation  
+  const navigateNext = useCallback((): NavigationResult => {
+    if (!store.activeFlow) {
+      return {
+        success: false,
+        currentStep: 'capture',
+        reason: 'No active flow',
+      };
+    }
+
+    const stepOrder: CameraFlowStep[] = ['capture', 'processing', 'review', 'verification', 'report'];
+    const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
+    
+    if (currentIndex >= stepOrder.length - 1) {
+      return {
+        success: false,
+        currentStep: store.activeFlow.currentStep,
         reason: 'Already at last step',
       };
     }
 
+    const nextStep = stepOrder[currentIndex + 1];
     return navigateToStep(nextStep);
-  }, [flowContext, navigateToStep]);
+  }, [store, navigateToStep]);
 
-  // Data access functions
-  const getCurrentImage = useCallback((): string | undefined => {
-    return flowContext.state.activeFlow?.imageUri;
-  }, [flowContext.state.activeFlow]);
+  // Pure calculation functions
+  const getCurrentImage = useCallback(() => store.activeFlow?.imageUri, [store.activeFlow]);
+  const getCurrentProcessedData = useCallback(() => store.activeFlow?.ocrResult, [store.activeFlow]);
+  const getCurrentDraft = useCallback(() => receiptDraftContext.state.draft, [receiptDraftContext.state.draft]);
+  const getFlowMetrics = useCallback(() => store.activeFlow?.metrics, [store.activeFlow]);
 
-  const getCurrentProcessedData = useCallback((): ProcessedReceipt | undefined => {
-    return flowContext.state.activeFlow?.ocrResult;
-  }, [flowContext.state.activeFlow]);
-
-  const getCurrentDraft = useCallback((): Receipt | undefined => {
-    return receiptDraftContext.state.draft;
-  }, [receiptDraftContext.state.draft]);
-
-  const getFlowMetrics = useCallback(() => {
-    return flowContext.state.activeFlow?.metrics;
-  }, [flowContext.state.activeFlow]);
-
-  // Error handling
   const clearError = useCallback(() => {
-    flowContext.clearError();
+    store.clearError();
     ocrProcessingContext.clearError();
     receiptDraftContext.clearAllErrors();
-  }, [flowContext, ocrProcessingContext, receiptDraftContext]);
+  }, [store, ocrProcessingContext, receiptDraftContext]);
 
   const retryCurrentOperation = useCallback(async () => {
-    const currentFlow = flowContext.state.activeFlow;
-    if (!currentFlow) {
+    if (!store.activeFlow) {
       throw new Error('No active flow for retry');
     }
 
-    switch (currentFlow.currentStep) {
+    switch (store.activeFlow.currentStep) {
       case 'processing':
         return processCurrentImage();
       case 'verification':
         return saveCurrentReceipt();
       default:
-        throw new Error(`No retry operation available for step: ${currentFlow.currentStep}`);
+        throw new Error(`No retry operation available for step: ${store.activeFlow.currentStep}`);
     }
-  }, [flowContext.state.activeFlow, processCurrentImage, saveCurrentReceipt]);
+  }, [store.activeFlow, processCurrentImage, saveCurrentReceipt]);
 
-  // Utility functions
   const getStepProgress = useCallback((): number => {
-    const currentFlow = flowContext.state.activeFlow;
-    if (!currentFlow) return 0;
+    if (!store.activeFlow) return 0;
 
-    const stepOrder: CameraFlowStep[] = [
-      'capture',
-      'processing',
-      'review',
-      'verification',
-      'report',
-    ];
-    const currentIndex = stepOrder.indexOf(currentFlow.currentStep);
+    const stepOrder: CameraFlowStep[] = ['capture', 'processing', 'review', 'verification', 'report'];
+    const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
     return ((currentIndex + 1) / stepOrder.length) * 100;
-  }, [flowContext.state.activeFlow]);
+  }, [store.activeFlow]);
 
   const getOverallProgress = useCallback((): number => {
     const stepProgress = getStepProgress();
     const processingProgress = ocrProcessingContext.state.totalProgress;
 
-    // If we're in processing step, use processing progress
-    if (flowContext.state.activeFlow?.currentStep === 'processing') {
+    if (store.activeFlow?.currentStep === 'processing') {
       return processingProgress;
     }
 
     return stepProgress;
-  }, [getStepProgress, ocrProcessingContext.state.totalProgress, flowContext.state.activeFlow]);
+  }, [getStepProgress, ocrProcessingContext.state.totalProgress, store.activeFlow]);
 
   const canProceedToNext = useCallback((): boolean => {
-    const currentFlow = flowContext.state.activeFlow;
-    if (!currentFlow) return false;
+    if (!store.activeFlow) return false;
 
-    switch (currentFlow.currentStep) {
+    switch (store.activeFlow.currentStep) {
       case 'capture':
-        return !!currentFlow.imageUri;
+        return !!store.activeFlow.imageUri;
       case 'processing':
-        return !!currentFlow.ocrResult && ocrProcessingContext.state.isCompleted;
+        return !!store.activeFlow.ocrResult && ocrProcessingContext.state.isCompleted;
       case 'review':
-        return !!currentFlow.ocrResult;
+        return !!store.activeFlow.ocrResult;
       case 'verification':
         return receiptDraftContext.state.isValid && !receiptDraftContext.state.isDirty;
       case 'report':
@@ -717,22 +554,18 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       default:
         return false;
     }
-  }, [
-    flowContext.state.activeFlow,
-    ocrProcessingContext.state.isCompleted,
-    receiptDraftContext.state,
-  ]);
+  }, [store.activeFlow, ocrProcessingContext.state.isCompleted, receiptDraftContext.state]);
 
   return {
-    // Flow state
-    hasActiveFlow: flowContext.state.hasActiveFlow,
-    currentFlow: flowContext.state.activeFlow,
-    currentStep: flowContext.state.activeFlow?.currentStep || 'capture',
-    flowId: flowContext.state.activeFlow?.id,
-    canNavigateBack: flowContext.state.canNavigateBack,
-    canNavigateForward: flowContext.state.canNavigateForward,
-    isNavigationBlocked: flowContext.state.navigationBlocked,
-    blockReason: flowContext.state.blockReason,
+    // Flow state - all from Zustand store
+    hasActiveFlow: !!store.activeFlow,
+    currentFlow: store.activeFlow,
+    currentStep: store.activeFlow?.currentStep || 'capture',
+    flowId: store.activeFlow?.id,
+    canNavigateBack: !!store.activeFlow && store.activeFlow.currentStep !== 'capture',
+    canNavigateForward: canProceedToNext(),
+    isNavigationBlocked: false, // Simplified - no blocking in Phase 3
+    blockReason: undefined,
 
     // Processing state
     isProcessing: ocrProcessingContext.state.isProcessing,
