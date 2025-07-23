@@ -227,6 +227,30 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
     [flowContext, ocrProcessingContext, receiptDraftContext, enableLogging]
   );
 
+  // ✅ CORRECTED: Helper function to convert ProcessedReceipt to Receipt
+  const convertProcessedDataToReceipt = useCallback((processedData: ProcessedReceipt): Receipt => {
+    // Extract the classification data from ProcessedReceipt
+    const classification = processedData.classification;
+
+    return {
+      id: `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+
+      // Core receipt fields - map from classification
+      date: classification.date || new Date().toISOString().split('T')[0], // YYYY-MM-DD format
+      amount: classification.amount || '0.00', // ✅ STRING as required
+      type: classification.type || 'Fuel', // ✅ Exact type match
+      vehicle: classification.vehicle || '',
+      vendorName: classification.vendorName || '',
+      location: classification.location || '',
+
+      // Fixed fields
+      status: 'Pending' as const, // ✅ Matches Receipt interface
+      extractedText: processedData.extractedText, // ✅ From ProcessedReceipt root
+      imageUri: processedData.imageUri, // ✅ From ProcessedReceipt root
+      timestamp: new Date().toISOString(), // ✅ Current timestamp
+    };
+  }, []);
+
   // Process current image
   const processCurrentImage = useCallback(async (): Promise<FlowProcessingResult> => {
     const currentFlow = flowContext.state.activeFlow;
@@ -260,10 +284,21 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       // Initialize draft context with processed data
       receiptDraftContext.initializeDraft(result.processedReceipt);
 
+      // ✅ CRITICAL FIX: Convert processed data to draft and update flow
+      const initialDraft = convertProcessedDataToReceipt(result.processedReceipt);
+      flowContext.updateFlowData({
+        receiptDraft: initialDraft,
+      });
+
       if (enableLogging) {
         console.log('[useCameraFlow] Image processing completed:', {
           flowId: currentFlow.id,
           processingTime: result.processingTime,
+          hasOCR: true,
+          hasDraft: true,
+          draftId: initialDraft.id,
+          draftAmount: initialDraft.amount,
+          draftType: initialDraft.type,
         });
       }
 
@@ -295,7 +330,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         flowId: currentFlow.id,
       };
     }
-  }, [flowContext, backendOCR, receiptDraftContext, enableLogging]);
+  }, [flowContext, enableLogging, backendOCR, receiptDraftContext, convertProcessedDataToReceipt]);
 
   // Save current receipt
   const saveCurrentReceipt = useCallback(async (): Promise<SaveResult> => {

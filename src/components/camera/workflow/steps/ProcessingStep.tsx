@@ -161,17 +161,14 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
 
       // Don't cancel when navigating forward
       shouldCancelOnUnmount.current = false;
+      // ✅ REMOVED AUTO-NAVIGATION: Let user manually proceed
+      // The processCurrentImage() has already updated the flow data
+      // User can now click "Continue" or similar button to proceed
 
-      // The processCurrentImage() already should have updated the flow data
-      // Just add a longer delay to ensure state synchronization
-      setTimeout(() => {
-        if (isMounted.current) {
-          console.log('[ProcessingStep] Proceeding to next step after OCR completion');
-          onNext();
-        }
-      }, 300); // Increased delay for state sync
+      // ❌ REMOVED: onNext() call
+      // ❌ REMOVED: setTimeout auto-navigation
     }
-  }, [isCompleted, hasError, onNext]);
+  }, [isCompleted, hasError]); // ❌ REMOVED: onNext from dependencies
 
   // Handle processing errors
   useEffect(() => {
@@ -431,6 +428,31 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
       textAlign: 'center',
       lineHeight: 20,
     },
+    continueButton: {
+      backgroundColor: primaryColor,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      borderRadius: 12,
+      marginTop: 8,
+      elevation: 2,
+      shadowColor: primaryColor,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 4,
+    },
+    continueButtonText: {
+      color: '#FFFFFF',
+      fontSize: 16,
+      fontWeight: '600',
+      marginHorizontal: 8,
+      textAlign: 'center',
+    },
+    continueIcon: {
+      marginRight: 4,
+    },
   });
 
   return (
@@ -440,7 +462,6 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
           {/* Status indicator */}
           <View style={styles.statusContainer}>
             <View style={styles.statusIcon}>{getStatusIcon()}</View>
-
             <Text style={styles.title}>
               {hasError
                 ? t('processing.failed', 'Processing Failed')
@@ -448,9 +469,7 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
                   ? t('processing.success', 'Processing Complete')
                   : t('processing.title', 'Processing Receipt')}
             </Text>
-
             <Text style={styles.statusMessage}>{getStatusMessage()}</Text>
-
             {!hasError && !isCompleted && (
               <Text style={styles.stageDetails}>{getStageDetails()}</Text>
             )}
@@ -498,7 +517,6 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
                 >
                   <Text style={styles.retryButtonText}>{t('processing.retry', 'Try Again')}</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   style={styles.cancelButton}
                   onPress={handleCancel}
@@ -507,7 +525,29 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
                   <Text style={styles.cancelButtonText}>{t('processing.cancel', 'Cancel')}</Text>
                 </TouchableOpacity>
               </>
+            ) : isCompleted ? (
+              // ✅ NEW: Continue button when processing is complete
+              <TouchableOpacity
+                style={styles.continueButton}
+                onPress={() => {
+                  console.log('[ProcessingStep] User manually proceeding to next step');
+                  onNext();
+                }}
+                testID="processing-continue-button"
+              >
+                <MaterialIcons
+                  name="check-circle"
+                  size={20}
+                  color="#FFFFFF"
+                  style={styles.continueIcon}
+                />
+                <Text style={styles.continueButtonText}>
+                  {t('processing.continue', 'Continue to Review')}
+                </Text>
+                <MaterialIcons name="arrow-forward" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
             ) : (
+              // Show cancel button only during processing
               canCancel &&
               isProcessing && (
                 <TouchableOpacity
