@@ -114,6 +114,8 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     clearError,
     retryCurrentOperation,
     navigateToStep,
+    hasDraft,
+    isDraftValid,
   } = useCameraFlow();
 
   const { backgroundColor, textColor } = useAppTheme();
@@ -329,50 +331,70 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
       if (nextIndex < WORKFLOW_STEPS.length) {
         const nextStep = WORKFLOW_STEPS[nextIndex];
 
-        // CRITICAL FIX: Add a small delay to ensure state is synchronized
-        // This is especially important after OCR completion
-        setTimeout(() => {
-          if (canNavigateToStep(nextStep.id)) {
-            console.log(
-              '[CameraWorkflowCoordinator] Navigating from',
-              currentStep,
-              'to',
-              nextStep.id
-            );
+        console.log(
+          '[CameraWorkflowCoordinator] Attempting navigation from',
+          currentStep,
+          'to',
+          nextStep.id
+        );
 
-            const result = navigateToStep(nextStep.id);
+        // REACTIVE APPROACH: Check state immediately and let auto-navigation handle timing
+        const canNavigateNow = canNavigateToStep(nextStep.id);
 
-            if (!result.success) {
-              console.error('[CameraWorkflowCoordinator] Navigation failed:', result.reason);
-              handleError({
-                step: currentStep,
-                code: 'NAVIGATION_FAILED',
-                message: result.reason || 'Navigation failed',
-                userMessage: 'Could not proceed to next step. Please try again.',
-                timestamp: Date.now(),
-                retryable: true,
-              });
-            }
-          } else {
-            console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
-            console.warn('[CameraWorkflowCoordinator] Current flow state:', {
-              hasImage: !!currentFlow?.imageUri,
-              hasOCR: !!currentFlow?.ocrResult,
-              hasDraft: !!currentFlow?.receiptDraft,
-              currentStep,
-              targetStep: nextStep.id,
-            });
+        if (canNavigateNow) {
+          // Immediate navigation if requirements are met
+          console.log(
+            '[CameraWorkflowCoordinator] Navigating immediately from',
+            currentStep,
+            'to',
+            nextStep.id
+          );
 
+          const result = navigateToStep(nextStep.id);
+
+          if (!result.success) {
+            console.error('[CameraWorkflowCoordinator] Navigation failed:', result.reason);
             handleError({
               step: currentStep,
-              code: 'NAVIGATION_BLOCKED',
-              message: 'Cannot navigate to requested step',
-              userMessage: 'Cannot proceed to next step. Please complete the current step.',
+              code: 'NAVIGATION_FAILED',
+              message: result.reason || 'Navigation failed',
+              userMessage: 'Could not proceed to next step. Please try again.',
               timestamp: Date.now(),
-              retryable: false,
+              retryable: true,
             });
           }
-        }, 200); // Small delay for state synchronization
+        } else {
+          // SPECIAL CASE: For processing -> review transition, check if we just need to wait for OCR
+          if (currentStep === 'processing' && nextStep.id === 'review') {
+            // If we have an image but no OCR result yet, this is expected during processing
+            if (currentFlow?.imageUri && !currentFlow?.ocrResult) {
+              console.log(
+                '[CameraWorkflowCoordinator] Waiting for OCR completion before navigating to review'
+              );
+              // Don't show error - the auto-navigation effect will handle this
+              return;
+            }
+          }
+
+          // For other cases, show immediate error
+          console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
+          console.warn('[CameraWorkflowCoordinator] Current flow state:', {
+            hasImage: !!currentFlow?.imageUri,
+            hasOCR: !!currentFlow?.ocrResult,
+            hasDraft: !!currentFlow?.receiptDraft,
+            currentStep,
+            targetStep: nextStep.id,
+          });
+
+          handleError({
+            step: currentStep,
+            code: 'NAVIGATION_BLOCKED',
+            message: 'Cannot navigate to requested step',
+            userMessage: 'Cannot proceed to next step. Please complete the current step.',
+            timestamp: Date.now(),
+            retryable: false,
+          });
+        }
       } else {
         // Workflow complete
         console.log('[CameraWorkflowCoordinator] Workflow completed successfully');
@@ -380,6 +402,60 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     },
     [currentStep, currentFlow, canNavigateToStep, navigateToStep, handleError]
   );
+
+  // ADD THIS: Auto-navigation effect for OCR completion
+  useEffect(() => {
+    // Auto-navigate from processing to review when OCR completes
+    if (currentStep === 'processing' && currentFlow?.ocrResult && !isNavigationBlocked) {
+      console.log('[CameraWorkflowCoordinator] OCR completed, auto-navigating to review');
+
+      // Small delay to ensure all state updates are complete
+      const timer = setTimeout(() => {
+        const result = navigateToStep('review');
+
+        if (!result.success) {
+          console.error('[CameraWorkflowCoordinator] Auto-navigation failed:', result.reason);
+          handleError({
+            step: currentStep,
+            code: 'AUTO_NAVIGATION_FAILED',
+            message: 'Auto-navigation after OCR completion failed',
+            userMessage: 'Processing completed but could not advance. Please try again.',
+            timestamp: Date.now(),
+            retryable: true,
+          });
+        }
+      }, 100); // Minimal delay just for state sync
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, currentFlow?.ocrResult, isNavigationBlocked, navigateToStep, handleError]);
+
+  // ADD THIS: Auto-navigation effect for draft completion
+  useEffect(() => {
+    // Auto-navigate from review to verification when ready
+    if (
+      currentStep === 'review' &&
+      currentFlow?.ocrResult &&
+      hasDraft &&
+      isDraftValid &&
+      !isNavigationBlocked
+    ) {
+      console.log('[CameraWorkflowCoordinator] Draft ready, auto-navigating to verification');
+
+      const timer = setTimeout(() => {
+        navigateToStep('verification');
+      }, 100);
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    currentStep,
+    currentFlow?.ocrResult,
+    hasDraft,
+    isDraftValid,
+    isNavigationBlocked,
+    navigateToStep,
+  ]);
 
   const handleBack = useCallback(() => {
     if (!canNavigateBack) {

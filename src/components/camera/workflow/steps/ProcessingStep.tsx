@@ -158,10 +158,10 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   useEffect(() => {
     if (isCompleted && !hasError && isMounted.current) {
       console.log('[ProcessingStep] Processing completed successfully');
-      
+
       // Don't cancel when navigating forward
       shouldCancelOnUnmount.current = false;
-      
+
       // The processCurrentImage() already should have updated the flow data
       // Just add a longer delay to ensure state synchronization
       setTimeout(() => {

@@ -32,32 +32,27 @@ export function CameraNavigationGuard({ targetStep, children }: NavigationGuardP
   }, [targetStep]);
 
   useEffect(() => {
-    // Skip if already checked or component unmounted
     if (hasChecked.current || !isMounted.current) return;
 
-    // Special case: capture step is always allowed
     if (targetStep === 'capture') return;
 
-    // Give time for state to sync before checking
+    // Increase delay to allow for state synchronization
     const checkTimer = setTimeout(() => {
       if (!isMounted.current) return;
 
-      // No active flow - must start from capture
+      // Only warn if we're sure there's no flow after sufficient time
       if (!activeFlow) {
         hasChecked.current = true;
         console.warn('[NavigationGuard] No active flow for step:', targetStep);
-        // Don't redirect here - let the route component handle it
         return;
       }
 
-      // Check if we can navigate to the target step
       if (!canNavigateToStep(targetStep)) {
         hasChecked.current = true;
         console.warn('[NavigationGuard] Cannot navigate to step:', targetStep);
-        // Don't redirect here - let the route component handle it
         return;
       }
-    }, 100); // Small delay to allow state to sync
+    }, 300); // Increased delay for better state sync
 
     return () => clearTimeout(checkTimer);
   }, [targetStep, activeFlow, canNavigateToStep, router]);
