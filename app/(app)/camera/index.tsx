@@ -23,42 +23,6 @@ export default function CameraIndexScreen() {
   const paramFlowId = typeof params.flowId === 'string' ? params.flowId : undefined;
 
   /**
-   * Handle flow initialization on mount
-   */
-  useEffect(() => {
-    // Log navigation event
-    if (__DEV__) {
-      console.log('[CameraIndex] Screen mounted', {
-        paramFlowId,
-        hasActiveFlow,
-        currentFlowId: currentFlow?.id,
-        currentStep,
-      });
-    }
-
-    // REMOVED: The problematic redirect logic
-    // The coordinator and useCameraFlow handle navigation now
-  }, [paramFlowId, hasActiveFlow, currentStep, currentFlow?.id]);
-
-
-  useEffect(() => {
-    console.log('[CameraRoute] Route mounted/changed:', {
-      route: 'index', // or 'imagedetails' 
-      params,
-      hasActiveFlow,
-      currentStep,
-      timestamp: new Date().toISOString()
-    });
-  
-    return () => {
-      console.log('[CameraRoute] Route unmounting:', {
-        route: 'index', // or 'imagedetails'
-        timestamp: new Date().toISOString()
-      });
-    };
-  }, [params, hasActiveFlow, currentStep]);
-  
-  /**
    * Handle hardware back button (Android)
    */
   useEffect(() => {

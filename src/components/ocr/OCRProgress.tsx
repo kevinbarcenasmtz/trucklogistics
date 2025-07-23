@@ -2,10 +2,10 @@
 import { Feather } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useAppTheme } from '../../hooks/useAppTheme';
-import { horizontalScale, moderateScale, verticalScale } from '../../theme';
 import { useOCRProcessing } from '../../context/OCRProcessingContext';
+import { useAppTheme } from '../../hooks/useAppTheme';
 import type { ProcessingStage, ProcessingStatus } from '../../state/ocr/types';
+import { horizontalScale, moderateScale, verticalScale } from '../../theme';
 
 interface OCRProgressProps {
   onCancel: () => void;
@@ -15,14 +15,12 @@ export function OCRProgress({ onCancel }: OCRProgressProps) {
   const { t } = useTranslation();
   const { surfaceColor, textColor, secondaryTextColor, primaryColor, backgroundColor } =
     useAppTheme();
-  
+
   // Get state directly from context
   const { state } = useOCRProcessing();
-  
+
   // Calculate processing time if we have a start timestamp
-  const processingTime = state.startTimestamp 
-    ? Date.now() - state.startTimestamp 
-    : 0;
+  const processingTime = state.startTimestamp ? Date.now() - state.startTimestamp : 0;
 
   const getStageText = (status: ProcessingStatus, stage?: ProcessingStage): string => {
     // First check if we have a specific stage description from backend
@@ -34,7 +32,7 @@ export function OCRProgress({ onCancel }: OCRProgressProps) {
     if (status === 'uploading') {
       return t('uploadingImage', 'Uploading Image...');
     }
-    
+
     if (status === 'processing' && stage) {
       switch (stage) {
         case 'initializing':
@@ -68,7 +66,7 @@ export function OCRProgress({ onCancel }: OCRProgressProps) {
     if (status === 'uploading') {
       return 'upload-cloud';
     }
-    
+
     if (status === 'processing' && stage) {
       switch (stage) {
         case 'initializing':
@@ -106,10 +104,10 @@ export function OCRProgress({ onCancel }: OCRProgressProps) {
     <View style={[styles.container, { backgroundColor: surfaceColor }]}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
-          <Feather 
-            name={getStageIcon(state.status, state.stage) as any} 
-            size={20} 
-            color={state.hasError ? '#FF3B30' : primaryColor} 
+          <Feather
+            name={getStageIcon(state.status, state.stage) as any}
+            size={20}
+            color={state.hasError ? '#FF3B30' : primaryColor}
           />
           <Text style={[styles.title, { color: textColor }]}>
             {getStageText(state.status, state.stage)}
@@ -150,9 +148,7 @@ export function OCRProgress({ onCancel }: OCRProgressProps) {
       )}
 
       {state.hasError && state.error && (
-        <Text style={[styles.errorText, { color: '#FF3B30' }]}>
-          {state.error.userMessage}
-        </Text>
+        <Text style={[styles.errorText, { color: '#FF3B30' }]}>{state.error.userMessage}</Text>
       )}
     </View>
   );

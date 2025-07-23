@@ -116,17 +116,6 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     navigateToStep,
   } = useCameraFlow();
 
-  useEffect(() => {
-    console.log('[CameraWorkflowCoordinator] Navigation state change:', {
-      currentStep,
-      hasActiveFlow,
-      flowId: currentFlow?.id,
-      isNavigationBlocked,
-      blockReason,
-      timestamp: new Date().toISOString()
-    });
-  }, [currentStep, hasActiveFlow, currentFlow?.id, isNavigationBlocked, blockReason]);
-  
   const { backgroundColor, textColor } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
@@ -223,7 +212,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     [currentStep]
   );
 
-  const shownErrors = useRef<Set<string>>(new Set()); 
+  const shownErrors = useRef<Set<string>>(new Set());
   /**
    * Enhanced error handling
    */
@@ -231,17 +220,17 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     (error: FlowError) => {
       // Create a unique error key
       const errorKey = `${error.code}-${error.timestamp}`;
-      
+
       // Don't show the same error twice
       if (shownErrors.current.has(errorKey)) {
         console.log('[CameraWorkflowCoordinator] Duplicate error prevented:', errorKey);
         return;
       }
-      
+
       shownErrors.current.add(errorKey);
-      
+
       console.error('[CameraWorkflowCoordinator] Flow error:', error);
-  
+
       // Log error for debugging
       if (__DEV__) {
         console.log('[CameraWorkflowCoordinator] Error details:', {
@@ -253,10 +242,10 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
           timestamp: error.timestamp,
         });
       }
-  
+
       // Show user-friendly error
       const alertButtons = [];
-  
+
       if (error.retryable) {
         alertButtons.push({
           text: t('common.retry', 'Retry'),
@@ -269,7 +258,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
           },
         });
       }
-  
+
       alertButtons.push({
         text: t('common.cancel', 'Cancel'),
         style: 'destructive' as const,
@@ -280,7 +269,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
           shownErrors.current.delete(errorKey);
         },
       });
-  
+
       Alert.alert(
         t('error.title', 'Something went wrong'),
         error.userMessage || error.message,
@@ -289,13 +278,13 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
           onDismiss: () => {
             // Clear the error from shown set after dismissal
             shownErrors.current.delete(errorKey);
-          }
+          },
         }
       );
     },
     [currentFlow?.id, t, clearError, retryCurrentOperation, handleCancel]
   );
-  
+
   // Also add cleanup for shown errors when step changes:
   useEffect(() => {
     // Clear shown errors when step changes
@@ -306,53 +295,53 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
    * Navigation handlers
    */
   const handleNext = useCallback(
-  (stepData?: any) => {
-    const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
-    const nextIndex = currentIndex + 1;
+    (stepData?: any) => {
+      const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
+      const nextIndex = currentIndex + 1;
 
-    if (nextIndex < WORKFLOW_STEPS.length) {
-      const nextStep = WORKFLOW_STEPS[nextIndex];
+      if (nextIndex < WORKFLOW_STEPS.length) {
+        const nextStep = WORKFLOW_STEPS[nextIndex];
 
-      if (canNavigateToStep(nextStep.id)) {
-        console.log(
-          '[CameraWorkflowCoordinator] Navigating from',
-          currentStep,
-          'to',
-          nextStep.id
-        );
-        
-        // ✅ FIX: Actually call the navigation function
-        const result = navigateToStep(nextStep.id);
-        
-        if (!result.success) {
-          console.error('[CameraWorkflowCoordinator] Navigation failed:', result.reason);
+        if (canNavigateToStep(nextStep.id)) {
+          console.log(
+            '[CameraWorkflowCoordinator] Navigating from',
+            currentStep,
+            'to',
+            nextStep.id
+          );
+
+          // ✅ FIX: Actually call the navigation function
+          const result = navigateToStep(nextStep.id);
+
+          if (!result.success) {
+            console.error('[CameraWorkflowCoordinator] Navigation failed:', result.reason);
+            handleError({
+              step: currentStep,
+              code: 'NAVIGATION_FAILED',
+              message: result.reason || 'Navigation failed',
+              userMessage: 'Could not proceed to next step. Please try again.',
+              timestamp: Date.now(),
+              retryable: true,
+            });
+          }
+        } else {
+          console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
           handleError({
             step: currentStep,
-            code: 'NAVIGATION_FAILED',
-            message: result.reason || 'Navigation failed',
-            userMessage: 'Could not proceed to next step. Please try again.',
+            code: 'NAVIGATION_BLOCKED',
+            message: 'Cannot navigate to requested step',
+            userMessage: 'Cannot proceed to next step. Please complete the current step.',
             timestamp: Date.now(),
-            retryable: true,
+            retryable: false,
           });
         }
       } else {
-        console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
-        handleError({
-          step: currentStep,
-          code: 'NAVIGATION_BLOCKED',
-          message: 'Cannot navigate to requested step',
-          userMessage: 'Cannot proceed to next step. Please complete the current step.',
-          timestamp: Date.now(),
-          retryable: false,
-        });
+        // Workflow complete
+        console.log('[CameraWorkflowCoordinator] Workflow completed successfully');
       }
-    } else {
-      // Workflow complete
-      console.log('[CameraWorkflowCoordinator] Workflow completed successfully');
-    }
-  },
-  [currentStep, canNavigateToStep, navigateToStep, handleError] // ✅ Add navigateToStep to dependencies
-);
+    },
+    [currentStep, canNavigateToStep, navigateToStep, handleError] // ✅ Add navigateToStep to dependencies
+  );
 
   const handleBack = useCallback(() => {
     if (!canNavigateBack) {

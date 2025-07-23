@@ -104,7 +104,9 @@ export function useBackendOCR(config: UseBackendOCRConfig = {}): UseBackendOCRRe
     return () => {
       // Temporarily disable automatic cancellation to avoid React Strict Mode issues
       // The service will be cleaned up when the actual component unmounts
-      console.log('[useBackendOCR] Component unmounting (auto-cancel disabled for Strict Mode compatibility)');
+      console.log(
+        '[useBackendOCR] Component unmounting (auto-cancel disabled for Strict Mode compatibility)'
+      );
     };
   }, []);
 
@@ -139,11 +141,11 @@ export function useBackendOCR(config: UseBackendOCRConfig = {}): UseBackendOCRRe
   );
 
   // Cancellation check callback - Disabled for React Strict Mode compatibility
-const checkCancellation = useCallback(() => {
-  // Disable automatic cancellation to avoid React Strict Mode issues
-  // User can still manually cancel via UI
-  return false;
-}, []);
+  const checkCancellation = useCallback(() => {
+    // Disable automatic cancellation to avoid React Strict Mode issues
+    // User can still manually cancel via UI
+    return false;
+  }, []);
 
   // Main processing function
   const processImage = useCallback(
@@ -402,23 +404,6 @@ const checkCancellation = useCallback(() => {
         return 'Processing...';
     }
   }, [state]);
-
-  // Development logging for state changes
-  useEffect(() => {
-    if (enableLogging) {
-      console.log('[useBackendOCR] State updated:', {
-        status: state.status,
-        stage: state.stage,
-        uploadProgress: state.uploadProgress,
-        processingProgress: state.processingProgress,
-        totalProgress: state.totalProgress,
-        isProcessing: state.isProcessing,
-        hasError: state.hasError,
-        error: state.error?.code,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [state, enableLogging]);
 
   return {
     // State properties

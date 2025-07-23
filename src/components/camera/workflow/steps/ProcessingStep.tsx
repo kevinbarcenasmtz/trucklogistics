@@ -69,7 +69,7 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   // Animation refs
   const progressAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  
+
   // Track if we've started processing and if component is mounted
   const hasStartedProcessing = useRef(false);
   const isMounted = useRef(true);
@@ -78,50 +78,25 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   // Track component mount state
   useEffect(() => {
     isMounted.current = true;
-    
+
     return () => {
       isMounted.current = false;
     };
   }, []);
 
-  // Add this useEffect after your existing mount tracking
-useEffect(() => {
-  console.log('[ProcessingStep] Component mounted', {
-    flowId,
-    hasStartedProcessing: hasStartedProcessing.current,
-    isProcessing,
-    isCompleted,
-    hasError,
-    timestamp: new Date().toISOString()
-  });
-
-  return () => {
-    console.log('[ProcessingStep] Component unmounting', {
-      flowId,
-      hasStartedProcessing: hasStartedProcessing.current,
-      isProcessing,
-      isCompleted,
-      hasError,
-      shouldCancelOnUnmount: shouldCancelOnUnmount.current,
-      timestamp: new Date().toISOString(),
-      stackTrace: new Error().stack // This will show us what triggered the unmount
-    });
-  };
-}, [flowId, isProcessing, isCompleted, hasError]);
-
   // Auto-start processing on mount
   useEffect(() => {
     const startProcessing = async () => {
       const imageUri = getCurrentImage();
-      
+
       // Only start once and only if we haven't started yet
       if (imageUri && !hasStartedProcessing.current && !isProcessing && !isCompleted && !hasError) {
         hasStartedProcessing.current = true;
-        
+
         try {
           console.log('[ProcessingStep] Auto-starting processing for image:', imageUri);
           const result = await processCurrentImage();
-          
+
           // If successful and still mounted, don't cancel on unmount
           if (result.success && isMounted.current) {
             shouldCancelOnUnmount.current = false;
@@ -213,15 +188,17 @@ useEffect(() => {
   // Cleanup on unmount - only cancel if we should
   // Replace the cleanup useEffect in ProcessingStep.tsx with this simpler version:
 
-// Temporary fix: Replace the cleanup useEffect with this minimal version:
+  // Temporary fix: Replace the cleanup useEffect with this minimal version:
 
-useEffect(() => {
-  return () => {
-    // Temporarily disable automatic cancellation to avoid React Strict Mode issues
-    // User can still manually cancel via the cancel button
-    console.log('[ProcessingStep] Component unmounting (auto-cancel disabled for Strict Mode compatibility)');
-  };
-}, []);
+  useEffect(() => {
+    return () => {
+      // Temporarily disable automatic cancellation to avoid React Strict Mode issues
+      // User can still manually cancel via the cancel button
+      console.log(
+        '[ProcessingStep] Component unmounting (auto-cancel disabled for Strict Mode compatibility)'
+      );
+    };
+  }, []);
 
   /**
    * Handle manual cancellation
@@ -256,7 +233,7 @@ useEffect(() => {
       const imageUri = getCurrentImage();
       if (imageUri) {
         hasStartedProcessing.current = true;
-        
+
         if (canRetryProcessing) {
           await retryProcessing(imageUri);
         } else {

@@ -44,7 +44,7 @@ export type {
 export type { DraftComparison, FieldDifference } from '../services/camera/ReceiptDraftService';
 
 // Processing state types
-export type { ProcessingError, OptimizationMetrics, ProcessedReceipt } from '../state/ocr/types';
+export type { OptimizationMetrics, ProcessedReceipt, ProcessingError } from '../state/ocr/types';
 
 /**
  * Type utility helpers

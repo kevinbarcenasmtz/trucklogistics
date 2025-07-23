@@ -1,9 +1,9 @@
 // app/_layout.tsx
 import { AuthProvider } from '@/src/context/AuthContextMigration';
-import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { CameraFlowProvider } from '@/src/context/CameraFlowContext';
 import { OCRProcessingProvider } from '@/src/context/OCRProcessingContext';
 import { ReceiptDraftProvider } from '@/src/context/ReceiptDraftContext';
+import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';

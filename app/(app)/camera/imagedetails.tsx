@@ -39,8 +39,6 @@ export default function ImageDetailsScreen() {
       });
     }
 
-
-    
     // Add a delay before validation to allow state to sync
     const validationTimer = setTimeout(() => {
       // Only validate if we still don't have a flow after delay
@@ -129,25 +127,6 @@ export default function ImageDetailsScreen() {
     return () => clearTimeout(validationTimer);
   }, [paramFlowId, hasActiveFlow, currentFlow, currentStep, t, router]);
 
-
-  useEffect(() => {
-    console.log('[CameraRoute] Route mounted/changed:', {
-      route: 'index', // or 'imagedetails' 
-      params,
-      hasActiveFlow,
-      currentStep,
-      timestamp: new Date().toISOString()
-    });
-  
-    return () => {
-      console.log('[CameraRoute] Route unmounting:', {
-        route: 'index', // or 'imagedetails'
-        timestamp: new Date().toISOString()
-      });
-    };
-  }, [params, hasActiveFlow, currentStep]);
-
-  
   /**
    * Handle hardware back button (Android)
    */
@@ -163,16 +142,6 @@ export default function ImageDetailsScreen() {
   // Early return if no valid flow (will show loading or redirect in useEffect)
   if (!hasActiveFlow || !currentFlow) {
     return null;
-  }
-
-  // Development logging
-  if (__DEV__) {
-    console.log('[ImageDetails] Render state:', {
-      currentStep,
-      hasImage: !!currentFlow.imageUri,
-      hasOcrResult: !!currentFlow.ocrResult,
-      flowId: currentFlow.id,
-    });
   }
 
   return <CameraWorkflowCoordinator flowId={currentFlow.id} />;

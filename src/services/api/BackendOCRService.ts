@@ -210,20 +210,16 @@ export class BackendOCRService {
           length: chunkSize,
         });
 
-        // Create form data for multipart upload
+        // FIXED: React Native compatible FormData creation
         const formData = new FormData();
-        
-        // Convert base64 to blob for proper file upload
-        const byteCharacters = atob(base64Data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: 'application/octet-stream' });
-        
-        // Append chunk data
-        formData.append('chunk', blob, `chunk-${chunkIndex}`);
+
+        // React Native FormData expects an object with uri, type, and name properties
+        // No need to convert to Blob - use data URI directly
+        formData.append('chunk', {
+          uri: `data:image/jpeg;base64,${base64Data}`,
+          type: 'image/jpeg',
+          name: `chunk-${chunkIndex}.jpg`,
+        } as any);
         formData.append('uploadId', uploadId);
         formData.append('chunkIndex', chunkIndex.toString());
         formData.append('totalChunks', totalChunks.toString());
@@ -310,10 +306,7 @@ export class BackendOCRService {
   /**
    * Get job status
    */
-  async getJobStatus(
-    jobId: string,
-    options: RequestOptions = {}
-  ): Promise<JobStatusResponse> {
+  async getJobStatus(jobId: string, options: RequestOptions = {}): Promise<JobStatusResponse> {
     const correlationId = options.correlationId || this.generateCorrelationId();
 
     const response = await this.makeRequest<JobStatusResponse>(
@@ -393,10 +386,7 @@ export class BackendOCRService {
   /**
    * Cancel a job
    */
-  async cancelJob(
-    jobId: string,
-    options: RequestOptions = {}
-  ): Promise<CancelJobResponse> {
+  async cancelJob(jobId: string, options: RequestOptions = {}): Promise<CancelJobResponse> {
     const correlationId = options.correlationId || this.generateCorrelationId();
 
     const response = await this.makeRequest<CancelJobResponse>(
@@ -461,7 +451,7 @@ export class BackendOCRService {
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          
+
           throw new BackendOCRError(
             errorData.error?.code || 'API_ERROR',
             errorData.error?.message || `HTTP ${response.status}`,
@@ -491,7 +481,7 @@ export class BackendOCRService {
             this.config.retryDelay * Math.pow(2, attempt),
             this.config.maxRetryDelay
           );
-          
+
           this.logDevelopment('Retrying request', {
             endpoint,
             attempt: attempt + 1,

@@ -312,10 +312,9 @@ export class ImageOptimizer {
       reductionPercentage: result.reductionPercentage,
       processingTime,
       format: 'jpeg',
-      compressionRatio: result.reductionPercentage > 0 
-      ? (100 - result.reductionPercentage) / 100 
-      : 1.0, // Add this
-    qualityScore: 0.8,
+      compressionRatio:
+        result.reductionPercentage > 0 ? (100 - result.reductionPercentage) / 100 : 1.0, // Add this
+      qualityScore: 0.8,
     };
   }
 

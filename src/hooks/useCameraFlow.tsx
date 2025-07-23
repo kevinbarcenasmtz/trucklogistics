@@ -1,5 +1,6 @@
 // src/hooks/useCameraFlow.tsx
 
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { useCameraFlow as useCameraFlowContext } from '../context/CameraFlowContext';
 import { useOCRProcessing } from '../context/OCRProcessingContext';
@@ -9,7 +10,6 @@ import { ProcessedReceipt } from '../state/ocr/types';
 import { CameraFlowStep, FlowError } from '../types/cameraFlow';
 import { Receipt } from '../types/ReceiptInterfaces';
 import { useBackendOCR } from './useBackendOCR';
-import { useRouter } from 'expo-router';
 
 /**
  * Camera flow hook configuration
@@ -136,7 +136,6 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   // Add router hook
   const router = useRouter();
 
-
   // Service hooks
   const backendOCR = useBackendOCR({
     autoRetryAttempts: 2,
@@ -187,21 +186,6 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
     autoSaveInterval,
     enableLogging,
   ]);
-
-  // Development logging
-  useEffect(() => {
-    if (enableLogging) {
-      console.log('[useCameraFlow] State updated:', {
-        hasActiveFlow: flowContext.state.hasActiveFlow,
-        currentStep: flowContext.state.activeFlow?.currentStep,
-        isProcessing: ocrProcessingContext.state.isProcessing,
-        processingProgress: ocrProcessingContext.state.totalProgress,
-        hasDraft: receiptDraftContext.state.isInitialized,
-        isDraftDirty: receiptDraftContext.state.isDirty,
-        timestamp: new Date().toISOString(),
-      });
-    }
-  }, [flowContext.state, ocrProcessingContext.state, receiptDraftContext.state, enableLogging]);
 
   // Start new flow
   const startFlow = useCallback(
@@ -494,17 +478,17 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
           reason: 'Navigation in progress',
         };
       }
-  
+
       if (enableLogging) {
         console.log('[useCameraFlow] Attempting to navigate to step:', step);
       }
-  
+
       // Set navigation lock
       isNavigating.current = true;
-  
+
       // First update the internal state
       const success = flowContext.navigateToStep(step);
-  
+
       if (success) {
         // Get the current flow for navigation
         const currentFlow = flowContext.state.activeFlow;
@@ -517,10 +501,10 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
             reason: 'No active flow',
           };
         }
-  
+
         // Perform router navigation based on the step
         const flowId = currentFlow.id;
-        
+
         // Use requestAnimationFrame to ensure state updates are committed
         requestAnimationFrame(() => {
           switch (step) {
@@ -539,11 +523,11 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
               router.push(`/camera/report?flowId=${flowId}`);
               break;
           }
-  
+
           if (enableLogging) {
             console.log('[useCameraFlow] Router navigation completed for step:', step);
           }
-          
+
           // Clear navigation lock after a delay
           setTimeout(() => {
             isNavigating.current = false;
@@ -553,7 +537,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         // Clear lock if navigation failed
         isNavigating.current = false;
       }
-  
+
       return {
         success,
         currentStep: flowContext.state.activeFlow?.currentStep || 'capture',
@@ -562,27 +546,6 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
     },
     [flowContext, router, enableLogging]
   );
-
-  // Move this useEffect block to after navigateToStep is defined (around line 470, after the navigateToStep function)
-  useEffect(() => {
-    if (
-      enableAutoNavigation &&
-      ocrProcessingContext.state.isCompleted &&
-      flowContext.state.activeFlow?.currentStep === 'processing'
-    ) {
-      if (enableLogging) {
-        console.log('[useCameraFlow] Auto-navigating to review after processing completion');
-      }
-
-      navigateToStep('review');
-    }
-  }, [
-    enableAutoNavigation,
-    ocrProcessingContext.state.isCompleted,
-    flowContext.state.activeFlow?.currentStep,
-    enableLogging,
-    navigateToStep,
-  ]);
 
   // Navigate back
   const navigateBack = useCallback((): NavigationResult => {

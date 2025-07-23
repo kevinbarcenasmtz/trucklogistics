@@ -29,7 +29,6 @@ export default function ReportsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-
   // Function to load receipts from storage
   const loadReceipts = useCallback(async () => {
     try {
@@ -41,14 +40,12 @@ export default function ReportsScreen() {
     } finally {
       setIsLoading(false);
     }
-  },[t]);
-  
+  }, [t]);
+
   // Load receipts on initial render
   useEffect(() => {
     loadReceipts();
   }, [loadReceipts]);
-
-
 
   // Handle pull-to-refresh
   const onRefresh = useCallback(async () => {
