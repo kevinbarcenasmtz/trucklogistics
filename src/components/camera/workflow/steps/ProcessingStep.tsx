@@ -158,14 +158,18 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   useEffect(() => {
     if (isCompleted && !hasError && isMounted.current) {
       console.log('[ProcessingStep] Processing completed successfully');
+      
       // Don't cancel when navigating forward
       shouldCancelOnUnmount.current = false;
-      // Small delay to show completion state before navigating
+      
+      // The processCurrentImage() already should have updated the flow data
+      // Just add a longer delay to ensure state synchronization
       setTimeout(() => {
         if (isMounted.current) {
+          console.log('[ProcessingStep] Proceeding to next step after OCR completion');
           onNext();
         }
-      }, 500);
+      }, 300); // Increased delay for state sync
     }
   }, [isCompleted, hasError, onNext]);
 

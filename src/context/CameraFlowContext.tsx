@@ -8,8 +8,6 @@ import {
   FlowMetrics,
   FlowTransition,
 } from '../types/cameraFlow';
-// import { ProcessedReceipt } from '../state/ocr/types';
-// import { Receipt } from '../types/ReceiptInterfaces';
 
 /**
  * Camera Flow State
@@ -22,7 +20,7 @@ export interface CameraFlowState {
 
   // Flow management
   readonly flows: Record<string, CameraFlow>;
-  readonly flowHistory: string[]; // Recently used flow IDs
+  readonly flowHistory: string[]; // this is for recently used flow IDs
 
   // Navigation state
   readonly canNavigateBack: boolean;

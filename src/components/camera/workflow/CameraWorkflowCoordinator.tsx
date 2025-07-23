@@ -52,28 +52,28 @@ const WORKFLOW_STEPS: WorkflowStepConfig[] = [
     component: CaptureStep,
     canSkip: false,
     requiresActiveFlow: false,
-    allowedFromSteps: [],
+    allowedFromSteps: [], // can come from anywhere
   },
   {
     id: 'processing',
     component: ProcessingStep,
     canSkip: false,
     requiresActiveFlow: true,
-    allowedFromSteps: ['capture'],
+    allowedFromSteps: ['capture', 'review'], // Can come from capture or review (for edits)
   },
   {
     id: 'review',
     component: ReviewStep,
     canSkip: false,
     requiresActiveFlow: true,
-    allowedFromSteps: ['processing'],
+    allowedFromSteps: ['processing', 'verification'], // Can come from processing or verification (for edits)
   },
   {
     id: 'verification',
     component: VerificationStep,
     canSkip: false,
     requiresActiveFlow: true,
-    allowedFromSteps: ['review', 'verification'], // Allow self-transition for edits
+    allowedFromSteps: ['review'], // Allow self-transition for edits
   },
   {
     id: 'report',
@@ -201,15 +201,42 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
       if (!targetConfig) {
         return false;
       }
+      // Always allow going to capture
+      if (targetStep === 'capture') {
+        return true;
+      }
+
+      // Check if step requires active flow
+      if (targetConfig.requiresActiveFlow && !hasActiveFlow) {
+        return false;
+      }
 
       // Check allowed transitions
       if (targetConfig.allowedFromSteps.length > 0) {
-        return targetConfig.allowedFromSteps.includes(currentStep);
+        if (!targetConfig.allowedFromSteps.includes(currentStep)) {
+          return false;
+        }
       }
 
-      return true;
+      if (!currentFlow) {
+        return false; // No active flow means can't navigate anywhere
+      }
+
+      switch (targetStep) {
+        case 'processing':
+          return !!currentFlow.imageUri;
+        case 'review':
+          return !!currentFlow.imageUri && !!currentFlow.ocrResult;
+        case 'verification':
+          return !!currentFlow.imageUri && !!currentFlow.ocrResult;
+        case 'report':
+          return !!currentFlow.imageUri && !!currentFlow.receiptDraft;
+        default:
+          return true;
+      }
     },
-    [currentStep]
+
+    [currentStep, hasActiveFlow, currentFlow]
   );
 
   const shownErrors = useRef<Set<string>>(new Set());
@@ -302,45 +329,56 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
       if (nextIndex < WORKFLOW_STEPS.length) {
         const nextStep = WORKFLOW_STEPS[nextIndex];
 
-        if (canNavigateToStep(nextStep.id)) {
-          console.log(
-            '[CameraWorkflowCoordinator] Navigating from',
-            currentStep,
-            'to',
-            nextStep.id
-          );
+        // CRITICAL FIX: Add a small delay to ensure state is synchronized
+        // This is especially important after OCR completion
+        setTimeout(() => {
+          if (canNavigateToStep(nextStep.id)) {
+            console.log(
+              '[CameraWorkflowCoordinator] Navigating from',
+              currentStep,
+              'to',
+              nextStep.id
+            );
 
-          // ✅ FIX: Actually call the navigation function
-          const result = navigateToStep(nextStep.id);
+            const result = navigateToStep(nextStep.id);
 
-          if (!result.success) {
-            console.error('[CameraWorkflowCoordinator] Navigation failed:', result.reason);
+            if (!result.success) {
+              console.error('[CameraWorkflowCoordinator] Navigation failed:', result.reason);
+              handleError({
+                step: currentStep,
+                code: 'NAVIGATION_FAILED',
+                message: result.reason || 'Navigation failed',
+                userMessage: 'Could not proceed to next step. Please try again.',
+                timestamp: Date.now(),
+                retryable: true,
+              });
+            }
+          } else {
+            console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
+            console.warn('[CameraWorkflowCoordinator] Current flow state:', {
+              hasImage: !!currentFlow?.imageUri,
+              hasOCR: !!currentFlow?.ocrResult,
+              hasDraft: !!currentFlow?.receiptDraft,
+              currentStep,
+              targetStep: nextStep.id,
+            });
+
             handleError({
               step: currentStep,
-              code: 'NAVIGATION_FAILED',
-              message: result.reason || 'Navigation failed',
-              userMessage: 'Could not proceed to next step. Please try again.',
+              code: 'NAVIGATION_BLOCKED',
+              message: 'Cannot navigate to requested step',
+              userMessage: 'Cannot proceed to next step. Please complete the current step.',
               timestamp: Date.now(),
-              retryable: true,
+              retryable: false,
             });
           }
-        } else {
-          console.warn('[CameraWorkflowCoordinator] Navigation blocked to step:', nextStep.id);
-          handleError({
-            step: currentStep,
-            code: 'NAVIGATION_BLOCKED',
-            message: 'Cannot navigate to requested step',
-            userMessage: 'Cannot proceed to next step. Please complete the current step.',
-            timestamp: Date.now(),
-            retryable: false,
-          });
-        }
+        }, 200); // Small delay for state synchronization
       } else {
         // Workflow complete
         console.log('[CameraWorkflowCoordinator] Workflow completed successfully');
       }
     },
-    [currentStep, canNavigateToStep, navigateToStep, handleError] // ✅ Add navigateToStep to dependencies
+    [currentStep, currentFlow, canNavigateToStep, navigateToStep, handleError]
   );
 
   const handleBack = useCallback(() => {
