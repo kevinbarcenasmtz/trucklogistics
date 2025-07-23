@@ -102,15 +102,11 @@ export function useBackendOCR(config: UseBackendOCRConfig = {}): UseBackendOCRRe
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (serviceRef.current?.isCurrentlyProcessing()) {
-        serviceRef.current.cancelProcessing().catch(error => {
-          if (enableLogging) {
-            console.warn('[useBackendOCR] Cleanup cancellation failed:', error);
-          }
-        });
-      }
+      // Temporarily disable automatic cancellation to avoid React Strict Mode issues
+      // The service will be cleaned up when the actual component unmounts
+      console.log('[useBackendOCR] Component unmounting (auto-cancel disabled for Strict Mode compatibility)');
     };
-  }, [enableLogging]);
+  }, []);
 
   // Progress callback aggregator
   const handleProgress = useCallback(
@@ -142,10 +138,12 @@ export function useBackendOCR(config: UseBackendOCRConfig = {}): UseBackendOCRRe
     [enableLogging, updateUploadProgress, completeUpload, updateProcessingProgress]
   );
 
-  // Cancellation check callback
-  const checkCancellation = useCallback(() => {
-    return state.status === 'idle' && state.isProcessing === false;
-  }, [state.status, state.isProcessing]);
+  // Cancellation check callback - Disabled for React Strict Mode compatibility
+const checkCancellation = useCallback(() => {
+  // Disable automatic cancellation to avoid React Strict Mode issues
+  // User can still manually cancel via UI
+  return false;
+}, []);
 
   // Main processing function
   const processImage = useCallback(

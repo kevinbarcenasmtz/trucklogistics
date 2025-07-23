@@ -40,6 +40,24 @@ export default function CameraIndexScreen() {
     // The coordinator and useCameraFlow handle navigation now
   }, [paramFlowId, hasActiveFlow, currentStep, currentFlow?.id]);
 
+
+  useEffect(() => {
+    console.log('[CameraRoute] Route mounted/changed:', {
+      route: 'index', // or 'imagedetails' 
+      params,
+      hasActiveFlow,
+      currentStep,
+      timestamp: new Date().toISOString()
+    });
+  
+    return () => {
+      console.log('[CameraRoute] Route unmounting:', {
+        route: 'index', // or 'imagedetails'
+        timestamp: new Date().toISOString()
+      });
+    };
+  }, [params, hasActiveFlow, currentStep]);
+  
   /**
    * Handle hardware back button (Android)
    */

@@ -116,6 +116,17 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     navigateToStep,
   } = useCameraFlow();
 
+  useEffect(() => {
+    console.log('[CameraWorkflowCoordinator] Navigation state change:', {
+      currentStep,
+      hasActiveFlow,
+      flowId: currentFlow?.id,
+      isNavigationBlocked,
+      blockReason,
+      timestamp: new Date().toISOString()
+    });
+  }, [currentStep, hasActiveFlow, currentFlow?.id, isNavigationBlocked, blockReason]);
+  
   const { backgroundColor, textColor } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();

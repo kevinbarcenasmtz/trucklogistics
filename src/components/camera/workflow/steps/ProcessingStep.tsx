@@ -84,6 +84,31 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
     };
   }, []);
 
+  // Add this useEffect after your existing mount tracking
+useEffect(() => {
+  console.log('[ProcessingStep] Component mounted', {
+    flowId,
+    hasStartedProcessing: hasStartedProcessing.current,
+    isProcessing,
+    isCompleted,
+    hasError,
+    timestamp: new Date().toISOString()
+  });
+
+  return () => {
+    console.log('[ProcessingStep] Component unmounting', {
+      flowId,
+      hasStartedProcessing: hasStartedProcessing.current,
+      isProcessing,
+      isCompleted,
+      hasError,
+      shouldCancelOnUnmount: shouldCancelOnUnmount.current,
+      timestamp: new Date().toISOString(),
+      stackTrace: new Error().stack // This will show us what triggered the unmount
+    });
+  };
+}, [flowId, isProcessing, isCompleted, hasError]);
+
   // Auto-start processing on mount
   useEffect(() => {
     const startProcessing = async () => {
@@ -186,20 +211,17 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   }, [hasError, error, onError]);
 
   // Cleanup on unmount - only cancel if we should
-  useEffect(() => {
-    return () => {
-      // Only cancel if we're actually leaving the processing flow
-      // Don't cancel if we're just switching routes but staying in processing
-      if (shouldCancelOnUnmount.current && isProcessing && canCancel) {
-        console.log('[ProcessingStep] Component unmounting with active processing, cancelling');
-        cancelProcessing().catch(error => {
-          console.warn('[ProcessingStep] Cleanup cancellation failed:', error);
-        });
-      } else if (!shouldCancelOnUnmount.current) {
-        console.log('[ProcessingStep] Component unmounting but not cancelling (navigation forward)');
-      }
-    };
-  }, [isProcessing, canCancel, cancelProcessing]);
+  // Replace the cleanup useEffect in ProcessingStep.tsx with this simpler version:
+
+// Temporary fix: Replace the cleanup useEffect with this minimal version:
+
+useEffect(() => {
+  return () => {
+    // Temporarily disable automatic cancellation to avoid React Strict Mode issues
+    // User can still manually cancel via the cancel button
+    console.log('[ProcessingStep] Component unmounting (auto-cancel disabled for Strict Mode compatibility)');
+  };
+}, []);
 
   /**
    * Handle manual cancellation
