@@ -4,13 +4,12 @@ import { OCRProcessingProvider } from '@/src/context/OCRProcessingContext';
 import { ReceiptDraftProvider } from '@/src/context/ReceiptDraftContext';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
+import '@/src/i18n';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Platform, View } from 'react-native';
 import 'react-native-gesture-handler';
-// Import i18n config to initialize it
-import '@/src/i18n';
 import '../src/config/firebaseMigration';
 
 // Theme-aware stack navigator
@@ -56,7 +55,7 @@ function ThemedStack(): JSX.Element {
   );
 }
 
-// Root layout with providers - Phase 3 Update
+// Root layout with providers
 export default function RootLayout(): JSX.Element {
   // Initialize any app-wide services here
   useEffect(() => {
@@ -67,7 +66,6 @@ export default function RootLayout(): JSX.Element {
   return (
     <ThemeProvider>
       <AuthProvider>
-        {/* ✅ REMOVED: CameraFlowProvider - Using Zustand store instead */}
         <OCRProcessingProvider>
           <ReceiptDraftProvider>
             <ThemedStack />

@@ -28,8 +28,8 @@ export function CameraNavigationGuard({ targetStep, children }: NavigationGuardP
  * Pure function - easy to test and reason about
  */
 function calculateNavigationState(
-  targetStep: CameraFlowStep, 
-  activeFlow: any, 
+  targetStep: CameraFlowStep,
+  activeFlow: any,
   canNavigateToStep: (step: CameraFlowStep) => boolean
 ) {
   // Capture step is always allowed

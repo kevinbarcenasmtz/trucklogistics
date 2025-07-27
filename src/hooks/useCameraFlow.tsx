@@ -9,7 +9,7 @@ import { ProcessedReceipt } from '../state/ocr/types';
 import { useCameraFlow as useCameraFlowStore } from '../store/cameraFlowStore';
 import { CameraFlowStep, FlowError } from '../types/cameraFlow';
 import { Receipt } from '../types/ReceiptInterfaces';
-import { useBackendOCR, ProcessingResult } from './useBackendOCR';
+import { ProcessingResult, useBackendOCR } from './useBackendOCR';
 
 /**
  * Camera flow hook configuration
@@ -135,49 +135,54 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   const isNavigating = useRef(false);
 
   // Draft service instance - Fixed: Only use valid ValidationConfig properties
-  const draftServiceRef = useRef(new ReceiptDraftService({
-    requiredFields: ['date', 'type', 'amount', 'vehicle'],
-    amountMinimum: 0.01,
-    amountMaximum: 999999.99,
-    dateRangeMonths: 12,
-    locationMaxLength: 100,
-    vendorNameMaxLength: 100,
-  }));
+  const draftServiceRef = useRef(
+    new ReceiptDraftService({
+      requiredFields: ['date', 'type', 'amount', 'vehicle'],
+      amountMinimum: 0.01,
+      amountMaximum: 999999.99,
+      dateRangeMonths: 12,
+      locationMaxLength: 100,
+      vendorNameMaxLength: 100,
+    })
+  );
 
   // Start flow - pure store operation
-  const startFlow = useCallback(async (imageUri: string): Promise<FlowOperationResult> => {
-    try {
-      if (enableLogging) {
-        console.log('[useCameraFlow] Starting new flow with imageUri:', !!imageUri);
-      }
+  const startFlow = useCallback(
+    async (imageUri: string): Promise<FlowOperationResult> => {
+      try {
+        if (enableLogging) {
+          console.log('[useCameraFlow] Starting new flow with imageUri:', !!imageUri);
+        }
 
-      const newFlow = await store.startFlow(imageUri);
-      
-      return {
-        success: true,
-        flowId: newFlow.id,
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to start flow';
-      
-      if (enableLogging) {
-        console.error('[useCameraFlow] Start flow failed:', error);
-      }
+        const newFlow = await store.startFlow(imageUri);
 
-      return {
-        success: false,
-        error: errorMessage,
-      };
-    }
-  }, [store, enableLogging]);
+        return {
+          success: true,
+          flowId: newFlow.id,
+        };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to start flow';
+
+        if (enableLogging) {
+          console.error('[useCameraFlow] Start flow failed:', error);
+        }
+
+        return {
+          success: false,
+          error: errorMessage,
+        };
+      }
+    },
+    [store, enableLogging]
+  );
 
   // Process current image
   const processCurrentImage = useCallback(async (): Promise<FlowProcessingResult> => {
     if (!store.activeFlow) {
-      return { 
-        success: false, 
+      return {
+        success: false,
         flowId: '',
-        error: 'No active flow'
+        error: 'No active flow',
       };
     }
 
@@ -187,11 +192,11 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       }
 
       const result: ProcessingResult = await backendOCR.processImage(store.activeFlow.imageUri);
-      
+
       if (result.processedReceipt) {
         // Update store with OCR result
         store.updateFlow({ ocrResult: result.processedReceipt });
-        
+
         // Initialize draft from processed data
         const draft = draftServiceRef.current.createDraftFromProcessedData(result.processedReceipt);
         receiptDraftContext.initializeDraft(result.processedReceipt, draft);
@@ -262,7 +267,9 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       receiptDraftContext.startSave();
 
       // Transform draft to final receipt
-      const finalReceipt = draftServiceRef.current.transformToFinalReceipt(receiptDraftContext.state.draft);
+      const finalReceipt = draftServiceRef.current.transformToFinalReceipt(
+        receiptDraftContext.state.draft
+      );
 
       // Simulate save (replace with actual API call)
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -344,34 +351,37 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   }, [store, receiptDraftContext, saveCurrentReceipt, enableLogging]);
 
   // Cancel flow
-  const cancelFlow = useCallback(async (reason?: string): Promise<void> => {
-    try {
-      if (enableLogging) {
-        console.log('[useCameraFlow] Cancelling flow:', { reason });
-      }
+  const cancelFlow = useCallback(
+    async (reason?: string): Promise<void> => {
+      try {
+        if (enableLogging) {
+          console.log('[useCameraFlow] Cancelling flow:', { reason });
+        }
 
-      // Cancel any active processing
-      if (ocrProcessingContext.state.isProcessing) {
-        await backendOCR.cancelProcessing();
-      }
+        // Cancel any active processing
+        if (ocrProcessingContext.state.isProcessing) {
+          await backendOCR.cancelProcessing();
+        }
 
-      // Cancel flow in store
-      store.cancelFlow();
+        // Cancel flow in store
+        store.cancelFlow();
 
-      // Reset all contexts
-      ocrProcessingContext.resetProcessing();
-      receiptDraftContext.clearDraft();
+        // Reset all contexts
+        ocrProcessingContext.resetProcessing();
+        receiptDraftContext.clearDraft();
 
-      if (enableLogging) {
-        console.log('[useCameraFlow] Flow cancelled successfully');
+        if (enableLogging) {
+          console.log('[useCameraFlow] Flow cancelled successfully');
+        }
+      } catch (error) {
+        if (enableLogging) {
+          console.error('[useCameraFlow] Cancel flow failed:', error);
+        }
+        // Don't throw - cancellation should always succeed from user perspective
       }
-    } catch (error) {
-      if (enableLogging) {
-        console.error('[useCameraFlow] Cancel flow failed:', error);
-      }
-      // Don't throw - cancellation should always succeed from user perspective
-    }
-  }, [store, ocrProcessingContext, receiptDraftContext, backendOCR, enableLogging]);
+    },
+    [store, ocrProcessingContext, receiptDraftContext, backendOCR, enableLogging]
+  );
 
   // Reset flow
   const resetFlow = useCallback(() => {
@@ -385,61 +395,64 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   }, [store, ocrProcessingContext, receiptDraftContext, enableLogging]);
 
   // Navigate to step - pure calculation, no useEffect
-  const navigateToStep = useCallback((step: CameraFlowStep): NavigationResult => {
-    if (isNavigating.current) {
-      console.warn('[useCameraFlow] Navigation already in progress');
-      return {
-        success: false,
-        currentStep: store.activeFlow?.currentStep || 'capture',
-        reason: 'Navigation in progress',
-      };
-    }
+  const navigateToStep = useCallback(
+    (step: CameraFlowStep): NavigationResult => {
+      if (isNavigating.current) {
+        console.warn('[useCameraFlow] Navigation already in progress');
+        return {
+          success: false,
+          currentStep: store.activeFlow?.currentStep || 'capture',
+          reason: 'Navigation in progress',
+        };
+      }
 
-    if (enableLogging) {
-      console.log('[useCameraFlow] Attempting to navigate to step:', step);
-    }
+      if (enableLogging) {
+        console.log('[useCameraFlow] Attempting to navigate to step:', step);
+      }
 
-    // Set navigation lock
-    isNavigating.current = true;
+      // Set navigation lock
+      isNavigating.current = true;
 
-    // Check if navigation is allowed
-    if (!store.canNavigateToStep(step)) {
+      // Check if navigation is allowed
+      if (!store.canNavigateToStep(step)) {
+        isNavigating.current = false;
+        return {
+          success: false,
+          currentStep: store.activeFlow?.currentStep || 'capture',
+          reason: 'Navigation not allowed',
+        };
+      }
+
+      // Update store step
+      store.updateFlow({ currentStep: step });
+      store.recordTransition(step, 'user_action');
+
+      // Perform router navigation
+      switch (step) {
+        case 'capture':
+          router.push('/camera');
+          break;
+        case 'processing':
+        case 'review':
+          router.push(`/camera/imagedetails?flowId=${store.activeFlow?.id}`);
+          break;
+        case 'verification':
+          router.push(`/camera/verification?flowId=${store.activeFlow?.id}`);
+          break;
+        case 'report':
+          router.push(`/camera/report?flowId=${store.activeFlow?.id}`);
+          break;
+      }
+
       isNavigating.current = false;
+
       return {
-        success: false,
-        currentStep: store.activeFlow?.currentStep || 'capture',
-        reason: 'Navigation not allowed',
+        success: true,
+        currentStep: step,
       };
-    }
-
-    // Update store step
-    store.updateFlow({ currentStep: step });
-    store.recordTransition(step, 'user_action');
-
-    // Perform router navigation
-    switch (step) {
-      case 'capture':
-        router.push('/camera');
-        break;
-      case 'processing':
-      case 'review':
-        router.push(`/camera/imagedetails?flowId=${store.activeFlow?.id}`);
-        break;
-      case 'verification':
-        router.push(`/camera/verification?flowId=${store.activeFlow?.id}`);
-        break;
-      case 'report':
-        router.push(`/camera/report?flowId=${store.activeFlow?.id}`);
-        break;
-    }
-
-    isNavigating.current = false;
-
-    return {
-      success: true,
-      currentStep: step,
-    };
-  }, [store, router, enableLogging]);
+    },
+    [store, router, enableLogging]
+  );
 
   // Navigate back - simple calculation
   const navigateBack = useCallback((): NavigationResult => {
@@ -451,9 +464,15 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       };
     }
 
-    const stepOrder: CameraFlowStep[] = ['capture', 'processing', 'review', 'verification', 'report'];
+    const stepOrder: CameraFlowStep[] = [
+      'capture',
+      'processing',
+      'review',
+      'verification',
+      'report',
+    ];
     const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
-    
+
     if (currentIndex <= 0) {
       return {
         success: false,
@@ -466,7 +485,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
     return navigateToStep(previousStep);
   }, [store, navigateToStep]);
 
-  // Navigate next - simple calculation  
+  // Navigate next - simple calculation
   const navigateNext = useCallback((): NavigationResult => {
     if (!store.activeFlow) {
       return {
@@ -476,9 +495,15 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
       };
     }
 
-    const stepOrder: CameraFlowStep[] = ['capture', 'processing', 'review', 'verification', 'report'];
+    const stepOrder: CameraFlowStep[] = [
+      'capture',
+      'processing',
+      'review',
+      'verification',
+      'report',
+    ];
     const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
-    
+
     if (currentIndex >= stepOrder.length - 1) {
       return {
         success: false,
@@ -493,8 +518,14 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
 
   // Pure calculation functions
   const getCurrentImage = useCallback(() => store.activeFlow?.imageUri, [store.activeFlow]);
-  const getCurrentProcessedData = useCallback(() => store.activeFlow?.ocrResult, [store.activeFlow]);
-  const getCurrentDraft = useCallback(() => receiptDraftContext.state.draft, [receiptDraftContext.state.draft]);
+  const getCurrentProcessedData = useCallback(
+    () => store.activeFlow?.ocrResult,
+    [store.activeFlow]
+  );
+  const getCurrentDraft = useCallback(
+    () => receiptDraftContext.state.draft,
+    [receiptDraftContext.state.draft]
+  );
   const getFlowMetrics = useCallback(() => store.activeFlow?.metrics, [store.activeFlow]);
 
   const clearError = useCallback(() => {
@@ -521,7 +552,13 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   const getStepProgress = useCallback((): number => {
     if (!store.activeFlow) return 0;
 
-    const stepOrder: CameraFlowStep[] = ['capture', 'processing', 'review', 'verification', 'report'];
+    const stepOrder: CameraFlowStep[] = [
+      'capture',
+      'processing',
+      'review',
+      'verification',
+      'report',
+    ];
     const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
     return ((currentIndex + 1) / stepOrder.length) * 100;
   }, [store.activeFlow]);
