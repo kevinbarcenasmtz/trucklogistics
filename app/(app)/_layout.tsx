@@ -16,6 +16,7 @@ export default function TabLayout() {
     borderColor,
     themeStyles,
     isDarkTheme,
+    backgroundColor,
   } = useAppTheme();
 
   return (
@@ -85,7 +86,7 @@ export default function TabLayout() {
               style={{
                 width: moderateScale(32),
                 height: moderateScale(32),
-                tintColor: textColor, // ✅ Using textColor from hook
+                tintColor: backgroundColor,
               }}
             />
           ),

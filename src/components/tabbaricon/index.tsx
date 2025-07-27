@@ -1,7 +1,7 @@
 // src/components/TabBarIcon.tsx
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { useTheme } from '../../context/ThemeContext';
+import { useAppTheme } from '../../hooks/useAppTheme';
 
 interface TabBarIconProps {
   focused: boolean;
@@ -14,10 +14,9 @@ export const TabBarIcon = ({
   focused,
   name,
   iconSource,
-  size = moderateScale(26), // Increased base size
+  size = moderateScale(26),
 }: TabBarIconProps) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { themeStyles } = useAppTheme();
 
   return (
     <View style={[styles.tabIconContainer, focused && styles.tabIconContainerActive]}>
@@ -42,7 +41,7 @@ export const TabBarIcon = ({
         ]}
         numberOfLines={1}
         ellipsizeMode="tail"
-        maxFontSizeMultiplier={1} // Prevents text scaling from accessibility settings
+        maxFontSizeMultiplier={1}
       >
         {name}
       </Text>
@@ -56,8 +55,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: verticalScale(12),
     gap: verticalScale(6),
-    width: horizontalScale(50), // Narrower width
-    height: verticalScale(45), // Control total height
+    width: horizontalScale(50),
+    height: verticalScale(45),
   },
   tabIconContainerActive: {
     transform: [{ scale: 1.1 }],
@@ -70,7 +69,7 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(2),
     fontWeight: '500',
     textAlign: 'center',
-    lineHeight: moderateScale(11), // Tight line height
+    lineHeight: moderateScale(11),
     maxWidth: '100%',
     // Color applied inline
   },

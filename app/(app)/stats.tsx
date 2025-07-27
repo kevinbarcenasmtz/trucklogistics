@@ -1,6 +1,6 @@
 // app/(app)/stats.tsx
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
@@ -34,8 +34,7 @@ interface PerformanceData {
 export default function StatsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { theme, isDarkTheme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { themeStyles, isDarkTheme } = useAppTheme();
 
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [isLoading, setIsLoading] = useState(false);

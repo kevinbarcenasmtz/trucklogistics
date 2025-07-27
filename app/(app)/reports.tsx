@@ -1,7 +1,7 @@
 // app/(app)/reports.tsx
-import { useTheme } from '@/src/context/ThemeContext';
+import { useAppTheme } from '@/src/hooks/useAppTheme'; // Fix: Replace ThemeContext import
 import { DocumentStorage } from '@/src/services/DocumentStorage';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Receipt } from '@/src/types/ReceiptInterfaces';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -22,8 +22,7 @@ import {
 export default function ReportsScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { themeStyles } = useAppTheme(); // Fix: Use useAppTheme instead of useTheme
 
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [isLoading, setIsLoading] = useState(true);

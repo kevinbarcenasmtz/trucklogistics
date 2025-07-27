@@ -2,7 +2,6 @@
 import { AuthProvider } from '@/src/context/AuthContextMigration';
 import { OCRProcessingProvider } from '@/src/context/OCRProcessingContext';
 import { ReceiptDraftProvider } from '@/src/context/ReceiptDraftContext';
-import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import '@/src/i18n';
 import { Stack } from 'expo-router';
@@ -14,8 +13,7 @@ import '../src/config/firebaseMigration';
 
 // Theme-aware stack navigator
 function ThemedStack(): JSX.Element {
-  const { isDarkTheme } = useTheme();
-  const { backgroundColor, textColor } = useAppTheme();
+  const { isDarkTheme, backgroundColor, textColor } = useAppTheme();
 
   return (
     <View
@@ -55,7 +53,7 @@ function ThemedStack(): JSX.Element {
   );
 }
 
-// Root layout with providers
+// Root layout with providers (no ThemeProvider needed)
 export default function RootLayout(): JSX.Element {
   // Initialize any app-wide services here
   useEffect(() => {
@@ -64,14 +62,12 @@ export default function RootLayout(): JSX.Element {
   }, []);
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <OCRProcessingProvider>
-          <ReceiptDraftProvider>
-            <ThemedStack />
-          </ReceiptDraftProvider>
-        </OCRProcessingProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <AuthProvider>
+      <OCRProcessingProvider>
+        <ReceiptDraftProvider>
+          <ThemedStack />
+        </ReceiptDraftProvider>
+      </OCRProcessingProvider>
+    </AuthProvider>
   );
 }

@@ -15,9 +15,3 @@ declare module 'expo-router' {
     // Example: "settings": { section?: string };
   }
 }
-
-// REMOVED LEGACY ROUTE DECLARATIONS:
-// ❌ Complex route params with JSON serialization
-// ❌ OCR-specific route parameters
-// ❌ Legacy camera stack declarations
-// ❌ Unused route param interfaces

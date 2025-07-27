@@ -160,6 +160,3 @@ export interface CameraNavigationGuardProps {
   /** Block navigation callback */
   onNavigationBlocked?: (reason: string) => void;
 }
-
-// Remove deprecated prop types
-// OLD: OCRStepProps, OCRContextProps, NavigationProps with JSON data

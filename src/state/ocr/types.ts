@@ -58,11 +58,3 @@ export interface ProcessingError {
   readonly timestamp: number;
   readonly context?: Record<string, any>;
 }
-
-// REMOVED ALL LEGACY TYPES:
-// ❌ OCRAction - replaced by context-specific actions
-// ❌ OCRState - replaced by context-specific states
-// ❌ OCRStateWithContext - no longer needed with new architecture
-// ❌ ERROR_CODES - moved to context-specific error handling
-// ❌ OCRContextValue - replaced by specific context values
-// ❌ Legacy processing types that used JSON serialization

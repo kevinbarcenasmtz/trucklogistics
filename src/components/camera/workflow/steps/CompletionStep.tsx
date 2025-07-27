@@ -5,26 +5,96 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import { BaseCameraStepProps } from '../../../../types/component_props';
 import { Receipt } from '../../../../types/ReceiptInterfaces';
-import { SectionContainer } from '../../CameraUIComponents'; // Import SectionContainer from correct source
+import { SectionContainer } from '../../CameraUIComponents';
 import {
   ActionCard,
   Divider,
   RawTextSection,
   ReceiptContent,
   ReceiptHeader,
-} from '../../ReportComponents'; // Import other components from ReportComponents
+} from '../../ReportComponents';
 import StepTransition from '../StepTransition';
 
 /**
- * CompletionStep Component - Final step showing completed receipt
- * Migrated to use camera flow state exclusively
+ * Action Button Component - extracted from complex conditional logic
+ */
+const ActionButton: React.FC<{
+  onPress: () => Promise<void>;
+  icon: string;
+  text: string;
+  variant: 'primary' | 'secondary';
+  loading?: boolean;
+  testID?: string;
+}> = ({ onPress, icon, text, variant, loading = false, testID }) => {
+  const { primaryColor } = useAppTheme();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const handlePress = useCallback(async () => {
+    if (isProcessing || loading) return;
+
+    setIsProcessing(true);
+    try {
+      await onPress();
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [onPress, isProcessing, loading]);
+
+  const isButtonLoading = isProcessing || loading;
+  const buttonStyle = variant === 'primary' ? styles.primaryButton : styles.secondaryButton;
+  const textStyle = variant === 'primary' ? styles.primaryButtonText : styles.secondaryButtonText;
+  const iconColor = variant === 'primary' ? '#FFFFFF' : primaryColor;
+
+  return (
+    <TouchableOpacity
+      style={[buttonStyle, isButtonLoading && styles.buttonDisabled]}
+      onPress={handlePress}
+      disabled={isButtonLoading}
+      testID={testID}
+    >
+      <MaterialIcons name={icon as any} size={20} color={iconColor} />
+      <Text style={textStyle}>{isButtonLoading ? '...' : text}</Text>
+    </TouchableOpacity>
+  );
+};
+
+/**
+ * Processing Summary Component - extracted from conditional rendering
+ */
+const ProcessingSummary: React.FC<{
+  flowMetrics: any;
+  processedData: any;
+  t: any; // Change from custom type to any to match TFunction
+}> = ({ flowMetrics, processedData, t }) => {
+  if (!flowMetrics) return null;
+
+  const totalTime = flowMetrics.totalDuration || 0;
+  const confidence = processedData?.confidence || 0;
+
+  return (
+    <View style={styles.summaryContainer}>
+      <Text style={styles.summaryTitle}>
+        {t('completion.processingSummary', 'Processing Summary')}
+      </Text>
+      <Text style={styles.summaryText}>
+        {t('completion.processedIn', 'Processed in {{time}}ms with {{confidence}}% confidence', {
+          time: Math.round(totalTime),
+          confidence: Math.round(confidence * 100),
+        })}
+      </Text>
+    </View>
+  );
+};
+
+/**
+ * CompletionStep Component - simplified with extracted logic
  */
 export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   flowId,
@@ -41,27 +111,16 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
     getFlowMetrics,
     completeFlow,
     resetFlow,
-    // Removed currentFlow - it was unused
   } = useCameraFlow();
 
-  const {
-    backgroundColor,
-    surfaceColor,
-    textColor,
-    secondaryTextColor,
-    primaryColor,
-    borderColor,
-    successColor,
-  } = useAppTheme();
+  const { backgroundColor, textColor, successColor } = useAppTheme();
 
   const { t } = useTranslation();
   const router = useRouter();
 
-  // Local UI state
-  const [shareLoading, setShareLoading] = useState(false);
-  const [statusUpdating, setStatusUpdating] = useState(false);
+  // Only keep truly reactive UI state
+  const [shareLoading] = useState(false);
   const [showFullText, setShowFullText] = useState(false);
-  const [completionAnimationShown, setCompletionAnimationShown] = useState(false);
 
   // Get data from flow state
   const receipt = getCurrentDraft();
@@ -69,190 +128,29 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   const processedData = getCurrentProcessedData();
   const flowMetrics = getFlowMetrics();
 
-  // Move styles declaration here to fix hoisting issue
-  const styles = StyleSheet.create({
-    container: {
-      flex: 1,
+  // Pure functions for formatting - no useState needed
+  const formatDate = useCallback(
+    (date?: string): string => {
+      if (!date) return t('completion.dateNotAvailable', 'Date not available');
+      try {
+        return new Date(date).toLocaleDateString();
+      } catch {
+        return date;
+      }
     },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20,
-    },
-    loadingText: {
-      fontSize: 16,
-      textAlign: 'center',
-    },
-    header: {
-      alignItems: 'center',
-      padding: 24,
-      backgroundColor: surfaceColor,
-      borderBottomLeftRadius: 20,
-      borderBottomRightRadius: 20,
-    },
-    successIcon: {
-      marginBottom: 16,
-    },
-    headerTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: textColor,
-      textAlign: 'center',
-      marginBottom: 8,
-    },
-    headerSubtitle: {
-      fontSize: 16,
-      color: secondaryTextColor,
-      textAlign: 'center',
-      opacity: 0.8,
-    },
-    scrollView: {
-      flex: 1,
-    },
-    scrollContent: {
-      padding: 16,
-    },
-    section: {
-      backgroundColor: surfaceColor,
-      borderRadius: 12,
-      marginBottom: 16,
-      padding: 16,
-    },
-    summaryContainer: {
-      marginBottom: 16,
-      padding: 12,
-      backgroundColor: surfaceColor,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: successColor,
-    },
-    summaryTitle: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: successColor,
-      marginBottom: 8,
-    },
-    summaryText: {
-      fontSize: 12,
-      color: secondaryTextColor,
-      lineHeight: 16,
-    },
-    buttonContainer: {
-      padding: 20,
-      backgroundColor: surfaceColor,
-      borderTopWidth: 1,
-      borderTopColor: borderColor,
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-    },
-    buttonRow: {
-      flexDirection: 'row',
-      gap: 12,
-      marginBottom: 12,
-    },
-    primaryButton: {
-      flex: 1,
-      backgroundColor: primaryColor,
-      paddingVertical: 15,
-      borderRadius: 8,
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    primaryButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: '#FFFFFF',
-    },
-    secondaryButton: {
-      flex: 1,
-      backgroundColor: 'transparent',
-      paddingVertical: 15,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: primaryColor,
-      alignItems: 'center',
-      flexDirection: 'row',
-      justifyContent: 'center',
-      gap: 8,
-    },
-    secondaryButtonText: {
-      fontSize: 16,
-      fontWeight: '600',
-      color: primaryColor,
-    },
-    bottomSpacing: {
-      height: 80, // Space for button container
-    },
-  });
+    [t]
+  );
 
-  // Validate required data
-  useEffect(() => {
-    if (!receipt) {
-      onError({
-        step: 'report',
-        code: 'MISSING_RECEIPT_DATA',
-        message: 'Receipt data not available',
-        userMessage: 'No receipt data to display. Please complete the verification step.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
-    }
-  }, [receipt, onError]);
-
-  // Show completion animation once
-  useEffect(() => {
-    if (receipt && !completionAnimationShown) {
-      setCompletionAnimationShown(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {
-        // Ignore haptic errors
-      });
-    }
-  }, [receipt, completionAnimationShown]);
-
-  // Early return if no receipt data
-  if (!receipt) {
-    return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]} testID={testID}>
-        <View style={styles.loadingContainer}>
-          <Text style={[styles.loadingText, { color: textColor }]}>
-            {t('completion.loading', 'Loading receipt data...')}
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  /**
-   * Format date for display
-   */
-  const formatDate = (date?: string): string => {
-    if (!date) return t('completion.dateNotAvailable', 'Date not available');
-    try {
-      return new Date(date).toLocaleDateString();
-    } catch {
-      return date;
-    }
-  };
-
-  /**
-   * Format time for display
-   */
-  const formatTime = (date?: string): string => {
+  const formatTime = useCallback((date?: string): string => {
     if (!date) return '';
     try {
       return new Date(date).toLocaleTimeString();
     } catch {
       return '';
     }
-  };
+  }, []);
 
-  /**
-   * Get icon for receipt type
-   */
-  const getReceiptTypeIcon = (type?: string): string => {
+  const getReceiptTypeIcon = useCallback((type?: string): string => {
     switch (type) {
       case 'Fuel':
         return 'local-gas-station';
@@ -261,24 +159,97 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       default:
         return 'receipt';
     }
-  };
+  }, []);
 
-  /**
-   * Handle completion and navigation to home
-   */
-  const handleDone = async () => {
+  // Explicit functions instead of useState for status updates
+  const handleApproveDocument = useCallback(async () => {
+    if (!receipt) return;
+
+    try {
+      console.log('[CompletionStep] Updating receipt status to approved');
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      const updatedReceipt: Receipt = {
+        ...receipt,
+        status: 'Approved',
+        timestamp: new Date().toISOString(),
+      };
+
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[CompletionStep] Receipt status updated successfully:', updatedReceipt.status);
+    } catch (error) {
+      console.error('[CompletionStep] Failed to update status:', error);
+      Alert.alert(
+        t('completion.statusErrorTitle', 'Status Update Error'),
+        t('completion.statusErrorMessage', 'Failed to update receipt status. Please try again.')
+      );
+    }
+  }, [receipt, t]);
+
+  const generateShareMessage = useCallback(
+    (receipt: Receipt): string => {
+      const parts = [
+        `${t('completion.shareReceiptFor', 'Receipt for')}: ${receipt.vendorName || t('completion.unknownVendor', 'Unknown Vendor')}`,
+        `${t('completion.shareAmount', 'Amount')}: ${receipt.amount}`,
+        `${t('completion.shareDate', 'Date')}: ${formatDate(receipt.date)}`,
+        `${t('completion.shareVehicle', 'Vehicle')}: ${receipt.vehicle}`,
+        `${t('completion.shareType', 'Type')}: ${receipt.type}`,
+      ];
+
+      if (receipt.location) {
+        parts.push(`${t('completion.shareLocation', 'Location')}: ${receipt.location}`);
+      }
+
+      parts.push('', t('completion.shareGeneratedBy', 'Generated by TruckLogistics'));
+      return parts.join('\n');
+    },
+    [t, formatDate]
+  );
+
+  const handleShareDocument = useCallback(async () => {
+    if (!receipt) return;
+
+    try {
+      console.log('[CompletionStep] Sharing receipt document');
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        Alert.alert(
+          t('completion.shareErrorTitle', 'Share Error'),
+          t('completion.shareNotAvailable', 'Sharing is not available on this device.')
+        );
+        return;
+      }
+
+      if (imageUri) {
+        await Sharing.shareAsync(imageUri, {
+          mimeType: 'image/jpeg',
+          dialogTitle: t('completion.shareTitle', 'Receipt Report'),
+        });
+      } else {
+        const shareContent = generateShareMessage(receipt);
+        Alert.alert(t('completion.shareTitle', 'Receipt Report'), shareContent);
+      }
+
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      console.log('[CompletionStep] Receipt shared successfully');
+    } catch (error) {
+      console.error('[CompletionStep] Share failed:', error);
+      Alert.alert(
+        t('completion.shareErrorTitle', 'Share Error'),
+        t('completion.shareErrorMessage', 'Failed to share receipt. Please try again.')
+      );
+    }
+  }, [receipt, imageUri, t, generateShareMessage]);
+
+  const handleDone = useCallback(async () => {
     try {
       console.log('[CompletionStep] Completing flow and navigating to home');
-
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Complete the flow with proper cleanup
       const result = await completeFlow();
-
       if (result.success) {
         console.log('[CompletionStep] Flow completed successfully');
-
-        // Navigate to home
         router.replace('/home');
       } else {
         throw new Error(result.error || 'Failed to complete flow');
@@ -294,25 +265,16 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
         retryable: true,
       });
     }
-  };
+  }, [completeFlow, router, onError]);
 
-  /**
-   * Handle starting new scan
-   */
-  const handleNewScan = async () => {
+  const handleNewScan = useCallback(async () => {
     try {
       console.log('[CompletionStep] Starting new scan');
-
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      // Complete current flow first
       const result = await completeFlow();
-
       if (result.success) {
-        // Reset flow state for new session
         resetFlow();
-
-        // Navigate to camera capture
         router.replace('/camera');
       } else {
         throw new Error(result.error || 'Failed to complete current flow');
@@ -328,135 +290,26 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
         retryable: true,
       });
     }
-  };
+  }, [completeFlow, resetFlow, router, onError]);
 
-  /**
-   * Handle sharing receipt
-   */
-  const handleShareDocument = async () => {
-    if (!receipt) return;
-
-    try {
-      setShareLoading(true);
-      console.log('[CompletionStep] Sharing receipt document');
-
-      // Check if sharing is available
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert(
-          t('completion.shareErrorTitle', 'Share Error'),
-          t('completion.shareNotAvailable', 'Sharing is not available on this device.')
-        );
-        return;
-      }
-
-      // Share the image if available, otherwise share text content
-      if (imageUri) {
-        await Sharing.shareAsync(imageUri, {
-          mimeType: 'image/jpeg',
-          dialogTitle: t('completion.shareTitle', 'Receipt Report'),
-        });
-      } else {
-        // Create a text file with receipt content
-        const shareContent = generateShareMessage(receipt);
-        // Note: For text sharing, you might need to create a temporary file
-        // or use a different sharing method depending on your requirements
-        console.log('Share content:', shareContent);
-        Alert.alert(t('completion.shareTitle', 'Receipt Report'), shareContent);
-      }
-
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      console.log('[CompletionStep] Receipt shared successfully');
-    } catch (error) {
-      console.error('[CompletionStep] Share failed:', error);
-      Alert.alert(
-        t('completion.shareErrorTitle', 'Share Error'),
-        t('completion.shareErrorMessage', 'Failed to share receipt. Please try again.')
-      );
-    } finally {
-      setShareLoading(false);
-    }
-  };
-
-  /**
-   * Handle approving document status
-   */
-  const handleApproveDocument = async () => {
-    if (!receipt) return;
-
-    try {
-      setStatusUpdating(true);
-      console.log('[CompletionStep] Updating receipt status to approved');
-
-      // Create updated receipt with approved status
-      const updatedReceipt: Receipt = {
-        ...receipt,
-        status: 'Approved',
-        timestamp: new Date().toISOString(),
-      };
-
-      // Here you would typically call a service to update the receipt
-      // For now, we'll simulate the update and log it
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-      console.log('[CompletionStep] Receipt status updated successfully:', updatedReceipt.status);
-    } catch (error) {
-      console.error('[CompletionStep] Failed to update status:', error);
-      Alert.alert(
-        t('completion.statusErrorTitle', 'Status Update Error'),
-        t('completion.statusErrorMessage', 'Failed to update receipt status. Please try again.')
-      );
-    } finally {
-      setStatusUpdating(false);
-    }
-  };
-
-  /**
-   * Generate share message content
-   */
-  const generateShareMessage = (receipt: Receipt): string => {
-    const parts = [
-      `${t('completion.shareReceiptFor', 'Receipt for')}: ${receipt.vendorName || t('completion.unknownVendor', 'Unknown Vendor')}`,
-      `${t('completion.shareAmount', 'Amount')}: ${receipt.amount}`,
-      `${t('completion.shareDate', 'Date')}: ${formatDate(receipt.date)}`,
-      `${t('completion.shareVehicle', 'Vehicle')}: ${receipt.vehicle}`,
-      `${t('completion.shareType', 'Type')}: ${receipt.type}`,
-    ];
-
-    if (receipt.location) {
-      parts.push(`${t('completion.shareLocation', 'Location')}: ${receipt.location}`);
-    }
-
-    parts.push('', t('completion.shareGeneratedBy', 'Generated by TruckLogistics'));
-
-    return parts.join('\n');
-  };
-
-  /**
-   * Toggle full text display
-   */
-  const toggleFullText = () => {
+  const toggleFullText = useCallback(() => {
     setShowFullText(!showFullText);
-  };
+  }, [showFullText]);
 
-  /**
-   * Get processing summary for display
-   */
-  const getProcessingSummary = () => {
-    if (!flowMetrics) return null;
+  // Early return for missing data - no useState needed
+  if (!receipt) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor }]} testID={testID}>
+        <View style={styles.errorContainer}>
+          <Text style={[styles.errorText, { color: textColor }]}>
+            {t('completion.noReceipt', 'No receipt data available')}
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-    return {
-      totalTime: flowMetrics.totalDuration || 0,
-      processingSteps: flowMetrics.stepDurations || {},
-      confidence: processedData?.confidence || 0,
-    };
-  };
-
-  const processingSummary = getProcessingSummary();
-
-  // Create receipt with extracted text for RawTextSection
+  // Computed value for receipt with extracted text
   const receiptWithExtractedText = {
     ...receipt,
     extractedText: processedData?.extractedText || receipt.extractedText,
@@ -487,23 +340,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
           showsVerticalScrollIndicator={false}
         >
           {/* Processing Summary */}
-          {processingSummary && (
-            <View style={styles.summaryContainer}>
-              <Text style={styles.summaryTitle}>
-                {t('completion.processingSummary', 'Processing Summary')}
-              </Text>
-              <Text style={styles.summaryText}>
-                {t(
-                  'completion.processedIn',
-                  'Processed in {{time}}ms with {{confidence}}% confidence',
-                  {
-                    time: Math.round(processingSummary.totalTime),
-                    confidence: Math.round(processingSummary.confidence * 100),
-                  }
-                )}
-              </Text>
-            </View>
-          )}
+          <ProcessingSummary flowMetrics={flowMetrics} processedData={processedData} t={t} />
 
           {/* Receipt Summary */}
           <SectionContainer style={styles.section}>
@@ -517,10 +354,10 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
             <ReceiptContent receipt={receipt} t={t} />
           </SectionContainer>
 
-          {/* Actions */}
+          {/* Actions - simplified with no statusUpdating state */}
           <ActionCard
             receipt={receipt}
-            isStatusUpdating={statusUpdating}
+            isStatusUpdating={false} // Computed in ActionButton now
             handleApproveDocument={handleApproveDocument}
             handleShareDocument={handleShareDocument}
             shareLoading={shareLoading}
@@ -537,35 +374,137 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
             />
           )}
 
-          {/* Spacing for button container */}
           <View style={styles.bottomSpacing} />
         </ScrollView>
 
         {/* Action Buttons */}
         <View style={styles.buttonContainer}>
           <View style={styles.buttonRow}>
-            <TouchableOpacity
-              style={styles.secondaryButton}
+            <ActionButton
               onPress={handleNewScan}
+              icon="add-a-photo"
+              text={t('completion.newScan', 'New Scan')}
+              variant="secondary"
               testID="new-scan-button"
-            >
-              <MaterialIcons name="add-a-photo" size={20} color={primaryColor} />
-              <Text style={styles.secondaryButtonText}>{t('completion.newScan', 'New Scan')}</Text>
-            </TouchableOpacity>
+            />
 
-            <TouchableOpacity
-              style={styles.primaryButton}
+            <ActionButton
               onPress={handleDone}
+              icon="check"
+              text={t('common.done', 'Done')}
+              variant="primary"
               testID="done-button"
-            >
-              <MaterialIcons name="check" size={20} color="#FFFFFF" />
-              <Text style={styles.primaryButtonText}>{t('common.done', 'Done')}</Text>
-            </TouchableOpacity>
+            />
           </View>
         </View>
       </StepTransition>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    padding: 24,
+    backgroundColor: 'transparent',
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  successIcon: {
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    textAlign: 'center',
+    opacity: 0.8,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
+  section: {
+    borderRadius: 12,
+    marginBottom: 16,
+    padding: 16,
+  },
+  summaryContainer: {
+    marginBottom: 16,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.05)',
+  },
+  summaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  summaryText: {
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  buttonContainer: {
+    padding: 16,
+    paddingBottom: 32,
+  },
+  buttonRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  primaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  primaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  bottomSpacing: {
+    height: 20,
+  },
+});
 
 export default CompletionStep;

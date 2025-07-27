@@ -1,7 +1,6 @@
 // app/(app)/settings/index.tsx
 import { ErrorBoundary } from '@/src/components/ErrorBoundary';
 import { useAuth } from '@/src/context/AuthContextMigration';
-import { useTheme } from '@/src/context/ThemeContext';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { useSettingsStateMachine } from '@/src/machines/settingsStateMachine';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
@@ -32,10 +31,7 @@ export default function Settings() {
   const { t, i18n } = useTranslation();
   const { user, logout, userData } = useAuth();
 
-  // Theme management
-  const { themePreference, setTheme, isChangingTheme, themeConstants } = useTheme();
-
-  // Single hook for all theme values
+  // Fix: Get theme management from useAppTheme instead of separate useTheme hook
   const {
     backgroundColor,
     surfaceColor,
@@ -45,6 +41,11 @@ export default function Settings() {
     borderColor,
     themeStyles,
     isDarkTheme,
+    // Theme management functions (previously from useTheme)
+    themePreference,
+    setTheme,
+    isChangingTheme,
+    themeConstants,
   } = useAppTheme();
 
   const { state, dispatch } = useSettingsStateMachine({
@@ -487,6 +488,7 @@ export default function Settings() {
   );
 }
 
+// ... styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,

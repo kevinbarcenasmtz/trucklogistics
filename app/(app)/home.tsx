@@ -1,14 +1,13 @@
 // app/(app)/home.tsx
-import { useTheme } from '@/src/context/ThemeContext';
-import { getThemeStyles, horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { useAppTheme } from '@/src/hooks/useAppTheme';
+import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ActivityItem = ({ icon, text }: { icon: any; text: string }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { themeStyles } = useAppTheme();
 
   return (
     <View style={styles.activityItem}>
@@ -29,8 +28,7 @@ const QuickAccessButton = ({
   title: string;
   onPress: () => void;
 }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { themeStyles } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -46,8 +44,7 @@ const QuickAccessButton = ({
 };
 
 const StatItem = ({ icon, value, label }: { icon: any; value: string; label: string }) => {
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { themeStyles } = useAppTheme();
 
   return (
     <View style={styles.statItem}>
@@ -61,8 +58,7 @@ const StatItem = ({ icon, value, label }: { icon: any; value: string; label: str
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const themeStyles = getThemeStyles(theme);
+  const { themeStyles } = useAppTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
@@ -130,7 +126,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Styles remain the same
   container: {
     flex: 1,
     paddingTop: verticalScale(14),

@@ -170,14 +170,3 @@ export const NavigationUtils = {
     };
   },
 };
-
-// REMOVED ALL LEGACY NAVIGATION TYPES:
-// ❌ CameraScreenParams - used JSON serialization
-// ❌ OCRNavigationParams - old OCR-specific navigation
-// ❌ ProcessingRouteParams - replaced by flow-based navigation
-// ❌ ReviewRouteParams - replaced by flow-based navigation
-// ❌ VerificationRouteParams - replaced by flow-based navigation
-// ❌ ReportRouteParams - replaced by flow-based navigation
-// ❌ RouteParamsList with JSON.stringify types
-// ❌ NavigationScreenProps with complex serialization
-// ❌ OCRCameraStack types
