@@ -17,7 +17,7 @@ import ProcessingStep from './steps/ProcessingStep';
 import ReviewStep from './steps/ReviewStep';
 import VerificationStep from './steps/VerificationStep';
 
-import { CameraFlowStep, FlowError } from '../../../types/cameraFlow';
+import { CameraFlowStep } from '../../../types/cameraFlow';
 import { BaseCameraStepProps } from '../../../types/component_props';
 
 interface WorkflowStepConfig {
@@ -98,25 +98,6 @@ const validateStepRequirements = (
   }
 };
 
-const canNavigateToStep = (
-  targetStep: CameraFlowStep,
-  currentStep: CameraFlowStep,
-  hasActiveFlow: boolean,
-  currentFlow: any
-): boolean => {
-  const targetConfig = WORKFLOW_STEPS.find(s => s.id === targetStep);
-
-  if (!targetConfig) return false;
-  if (targetStep === 'capture') return true;
-  if (targetConfig.requiresActiveFlow && !hasActiveFlow) return false;
-
-  if (targetConfig.allowedFromSteps.length > 0) {
-    if (!targetConfig.allowedFromSteps.includes(currentStep)) return false;
-  }
-
-  return validateStepRequirements(targetStep, hasActiveFlow, currentFlow);
-};
-
 /**
  * Error Fallback Component
  */
@@ -138,14 +119,16 @@ const ErrorFallback: React.FC<{
 const StepErrorHandler: React.FC<{
   currentStep: CameraFlowStep;
   hasActiveFlow: boolean;
+  currentFlow: any; // Add this prop
   onRestart: () => void;
-}> = ({ currentStep, hasActiveFlow, onRestart }) => {
+}> = ({ currentStep, hasActiveFlow, currentFlow, onRestart }) => {
   const { t } = useTranslation();
 
   const shouldShowError = useMemo(() => {
     if (currentStep === 'capture') return false;
-    return !validateStepRequirements(currentStep, hasActiveFlow, null);
-  }, [currentStep, hasActiveFlow]);
+    // Pass the actual currentFlow instead of null
+    return !validateStepRequirements(currentStep, hasActiveFlow, currentFlow);
+  }, [currentStep, hasActiveFlow, currentFlow]);
 
   if (shouldShowError) {
     // Show error immediately - no useEffect needed
@@ -163,7 +146,6 @@ const StepErrorHandler: React.FC<{
 
   return null;
 };
-
 /**
  * Hardware Back Button Handler - extracted component
  */
@@ -193,7 +175,7 @@ const HardwareBackHandler: React.FC<{
 };
 
 /**
- * Inner Coordinator Component - simplified with extracted logic
+ * Inner Coordinator Component - simplified with store-only rendering
  */
 const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> = ({ flowId }) => {
   const {
@@ -203,12 +185,10 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
     isNavigationBlocked,
     canNavigateBack,
     cancelFlow,
-    clearError,
-    retryCurrentOperation,
-    navigateToStep,
+    navigateBack,
   } = useCameraFlow();
 
-  const { backgroundColor, textColor } = useAppTheme();
+  const { backgroundColor } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -220,109 +200,27 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
 
   const StepComponent = currentStepConfig?.component;
 
-  // Explicit functions instead of useEffect chains
+  // Simplified handlers - components manage their own navigation now
   const handleCancel = useCallback(() => {
     Alert.alert(
       t('camera.cancelTitle', 'Cancel Process'),
       t('camera.cancelMessage', 'Are you sure you want to cancel? All progress will be lost.'),
       [
-        {
-          text: t('camera.continue', 'Continue'),
-          style: 'cancel',
-        },
-        {
-          text: t('common.cancel', 'Cancel'),
+        { text: t('common.no', 'No'), style: 'cancel' },
+        { 
+          text: t('common.yes', 'Yes'), 
           style: 'destructive',
-          onPress: () => {
-            cancelFlow('user_cancellation');
-            router.replace('/home');
-          },
-        },
+          onPress: () => cancelFlow('user_cancelled')
+        }
       ]
     );
-  }, [t, cancelFlow, router]);
-
-  const handleError = useCallback(
-    (error: FlowError) => {
-      clearError();
-
-      const alertButtons = [];
-
-      if (error.retryable) {
-        alertButtons.push({
-          text: t('common.retry', 'Retry'),
-          onPress: retryCurrentOperation,
-        });
-      }
-
-      alertButtons.push({
-        text: t('common.cancel', 'Cancel'),
-        style: 'destructive' as const,
-        onPress: handleCancel,
-      });
-
-      Alert.alert(
-        t('error.title', 'Something went wrong'),
-        error.userMessage || error.message,
-        alertButtons
-      );
-    },
-    [t, clearError, retryCurrentOperation, handleCancel]
-  );
-
-  const handleNext = useCallback(
-    (stepData?: any) => {
-      const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
-      const nextIndex = currentIndex + 1;
-
-      if (nextIndex < WORKFLOW_STEPS.length) {
-        const nextStep = WORKFLOW_STEPS[nextIndex];
-        if (!nextStep) return;
-
-        if (canNavigateToStep(nextStep.id, currentStep, hasActiveFlow, currentFlow)) {
-          const result = navigateToStep(nextStep.id);
-
-          if (!result.success) {
-            handleError({
-              step: currentStep,
-              code: 'NAVIGATION_FAILED',
-              message: result.reason || 'Navigation failed',
-              userMessage: 'Could not proceed to next step. Please try again.',
-              timestamp: Date.now(),
-              retryable: true,
-            });
-          }
-        } else {
-          handleError({
-            step: currentStep,
-            code: 'NAVIGATION_BLOCKED',
-            message: 'Cannot navigate to requested step',
-            userMessage: 'Please complete the current step before proceeding.',
-            timestamp: Date.now(),
-            retryable: false,
-          });
-        }
-      }
-    },
-    [currentStep, hasActiveFlow, currentFlow, navigateToStep, handleError]
-  );
+  }, [cancelFlow, t]);
 
   const handleBack = useCallback(() => {
-    if (!canNavigateBack) return;
-
-    const currentIndex = WORKFLOW_STEPS.findIndex(s => s.id === currentStep);
-    const prevIndex = currentIndex - 1;
-    if (!prevIndex) return;
-
-    if (prevIndex >= 0) {
-      const prevStep = WORKFLOW_STEPS[prevIndex];
-      if (!prevStep) return;
-
-      navigateToStep(prevStep.id);
-    } else {
-      handleCancel();
+    if (canNavigateBack) {
+      navigateBack();
     }
-  }, [canNavigateBack, currentStep, navigateToStep, handleCancel]);
+  }, [canNavigateBack, navigateBack]);
 
   const handleRestart = useCallback(() => {
     router.replace('/camera');
@@ -352,7 +250,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
           'Invalid workflow step. Please restart the process.'
         )}
         backgroundColor={backgroundColor}
-        textColor={textColor}
+        textColor={'#000000'}
       />
     );
   }
@@ -362,6 +260,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
       <StepErrorHandler
         currentStep={currentStep}
         hasActiveFlow={hasActiveFlow}
+        currentFlow={currentFlow}
         onRestart={handleRestart}
       />
       <HardwareBackHandler
@@ -375,10 +274,6 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
         <SafeAreaView style={[styles.container, { backgroundColor }]}>
           <StepComponent
             flowId={currentFlow?.id || ''}
-            onNext={handleNext}
-            onBack={handleBack}
-            onCancel={handleCancel}
-            onError={handleError}
             testID={`camera-step-${currentStep}`}
           />
         </SafeAreaView>

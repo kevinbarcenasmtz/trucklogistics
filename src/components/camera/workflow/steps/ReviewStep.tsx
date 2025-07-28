@@ -1,4 +1,4 @@
-// src/components/camera/steps/ReviewStep.tsx
+// src/components/camera/workflow/steps/ReviewStep.tsx
 
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -20,19 +20,20 @@ import { ImagePreview } from '../../ImageDetailComponents';
 import StepTransition from '../StepTransition';
 
 /**
- * ReviewStep Component - Pure UI component for reviewing OCR results
- * Migrated from OCR Context to useCameraFlow hook
+ * ReviewStep Component - Uses store directly instead of props
  */
 export const ReviewStep: React.FC<BaseCameraStepProps> = ({
   flowId,
-  onNext,
-  onBack,
-  onCancel,
-  onError,
   testID = 'review-step',
+  style,
 }) => {
-  const { getCurrentImage, getCurrentProcessedData, navigateBack, navigateToStep } =
-    useCameraFlow();
+  const { 
+    getCurrentImage, 
+    getCurrentProcessedData, 
+    navigateBack, 
+    navigateNext,
+    navigateToStep 
+  } = useCameraFlow();
 
   const {
     backgroundColor,
@@ -73,16 +74,12 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
   // Handle missing data - moved after all hooks
   React.useEffect(() => {
     if (!processedData || !imageUri) {
-      onError({
-        step: 'review',
-        code: 'MISSING_PROCESSED_DATA',
-        message: 'Processed data not available',
-        userMessage: 'No processed data to review. Please go back and process the image again.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
+      Alert.alert(
+        t('error.title', 'Error'),
+        t('review.missingData', 'No processed data to review. Please go back and process the image again.')
+      );
     }
-  }, [processedData, imageUri, onError]);
+  }, [processedData, imageUri, t]);
 
   // Early return after all hooks
   if (!processedData || !imageUri) {
@@ -146,7 +143,7 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
    */
   const handleProceed = () => {
     console.log('[ReviewStep] Proceeding to verification');
-    onNext();
+    navigateNext();
   };
 
   /**
@@ -343,7 +340,7 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
   });
 
   return (
-    <SafeAreaView style={styles.container} testID={testID}>
+    <SafeAreaView style={[styles.container, style]} testID={testID}>
       <StepTransition entering={true}>
         <Animated.View
           style={[

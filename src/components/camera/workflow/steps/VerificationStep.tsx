@@ -1,4 +1,4 @@
-// src/components/camera/steps/VerificationStep.tsx
+// src/components/camera/workflow/steps/VerificationStep.tsx
 
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -28,21 +28,19 @@ import {
 import StepTransition from '../StepTransition';
 
 /**
- * VerificationStep Component - Form for editing and validating receipt data
- * Migrated from OCR Context to useReceiptDraft hook
+ * VerificationStep Component - Uses store directly instead of props
  */
 export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   flowId,
-  onNext,
-  onBack,
-  onCancel,
-  onError,
   testID = 'verification-step',
+  style,
 }) => {
   const {
     getCurrentProcessedData,
     saveCurrentReceipt,
     navigateBack,
+    navigateNext,
+    cancelFlow,
     isSaving: flowIsSaving,
   } = useCameraFlow();
 
@@ -50,7 +48,6 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
     draft,
     originalData,
     isDirty,
-    isValid,
     isSaving,
     fieldsWithErrors,
     modifiedFields,
@@ -144,7 +141,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
         const flowSaveResult = await saveCurrentReceipt();
 
         if (flowSaveResult.success) {
-          onNext();
+          navigateNext();
         } else {
           throw new Error(flowSaveResult.error || 'Flow save failed');
         }
@@ -153,16 +150,12 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
       }
     } catch (error) {
       console.error('[VerificationStep] Save failed:', error);
-      onError({
-        step: 'verification',
-        code: 'SAVE_FAILED',
-        message: error instanceof Error ? error.message : 'Save failed',
-        userMessage: 'Failed to save receipt. Please try again.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
+      Alert.alert(
+        t('error.title', 'Error'),
+        t('verification.saveFailed', 'Failed to save receipt. Please try again.')
+      );
     }
-  }, [validateAll, saveChanges, saveCurrentReceipt, onNext, onError, t]);
+  }, [validateAll, saveChanges, saveCurrentReceipt, navigateNext, t]);
 
   /**
    * Handle back navigation with unsaved changes check
@@ -181,12 +174,12 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
    */
   const handleCancel = useCallback(() => {
     if (isDirty) {
-      setPendingNavigation(() => () => onCancel());
+      setPendingNavigation(() => () => cancelFlow('user_cancelled_verification'));
       setShowUnsavedChangesDialog(true);
     } else {
-      onCancel();
+      cancelFlow('user_cancelled_verification');
     }
-  }, [isDirty, onCancel]);
+  }, [isDirty, cancelFlow]);
 
   /**
    * Handle unsaved changes dialog response
@@ -290,7 +283,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   // Validate draft data exists - moved after all hooks
   if (!draft) {
     return (
-      <SafeAreaView style={{ flex: 1, backgroundColor }} testID={testID}>
+      <SafeAreaView style={[{ flex: 1, backgroundColor }, style]} testID={testID}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ color: textColor }}>Loading draft data...</Text>
         </View>
@@ -434,7 +427,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   });
 
   return (
-    <SafeAreaView style={styles.container} testID={testID}>
+    <SafeAreaView style={[styles.container, style]} testID={testID}>
       <StepTransition entering={true}>
         {/* Header */}
         <View style={styles.header}>

@@ -71,7 +71,7 @@ const ActionButton: React.FC<{
 const ProcessingSummary: React.FC<{
   flowMetrics: any;
   processedData: any;
-  t: any; // Change from custom type to any to match TFunction
+  t: any;
 }> = ({ flowMetrics, processedData, t }) => {
   if (!flowMetrics) return null;
 
@@ -94,15 +94,12 @@ const ProcessingSummary: React.FC<{
 };
 
 /**
- * CompletionStep Component - simplified with extracted logic
+ * CompletionStep Component - Uses store directly instead of props
  */
 export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   flowId,
-  onNext,
-  onBack,
-  onCancel,
-  onError,
   testID = 'completion-step',
+  style,
 }) => {
   const {
     getCurrentDraft,
@@ -256,16 +253,12 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       }
     } catch (error) {
       console.error('[CompletionStep] Failed to complete flow:', error);
-      onError({
-        step: 'report',
-        code: 'COMPLETION_FAILED',
-        message: error instanceof Error ? error.message : 'Failed to complete receipt process',
-        userMessage: 'Failed to complete the process. Please try again.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
+      Alert.alert(
+        t('error.title', 'Error'),
+        t('completion.completionFailed', 'Failed to complete the process. Please try again.')
+      );
     }
-  }, [completeFlow, router, onError]);
+  }, [completeFlow, router, t]);
 
   const handleNewScan = useCallback(async () => {
     try {
@@ -281,16 +274,12 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
       }
     } catch (error) {
       console.error('[CompletionStep] Failed to start new scan:', error);
-      onError({
-        step: 'report',
-        code: 'NEW_SCAN_FAILED',
-        message: error instanceof Error ? error.message : 'Failed to start new scan',
-        userMessage: 'Failed to start new scan. Please try again.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
+      Alert.alert(
+        t('error.title', 'Error'),
+        t('completion.newScanFailed', 'Failed to start new scan. Please try again.')
+      );
     }
-  }, [completeFlow, resetFlow, router, onError]);
+  }, [completeFlow, resetFlow, router, t]);
 
   const toggleFullText = useCallback(() => {
     setShowFullText(!showFullText);
@@ -299,7 +288,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   // Early return for missing data - no useState needed
   if (!receipt) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor }]} testID={testID}>
+      <SafeAreaView style={[styles.container, { backgroundColor }, style]} testID={testID}>
         <View style={styles.errorContainer}>
           <Text style={[styles.errorText, { color: textColor }]}>
             {t('completion.noReceipt', 'No receipt data available')}
@@ -316,7 +305,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]} testID={testID}>
+    <SafeAreaView style={[styles.container, { backgroundColor }, style]} testID={testID}>
       <StepTransition entering={true}>
         {/* Header with success message */}
         <View style={styles.header}>
@@ -357,7 +346,7 @@ export const CompletionStep: React.FC<BaseCameraStepProps> = ({
           {/* Actions - simplified with no statusUpdating state */}
           <ActionCard
             receipt={receipt}
-            isStatusUpdating={false} // Computed in ActionButton now
+            isStatusUpdating={false}
             handleApproveDocument={handleApproveDocument}
             handleShareDocument={handleShareDocument}
             shareLoading={shareLoading}

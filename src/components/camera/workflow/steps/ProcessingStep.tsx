@@ -4,12 +4,13 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useBackendOCR } from '../../../../hooks/useBackendOCR';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import { BaseCameraStepProps } from '../../../../types';
 import StepTransition from '../StepTransition';
+import { useOCRProcessing } from '../../../../context/OCRProcessingContext';
 
 /**
  * Animated Progress Bar Component - extracted from useEffect animation logic
@@ -145,31 +146,42 @@ const ProcessingAutoStarter: React.FC<{
   hasError: boolean;
   isCompleted: boolean;
   isProcessing: boolean;
+  hasOCRResult: boolean; // Add this prop
   onStartProcessing: () => Promise<void>;
-}> = ({ imageUri, hasError, isCompleted, isProcessing, onStartProcessing }) => {
+}> = ({ imageUri, hasError, isCompleted, isProcessing, hasOCRResult, onStartProcessing }) => {
   // Start processing when component mounts if conditions are met
   React.useEffect(() => {
+    // Don't auto-start if we already have OCR results
+    if (hasOCRResult) {
+      console.log('[ProcessingStep] OCR result already exists, skipping auto-start');
+      return;
+    }
+
     if (imageUri && !hasError && !isCompleted && !isProcessing) {
       console.log('[ProcessingStep] Auto-starting processing for image:', imageUri);
       onStartProcessing();
     }
-  }, [hasError, imageUri, isCompleted, isProcessing, onStartProcessing]);
+  }, [hasError, imageUri, isCompleted, isProcessing, hasOCRResult, onStartProcessing]);
 
   return null; // This component only handles side effects
 };
-
 /**
- * ProcessingStep Component - simplified with extracted logic
+ * ProcessingStep Component - Uses store directly instead of props
  */
 export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   flowId,
-  onNext,
-  onBack,
-  onCancel,
-  onError,
   testID = 'processing-step',
+  style,
 }) => {
-  const { processCurrentImage, getCurrentImage, canRetryProcessing, clearError } = useCameraFlow();
+  const { 
+    processCurrentImage, 
+    getCurrentImage, 
+    getCurrentProcessedData,
+    canRetryProcessing, 
+    clearError,
+    navigateNext,
+    cancelFlow
+  } = useCameraFlow();
 
   const {
     stage,
@@ -199,6 +211,8 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
 
   // Get current image URI - computed value, no useRef needed
   const imageUri = useMemo(() => getCurrentImage(), [getCurrentImage]);
+  const hasOCRResult = useMemo(() => !!getCurrentProcessedData(), [getCurrentProcessedData]);
+  const { completeProcessing } = useOCRProcessing();
 
   // Explicit functions instead of useEffect chains
   const handleStartProcessing = useCallback(async () => {
@@ -209,17 +223,22 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
       }
     } catch (error) {
       console.error('[ProcessingStep] Start processing failed:', error);
-      onError({
-        step: 'processing',
-        code: 'AUTO_START_FAILED',
-        message: error instanceof Error ? error.message : 'Failed to start processing',
-        userMessage: 'Failed to start processing. Please try again.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
+      Alert.alert(
+        t('error.title', 'Error'),
+        t('processing.startFailed', 'Failed to start processing. Please try again.')
+      );
     }
-  }, [processCurrentImage, onError]);
+  }, [processCurrentImage, t]);
 
+
+  React.useEffect(() => {
+    const existingResult = getCurrentProcessedData();
+    if (existingResult && !isCompleted && !isProcessing && !hasError) {
+      console.log('[ProcessingStep] Syncing with existing OCR results');
+      completeProcessing();
+    }
+  }, [getCurrentProcessedData, isCompleted, isProcessing, hasError, completeProcessing]);
+  
   const handleRetry = useCallback(async () => {
     try {
       console.log('[ProcessingStep] User retrying processing');
@@ -236,16 +255,12 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
       }
     } catch (error) {
       console.error('[ProcessingStep] Retry failed:', error);
-      onError({
-        step: 'processing',
-        code: 'RETRY_FAILED',
-        message: error instanceof Error ? error.message : 'Retry failed',
-        userMessage: 'Failed to retry processing. Please try again.',
-        timestamp: Date.now(),
-        retryable: true,
-      });
+      Alert.alert(
+        t('error.title', 'Error'),
+        t('processing.retryFailed', 'Failed to retry processing. Please try again.')
+      );
     }
-  }, [clearError, imageUri, canRetryProcessing, retryProcessing, processCurrentImage, onError]);
+  }, [clearError, imageUri, canRetryProcessing, retryProcessing, processCurrentImage, t]);
 
   const handleCancel = useCallback(async () => {
     try {
@@ -255,18 +270,18 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
         await cancelProcessing();
       }
 
-      onCancel();
+      await cancelFlow('user_cancelled_processing');
     } catch (error) {
       console.error('[ProcessingStep] Cancel failed:', error);
       // Still proceed with cancellation even if backend cancel fails
-      onCancel();
+      await cancelFlow('user_cancelled_processing');
     }
-  }, [isProcessing, canCancel, cancelProcessing, onCancel]);
+  }, [isProcessing, canCancel, cancelProcessing, cancelFlow]);
 
   const handleContinue = useCallback(() => {
     console.log('[ProcessingStep] User manually proceeding to next step');
-    onNext();
-  }, [onNext]);
+    navigateNext();
+  }, [navigateNext]);
 
   // Pure functions for status messages - no useEffect needed
   const getStatusMessage = useCallback((): string => {
@@ -306,25 +321,21 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   React.useEffect(() => {
     if (hasError && error) {
       console.error('[ProcessingStep] Processing error:', error);
-      onError({
-        step: 'processing',
-        code: error.code || 'PROCESSING_ERROR',
-        message: error.message || 'Processing failed',
-        userMessage: error.userMessage || 'Failed to process image. Please try again.',
-        timestamp: Date.now(),
-        retryable: error.retryable !== false,
-        context: error.context,
-      });
+      Alert.alert(
+        t('error.title', 'Processing Error'),
+        error.userMessage || error.message || t('processing.unexpectedError', 'An unexpected error occurred during processing.')
+      );
     }
-  }, [hasError, error, onError]);
+  }, [hasError, error, t]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]} testID={testID}>
+    <SafeAreaView style={[styles.container, { backgroundColor }, style]} testID={testID}>
       <ProcessingAutoStarter
         imageUri={imageUri}
         hasError={hasError}
         isCompleted={isCompleted}
         isProcessing={isProcessing}
+        hasOCRResult={hasOCRResult}
         onStartProcessing={handleStartProcessing}
       />
 

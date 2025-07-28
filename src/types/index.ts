@@ -13,14 +13,20 @@ export type {
   RouteTypeGuards,
 } from './camera_navigation';
 
-// Component types
-export * from './component_props';
+// Component types - simplified after prop cleanup
+export type {
+  BaseCameraStepProps,
+  CameraWorkflowCoordinatorProps,
+  StepComponentConfig,
+  CameraErrorBoundaryProps,
+  CameraNavigationGuardProps,
+} from './component_props';
 
 // Hook types
 export * from './hook_types';
 
 // Context types
-export * from './context_types';
+// export * from './context_types';
 
 // Service types
 export type {

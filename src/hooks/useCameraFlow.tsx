@@ -456,54 +456,54 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
 
   // Navigate back - simple calculation
   const navigateBack = useCallback((): NavigationResult => {
-    if (!store.activeFlow) {
+    if (!store.activeFlow || !store.activeFlow.currentStep) {
       return {
         success: false,
         currentStep: 'capture',
-        reason: 'No active flow',
+        reason: 'No active flow or current step',
       };
     }
-
+    const currentStep = store.activeFlow.currentStep;
     const stepOrder: CameraFlowStep[] = [
       'capture',
-      'processing',
+      'processing', 
       'review',
       'verification',
       'report',
     ];
-    const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
-
+    const currentIndex = stepOrder.indexOf(currentStep);
+  
     if (currentIndex <= 0) {
       return {
         success: false,
-        currentStep: store.activeFlow.currentStep,
+        currentStep: currentStep,
         reason: 'Already at first step',
       };
     }
-
+  
     const previousStep = stepOrder[currentIndex - 1];
     return navigateToStep(previousStep);
   }, [store, navigateToStep]);
 
   // Navigate next - simple calculation
   const navigateNext = useCallback((): NavigationResult => {
-    if (!store.activeFlow) {
+    if (!store.activeFlow || !store.activeFlow.currentStep) {
       return {
         success: false,
         currentStep: 'capture',
-        reason: 'No active flow',
+        reason: 'No active flow or current step',
       };
     }
-
+  
     const stepOrder: CameraFlowStep[] = [
       'capture',
       'processing',
-      'review',
+      'review', 
       'verification',
       'report',
     ];
     const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
-
+  
     if (currentIndex >= stepOrder.length - 1) {
       return {
         success: false,
@@ -511,7 +511,7 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         reason: 'Already at last step',
       };
     }
-
+  
     const nextStep = stepOrder[currentIndex + 1];
     return navigateToStep(nextStep);
   }, [store, navigateToStep]);
@@ -535,63 +535,68 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   }, [store, ocrProcessingContext, receiptDraftContext]);
 
   const retryCurrentOperation = useCallback(async () => {
-    if (!store.activeFlow) {
-      throw new Error('No active flow for retry');
+    if (!store.activeFlow || !store.activeFlow.currentStep) {
+      throw new Error('No active flow or current step for retry');
     }
-
-    switch (store.activeFlow.currentStep) {
+  
+    const currentStep = store.activeFlow.currentStep; // Extract to variable for type safety
+  
+    switch (currentStep) {
       case 'processing':
         return processCurrentImage();
       case 'verification':
         return saveCurrentReceipt();
       default:
-        throw new Error(`No retry operation available for step: ${store.activeFlow.currentStep}`);
+        throw new Error(`No retry operation available for step: ${currentStep}`);
     }
   }, [store.activeFlow, processCurrentImage, saveCurrentReceipt]);
 
   const getStepProgress = useCallback((): number => {
-    if (!store.activeFlow) return 0;
+  if (!store.activeFlow || !store.activeFlow.currentStep) return 0;
 
-    const stepOrder: CameraFlowStep[] = [
-      'capture',
-      'processing',
-      'review',
-      'verification',
-      'report',
-    ];
-    const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
-    return ((currentIndex + 1) / stepOrder.length) * 100;
-  }, [store.activeFlow]);
+  const currentStep = store.activeFlow.currentStep; // Extract to variable for type safety
+  
+  const stepOrder: CameraFlowStep[] = [
+    'capture',
+    'processing',
+    'review',
+    'verification',
+    'report',
+  ];
+  const currentIndex = stepOrder.indexOf(currentStep);
+  return ((currentIndex + 1) / stepOrder.length) * 100;
+}, [store.activeFlow]);
 
-  const getOverallProgress = useCallback((): number => {
-    const stepProgress = getStepProgress();
-    const processingProgress = ocrProcessingContext.state.totalProgress;
+const getOverallProgress = useCallback((): number => {
+  const stepProgress = getStepProgress();
+  const processingProgress = ocrProcessingContext.state.totalProgress;
 
-    if (store.activeFlow?.currentStep === 'processing') {
-      return processingProgress;
-    }
+  if (store.activeFlow?.currentStep === 'processing') {
+    return processingProgress;
+  }
 
-    return stepProgress;
-  }, [getStepProgress, ocrProcessingContext.state.totalProgress, store.activeFlow]);
+  return stepProgress;
+}, [getStepProgress, ocrProcessingContext.state.totalProgress, store.activeFlow?.currentStep]);
 
-  const canProceedToNext = useCallback((): boolean => {
-    if (!store.activeFlow) return false;
-
-    switch (store.activeFlow.currentStep) {
+  const canProceedToNext = useCallback(() => {
+    const currentStep = store.activeFlow?.currentStep;
+    if (!currentStep) return false;
+    
+    switch (currentStep) {
       case 'capture':
-        return !!store.activeFlow.imageUri;
+        return !!store.activeFlow?.imageUri;
       case 'processing':
-        return !!store.activeFlow.ocrResult && ocrProcessingContext.state.isCompleted;
+        return !!store.activeFlow?.ocrResult;
       case 'review':
-        return !!store.activeFlow.ocrResult;
+        return !!store.activeFlow?.ocrResult;
       case 'verification':
-        return receiptDraftContext.state.isValid && !receiptDraftContext.state.isDirty;
+        return true; // Let component handle validation
       case 'report':
-        return false; // Last step
+        return false;
       default:
         return false;
     }
-  }, [store.activeFlow, ocrProcessingContext.state.isCompleted, receiptDraftContext.state]);
+  }, [store.activeFlow?.currentStep, store.activeFlow?.imageUri, store.activeFlow?.ocrResult]);
 
   return {
     // Flow state - all from Zustand store
