@@ -23,60 +23,69 @@ interface ShadowProps {
   elevation: number;
 }
 
-// Colors - SIMPLIFIED
+// SEMANTIC COLOR SYSTEM - Production Ready
 const COLORS = {
-  // Primary colors
-  primary: {
-    light: '#004d40', // Your green brand color
-    dark: '#00796b',  // Slightly lighter green for dark mode
+  // Brand colors - Your truck logistics green theme
+  brand: {
+    primary: {
+      light: '#317039', // Emerald green - primary brand color
+      dark: '#34D399',  // Lighter emerald for dark mode contrast
+    },
+    secondary: {
+      light: '#059669', // Darker emerald for accents
+      dark: '#317039',  // Medium emerald for dark mode
+    },
   },
   
-  // Background colors
-  background: {
-    light: '#FFFFFF',
-    dark: '#121212',
-  },
-  
-  // Surface colors (cards, elevated elements)
-  surface: {
-    light: '#F8F9FA',
-    dark: '#1E1E1E',
-  },
-  
-  // Text colors
-  text: {
+  // Neutral colors - Gray scale system
+  neutral: {
     light: {
-      primary: '#111827',
-      secondary: '#6B7280',
-      disabled: '#9CA3AF',
+      50: '#F9FAFB',   // lightest background
+      100: '#F3F4F6',  // card backgrounds
+      200: '#E5E7EB',  // borders, dividers
+      300: '#D1D5DB',  // disabled states
+      400: '#9CA3AF',  // placeholder text
+      500: '#6B7280',  // secondary text
+      600: '#4B5563',  // primary text (light mode)
+      700: '#374151',  // headings (light mode)
+      800: '#1F2937',  // dark surfaces
+      900: '#111827',  // darkest text
     },
     dark: {
-      primary: '#F9FAFB',
-      secondary: '#D1D5DB',
-      disabled: '#6B7280',
+      50: '#18181B',   // darkest background (dark mode)
+      100: '#27272A',  // card backgrounds (dark mode)
+      200: '#3F3F46',  // borders (dark mode)
+      300: '#52525B',  // disabled (dark mode)
+      400: '#71717A',  // placeholder (dark mode)
+      500: '#A1A1AA',  // secondary text (dark mode)
+      600: '#D4D4D8',  // primary text (dark mode)
+      700: '#E4E4E7',  // headings (dark mode)
+      800: '#F4F4F5',  // light surfaces in dark mode
+      900: '#FAFAFA',  // lightest text (dark mode)
     },
   },
   
-  // Border colors
-  border: {
-    light: '#E5E7EB',
-    dark: '#374151',
+  // Semantic status colors
+  semantic: {
+    success: '#10B981',   // Green for success states
+    warning: '#F59E0B',   // Amber for warnings
+    error: '#EF4444',     // Red for errors
+    info: '#3B82F6',      // Blue for info
+    // Truck-specific semantics
+    fuel: '#F59E0B',      // Amber for fuel-related
+    maintenance: '#EF4444', // Red for maintenance alerts
+    route: '#3B82F6',     // Blue for route/navigation
+    cargo: '#8B5CF6',     // Purple for cargo/inventory
   },
   
-  // Status colors
-  status: {
-    success: '#10B981',
-    warning: '#F59E0B',
-    error: '#EF4444',
-    info: '#3B82F6',
+  // Pure colors
+  pure: {
+    white: '#f8edd9',
+    black: '#0b1215',
   },
-  
-  // Basic colors
-  white: '#FFFFFF',
-  black: '#000000',
 };
 
-// Typography
+// Typography system
 const TYPOGRAPHY = {
   fontFamily: {
     regular: 'System',
@@ -84,101 +93,162 @@ const TYPOGRAPHY = {
     bold: 'System',
   },
   fontSize: {
-    xs: moderateScale(12),
-    sm: moderateScale(14),
-    md: moderateScale(16),
-    lg: moderateScale(18),
-    xl: moderateScale(20),
-    xxl: moderateScale(24),
+    xs: moderateScale(12),   // captions, small labels
+    sm: moderateScale(14),   // body text small
+    md: moderateScale(16),   // body text default
+    lg: moderateScale(18),   // subheaders
+    xl: moderateScale(20),   // headers
+    xxl: moderateScale(24),  // large headers
+    xxxl: moderateScale(32), // hero text
+  },
+  fontWeight: {
+    regular: '400' as const,
+    medium: '500' as const,
+    semibold: '600' as const,
+    bold: '700' as const,
+  },
+  lineHeight: {
+    tight: 1.2,
+    normal: 1.4,
+    relaxed: 1.6,
   },
 };
 
-// Spacing
+// Spacing system (8pt grid)
 const SPACING = {
-  xs: moderateScale(4),
-  sm: moderateScale(8),
-  md: moderateScale(16),
-  lg: moderateScale(24),
-  xl: moderateScale(32),
-  xxl: moderateScale(48),
+  xs: moderateScale(4),    // 4pt
+  sm: moderateScale(8),    // 8pt
+  md: moderateScale(16),   // 16pt
+  lg: moderateScale(24),   // 24pt
+  xl: moderateScale(32),   // 32pt
+  xxl: moderateScale(48),  // 48pt
+  xxxl: moderateScale(64), // 64pt
 };
 
-// Border radius
+// Border radius system
 const BORDER_RADIUS = {
+  none: 0,
+  xs: moderateScale(2),
   sm: moderateScale(4),
   md: moderateScale(8),
   lg: moderateScale(12),
   xl: moderateScale(16),
+  xxl: moderateScale(24),
   round: 9999,
+  circle: (size: number) => size / 2, // Function for perfect circles
 };
 
-// Shadows
+// Elevation/Shadow system
 const SHADOW_LIGHT: Record<string, ShadowProps> = {
+  none: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
   sm: {
-    shadowColor: '#000',
+    shadowColor: COLORS.pure.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.18,
-    shadowRadius: 1.0,
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
     elevation: 1,
   },
   md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.23,
-    shadowRadius: 2.62,
-    elevation: 4,
+    shadowColor: COLORS.pure.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
   },
   lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    shadowColor: COLORS.pure.black,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 6,
+  },
+  xl: {
+    shadowColor: COLORS.pure.black,
+    shadowOffset: { width: 0, height: 20 },
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    elevation: 12,
   },
 };
 
 const SHADOW_DARK: Record<string, ShadowProps> = {
+  none: {
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  },
   sm: {
-    shadowColor: '#000',
+    shadowColor: COLORS.pure.black,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
-    shadowRadius: 2.0,
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
     elevation: 1,
   },
   md: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 3.0,
-    elevation: 4,
+    shadowColor: COLORS.pure.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
   },
   lg: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowColor: COLORS.pure.black,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 6,
+  },
+  xl: {
+    shadowColor: COLORS.pure.black,
+    shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.5,
-    shadowRadius: 5.0,
-    elevation: 8,
+    shadowRadius: 25,
+    elevation: 12,
   },
 };
 
-// Theme styles interface - SIMPLIFIED
+// Clean theme interface
 export interface ThemeStyles {
   colors: {
+    // Brand colors
     primary: string;
+    primaryVariant: string;
+    
+    // Backgrounds
     background: string;
     surface: string;
-    text: {
-      primary: string;
-      secondary: string;
-      disabled: string;
-    };
+    surfaceVariant: string;
+    
+    // Text colors
+    onBackground: string;
+    onSurface: string;
+    onSurfaceVariant: string;
+    
+    // Interactive elements
     border: string;
-    status: {
-      success: string;
-      warning: string;
-      error: string;
-      info: string;
-    };
+    borderVariant: string;
+    
+    // Semantic colors
+    success: string;
+    warning: string;
+    error: string;
+    info: string;
+    
+    // Truck-specific
+    fuel: string;
+    maintenance: string;
+    route: string;
+    cargo: string;
+    
+    // Pure colors
     white: string;
     black: string;
   };
@@ -188,24 +258,45 @@ export interface ThemeStyles {
   shadow: Record<string, ShadowProps>;
 }
 
-// Create themed styles - CLEAN VERSION
+// Theme generator - SEMANTIC MAPPING
 export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
   const isDark = theme === 'dark';
 
   return {
     colors: {
-      primary: isDark ? COLORS.primary.dark : COLORS.primary.light,
-      background: isDark ? COLORS.background.dark : COLORS.background.light,
-      surface: isDark ? COLORS.surface.dark : COLORS.surface.light,
-      text: {
-        primary: isDark ? COLORS.text.dark.primary : COLORS.text.light.primary,
-        secondary: isDark ? COLORS.text.dark.secondary : COLORS.text.light.secondary,
-        disabled: isDark ? COLORS.text.dark.disabled : COLORS.text.light.disabled,
-      },
-      border: isDark ? COLORS.border.dark : COLORS.border.light,
-      status: COLORS.status,
-      white: COLORS.white,
-      black: COLORS.black,
+      // Brand colors
+      primary: isDark ? COLORS.brand.primary.dark : COLORS.brand.primary.light,
+      primaryVariant: isDark ? COLORS.brand.secondary.dark : COLORS.brand.secondary.light,
+      
+      // Backgrounds (semantic naming)
+      background: isDark ? COLORS.neutral.dark[50] : COLORS.pure.white,
+      surface: isDark ? COLORS.neutral.dark[100] : COLORS.neutral.light[50],
+      surfaceVariant: isDark ? COLORS.neutral.dark[200] : COLORS.neutral.light[100],
+      
+      // Text colors (semantic naming)
+      onBackground: isDark ? COLORS.neutral.dark[700] : COLORS.neutral.light[900],
+      onSurface: isDark ? COLORS.neutral.dark[600] : COLORS.neutral.light[700],
+      onSurfaceVariant: isDark ? COLORS.neutral.dark[500] : COLORS.neutral.light[500],
+      
+      // Interactive elements
+      border: isDark ? COLORS.neutral.dark[200] : COLORS.neutral.light[200],
+      borderVariant: isDark ? COLORS.neutral.dark[300] : COLORS.neutral.light[300],
+      
+      // Semantic status colors
+      success: COLORS.semantic.success,
+      warning: COLORS.semantic.warning,
+      error: COLORS.semantic.error,
+      info: COLORS.semantic.info,
+      
+      // Truck-specific semantic colors
+      fuel: COLORS.semantic.fuel,
+      maintenance: COLORS.semantic.maintenance,
+      route: COLORS.semantic.route,
+      cargo: COLORS.semantic.cargo,
+      
+      // Pure colors
+      white: COLORS.pure.white,
+      black: COLORS.pure.black,
     },
     typography: TYPOGRAPHY,
     spacing: SPACING,
