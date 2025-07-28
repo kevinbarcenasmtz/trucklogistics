@@ -57,7 +57,7 @@ export default function ReportsScreen() {
   const formatDate = (dateString: string) => {
     try {
       return new Date(dateString).toLocaleDateString();
-    } catch (error) {
+    } catch {
       return dateString;
     }
   };

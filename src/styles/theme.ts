@@ -1,4 +1,4 @@
-import { ThemeType } from '../context/ThemeContext';
+import { ThemeType } from '../hooks/useAppTheme';
 
 // Shadow type
 interface ShadowProps {

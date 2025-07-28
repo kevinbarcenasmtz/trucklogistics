@@ -48,7 +48,9 @@ export const OnboardingEngine: React.FC = () => {
   const handleBack = () => {
     if (canGoBack) {
       const prevStep = availableSteps[stepIndex - 1];
-      goBackToStep(prevStep.id);
+      if (prevStep) {
+        goBackToStep(prevStep.id);
+      }
     }
   };
 

@@ -339,31 +339,31 @@ export const useCameraFlow = create<CameraFlowState>()(
       // Cleanup old flows
       cleanupOldFlows: () => {
         console.log('🧹 STORE: Starting cleanup');
-      
+
         set(state => {
           const now = Date.now();
           const flowIds = Object.keys(state.flows);
-      
+
           console.log('🧹 STORE: Current flows before cleanup:', flowIds.length);
-      
+
           // Remove flows older than MAX_FLOW_AGE or incomplete flows older than 1 hour
           const validFlows = flowIds.filter(id => {
             const flow = state.flows[id];
             if (!flow) return false; // Add null check
-            
+
             const age = now - flow.timestamp;
-      
+
             // Keep completed flows for 24 hours
             if (flow.isComplete) {
               return age < MAX_FLOW_AGE;
             }
-      
+
             // Keep incomplete flows for only 1 hour
             return age < 60 * 60 * 1000;
           });
-      
+
           console.log('🧹 STORE: Valid flows after cleanup:', validFlows.length);
-      
+
           // Keep only the most recent MAX_FLOWS
           const flowsToKeep = validFlows
             .sort((a, b) => {
@@ -373,25 +373,26 @@ export const useCameraFlow = create<CameraFlowState>()(
               return flowB.timestamp - flowA.timestamp;
             })
             .slice(0, MAX_FLOWS);
-      
+
           const newFlows: Record<string, CameraFlow> = {};
           flowsToKeep.forEach(id => {
             const flow = state.flows[id];
-            if (flow) { // Add null check
+            if (flow) {
+              // Add null check
               newFlows[id] = flow;
             }
           });
-      
+
           // Check if active flow was cleaned up
           const activeFlowStillValid =
             state.activeFlow && flowsToKeep.includes(state.activeFlow.id);
-      
+
           console.log('🧹 STORE: Cleanup result:', {
             flowsKept: flowsToKeep.length,
             activeFlowStillValid,
             newHasActiveFlow: activeFlowStillValid ? state.hasActiveFlow : false,
           });
-      
+
           return {
             ...state, // Keep other properties
             flows: newFlows,

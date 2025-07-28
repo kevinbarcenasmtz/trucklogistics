@@ -20,17 +20,17 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
   testID = 'capture-step',
   style,
 }) => {
-  const { 
-    startFlow, 
-    getCurrentImage, 
-    resetFlow, 
-    navigateNext,
-    cancelFlow,
-    currentFlow 
-  } = useCameraFlow();
+  const { startFlow, getCurrentImage, resetFlow, navigateNext, cancelFlow, currentFlow } =
+    useCameraFlow();
 
-  const { backgroundColor, surfaceColor, textColor, secondaryTextColor, primaryColor, borderColor } =
-    useAppTheme();
+  const {
+    backgroundColor,
+    surfaceColor,
+    textColor,
+    secondaryTextColor,
+    primaryColor,
+    borderColor,
+  } = useAppTheme();
 
   const { t } = useTranslation();
 
@@ -133,7 +133,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
 
       // Start new flow with captured image
       const result = await startFlow(imageUri);
-      
+
       if (result.success) {
         console.log('[CaptureStep] Flow started successfully, navigating to processing');
         navigateNext();
@@ -174,11 +174,11 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
       t('camera.cancelMessage', 'Are you sure you want to cancel?'),
       [
         { text: t('common.no', 'No'), style: 'cancel' },
-        { 
-          text: t('common.yes', 'Yes'), 
+        {
+          text: t('common.yes', 'Yes'),
           style: 'destructive',
-          onPress: () => cancelFlow('user_cancelled')
-        }
+          onPress: () => cancelFlow('user_cancelled'),
+        },
       ]
     );
   };
@@ -206,7 +206,9 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
                 >
                   <MaterialIcons name="camera-alt" size={24} color="#FFFFFF" />
                   <Text style={styles.primaryButtonText}>
-                    {isCapturing ? t('camera.capturing', 'Capturing...') : t('camera.takePhoto', 'Take Photo')}
+                    {isCapturing
+                      ? t('camera.capturing', 'Capturing...')
+                      : t('camera.takePhoto', 'Take Photo')}
                   </Text>
                 </TouchableOpacity>
 
@@ -229,7 +231,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
               <Text style={[styles.title, { color: textColor }]}>
                 {t('camera.previewTitle', 'Review Image')}
               </Text>
-              
+
               <View style={[styles.imageContainer, { borderColor }]}>
                 <Image source={{ uri: selectedImage }} style={styles.previewImage} />
               </View>
@@ -252,9 +254,7 @@ export const CaptureStep: React.FC<BaseCameraStepProps> = ({
                   testID="proceed-button"
                 >
                   <MaterialIcons name="check" size={24} color="#FFFFFF" />
-                  <Text style={styles.primaryButtonText}>
-                    {t('camera.proceed', 'Proceed')}
-                  </Text>
+                  <Text style={styles.primaryButtonText}>{t('camera.proceed', 'Proceed')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

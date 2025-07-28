@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as SecureStore from 'expo-secure-store';
 import { Receipt } from '../types/ReceiptInterfaces';
+import { safeBufferAccess } from '../utils/safeAccess';
 
 interface EncryptedReceipt {
   id: string;
@@ -180,7 +181,8 @@ export class SecureReceiptStorage {
     const encrypted = Buffer.alloc(textBytes.length);
 
     for (let i = 0; i < textBytes.length; i++) {
-      encrypted[i] = textBytes[i] ^ keyBytes[i % keyBytes.length];
+      encrypted[i] =
+        safeBufferAccess(textBytes, i) ^ safeBufferAccess(keyBytes, i % keyBytes.length);
     }
 
     return encrypted.toString('base64');
@@ -195,7 +197,8 @@ export class SecureReceiptStorage {
     const decrypted = Buffer.alloc(encryptedBytes.length);
 
     for (let i = 0; i < encryptedBytes.length; i++) {
-      decrypted[i] = encryptedBytes[i] ^ keyBytes[i % keyBytes.length];
+      decrypted[i] =
+        safeBufferAccess(encryptedBytes, i) ^ safeBufferAccess(keyBytes, i % keyBytes.length);
     }
 
     return decrypted.toString('utf8');

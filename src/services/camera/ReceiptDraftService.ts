@@ -1,5 +1,6 @@
 // src/services/camera/ReceiptDraftService.ts
 
+import { safeDateString } from '@/src/utils/safeAccess';
 import {
   FieldValidationError,
   FieldValidationResult,
@@ -84,8 +85,7 @@ export class ReceiptDraftService {
 
     return {
       id: '', // Will be set when saved
-      date:
-        this.validateAndFormatDate(classification.date) || new Date().toISOString().split('T')[0],
+      date: safeDateString(this.validateAndFormatDate(classification.date)),
       type: this.validateAndFormatType(classification.type),
       amount: this.validateAndFormatAmount(classification.amount),
       vehicle: classification.vehicle || '',
@@ -610,7 +610,7 @@ export class ReceiptDraftService {
       const parsed = new Date(date);
       if (isNaN(parsed.getTime())) return null;
 
-      return parsed.toISOString().split('T')[0];
+      return safeDateString(parsed.toISOString().split('T')[0]);
     } catch {
       return null;
     }
@@ -637,7 +637,7 @@ export class ReceiptDraftService {
 
   private normalizeDate(date: string): string {
     const parsed = new Date(date);
-    return isNaN(parsed.getTime()) ? new Date().toISOString().split('T')[0] : date;
+    return isNaN(parsed.getTime()) ? safeDateString(undefined) : safeDateString(date);
   }
 
   private normalizeText(text: string): string {

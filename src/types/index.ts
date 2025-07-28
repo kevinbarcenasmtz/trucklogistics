@@ -16,10 +16,10 @@ export type {
 // Component types - simplified after prop cleanup
 export type {
   BaseCameraStepProps,
-  CameraWorkflowCoordinatorProps,
-  StepComponentConfig,
   CameraErrorBoundaryProps,
   CameraNavigationGuardProps,
+  CameraWorkflowCoordinatorProps,
+  StepComponentConfig,
 } from './component_props';
 
 // Hook types

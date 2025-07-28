@@ -19,7 +19,7 @@ export class AuthService {
 
     const disposableDomains = ['10minutemail.com', 'tempmail.org', 'guerrillamail.com'];
     const domain = email.split('@')[1]?.toLowerCase();
-    if (disposableDomains.includes(domain)) return false;
+    if (domain && disposableDomains.includes(domain)) return false;
 
     return true;
   }

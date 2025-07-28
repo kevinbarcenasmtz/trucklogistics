@@ -466,13 +466,13 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
     const currentStep = store.activeFlow.currentStep;
     const stepOrder: CameraFlowStep[] = [
       'capture',
-      'processing', 
+      'processing',
       'review',
       'verification',
       'report',
     ];
     const currentIndex = stepOrder.indexOf(currentStep);
-  
+
     if (currentIndex <= 0) {
       return {
         success: false,
@@ -480,8 +480,11 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         reason: 'Already at first step',
       };
     }
-  
+
     const previousStep = stepOrder[currentIndex - 1];
+    if (!previousStep) {
+      return { success: false, currentStep, reason: 'No previous step available' };
+    }
     return navigateToStep(previousStep);
   }, [store, navigateToStep]);
 
@@ -494,16 +497,16 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         reason: 'No active flow or current step',
       };
     }
-  
+
     const stepOrder: CameraFlowStep[] = [
       'capture',
       'processing',
-      'review', 
+      'review',
       'verification',
       'report',
     ];
     const currentIndex = stepOrder.indexOf(store.activeFlow.currentStep);
-  
+
     if (currentIndex >= stepOrder.length - 1) {
       return {
         success: false,
@@ -511,8 +514,11 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
         reason: 'Already at last step',
       };
     }
-  
+
     const nextStep = stepOrder[currentIndex + 1];
+    if (!nextStep) {
+      return { success: false, currentStep: 'capture', reason: 'No next step available' };
+    }
     return navigateToStep(nextStep);
   }, [store, navigateToStep]);
 
@@ -538,9 +544,9 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
     if (!store.activeFlow || !store.activeFlow.currentStep) {
       throw new Error('No active flow or current step for retry');
     }
-  
+
     const currentStep = store.activeFlow.currentStep; // Extract to variable for type safety
-  
+
     switch (currentStep) {
       case 'processing':
         return processCurrentImage();
@@ -552,36 +558,36 @@ export function useCameraFlow(config: UseCameraFlowConfig = {}): UseCameraFlowRe
   }, [store.activeFlow, processCurrentImage, saveCurrentReceipt]);
 
   const getStepProgress = useCallback((): number => {
-  if (!store.activeFlow || !store.activeFlow.currentStep) return 0;
+    if (!store.activeFlow || !store.activeFlow.currentStep) return 0;
 
-  const currentStep = store.activeFlow.currentStep; // Extract to variable for type safety
-  
-  const stepOrder: CameraFlowStep[] = [
-    'capture',
-    'processing',
-    'review',
-    'verification',
-    'report',
-  ];
-  const currentIndex = stepOrder.indexOf(currentStep);
-  return ((currentIndex + 1) / stepOrder.length) * 100;
-}, [store.activeFlow]);
+    const currentStep = store.activeFlow.currentStep; // Extract to variable for type safety
 
-const getOverallProgress = useCallback((): number => {
-  const stepProgress = getStepProgress();
-  const processingProgress = ocrProcessingContext.state.totalProgress;
+    const stepOrder: CameraFlowStep[] = [
+      'capture',
+      'processing',
+      'review',
+      'verification',
+      'report',
+    ];
+    const currentIndex = stepOrder.indexOf(currentStep);
+    return ((currentIndex + 1) / stepOrder.length) * 100;
+  }, [store.activeFlow]);
 
-  if (store.activeFlow?.currentStep === 'processing') {
-    return processingProgress;
-  }
+  const getOverallProgress = useCallback((): number => {
+    const stepProgress = getStepProgress();
+    const processingProgress = ocrProcessingContext.state.totalProgress;
 
-  return stepProgress;
-}, [getStepProgress, ocrProcessingContext.state.totalProgress, store.activeFlow?.currentStep]);
+    if (store.activeFlow?.currentStep === 'processing') {
+      return processingProgress;
+    }
+
+    return stepProgress;
+  }, [getStepProgress, ocrProcessingContext.state.totalProgress, store.activeFlow?.currentStep]);
 
   const canProceedToNext = useCallback(() => {
     const currentStep = store.activeFlow?.currentStep;
     if (!currentStep) return false;
-    
+
     switch (currentStep) {
       case 'capture':
         return !!store.activeFlow?.imageUri;

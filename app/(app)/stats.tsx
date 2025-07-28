@@ -37,7 +37,7 @@ export default function StatsScreen() {
   const { themeStyles, isDarkTheme } = useAppTheme();
 
   const [selectedPeriod, setSelectedPeriod] = useState('week');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,7 +46,7 @@ export default function StatsScreen() {
     try {
       // Add your refresh logic here
       setError(null);
-    } catch (err) {
+    } catch {
       setError('Failed to refresh data');
     } finally {
       setRefreshing(false);

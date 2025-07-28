@@ -10,7 +10,6 @@ export default function TabLayout() {
   const { t } = useTranslation();
   const {
     surfaceColor,
-    textColor,
     secondaryTextColor,
     primaryColor,
     borderColor,

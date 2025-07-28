@@ -1,6 +1,6 @@
 // src/theme/index.ts - FIXED VERSION (No Circular Dependency)
 import { Dimensions } from 'react-native';
-import { ThemeType } from '../context/ThemeContext';
+import { ThemeType } from '../hooks/useAppTheme';
 
 // Window dimensions (from Dimensions.ts)
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');

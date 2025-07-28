@@ -27,13 +27,8 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
   testID = 'review-step',
   style,
 }) => {
-  const { 
-    getCurrentImage, 
-    getCurrentProcessedData, 
-    navigateBack, 
-    navigateNext,
-    navigateToStep 
-  } = useCameraFlow();
+  const { getCurrentImage, getCurrentProcessedData, navigateBack, navigateNext, navigateToStep } =
+    useCameraFlow();
 
   const {
     backgroundColor,
@@ -76,7 +71,10 @@ export const ReviewStep: React.FC<BaseCameraStepProps> = ({
     if (!processedData || !imageUri) {
       Alert.alert(
         t('error.title', 'Error'),
-        t('review.missingData', 'No processed data to review. Please go back and process the image again.')
+        t(
+          'review.missingData',
+          'No processed data to review. Please go back and process the image again.'
+        )
       );
     }
   }, [processedData, imageUri, t]);

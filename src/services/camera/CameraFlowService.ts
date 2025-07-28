@@ -3,6 +3,7 @@
 import * as FileSystem from 'expo-file-system';
 import { OptimizationMetrics, ProcessedReceipt } from '../../state/ocr/types';
 import { AIClassifiedReceipt } from '../../types/ReceiptInterfaces';
+import { safeProperty, safeString } from '../../utils/safeAccess';
 import { BackendOCRError, BackendOCRService, FileInfo } from '../api/BackendOCRService';
 
 /**
@@ -205,7 +206,12 @@ export class CameraFlowService {
 
           const stageDescription = this.mapBackendStageToDescription(
             status.stage,
-            status.stageDescription
+            safeProperty(
+              status,
+              'stageDescription',
+              'Processing...',
+              val => typeof val === 'string'
+            )
           );
 
           onProgress?.(workflowProgress, status.stage || 'processing', stageDescription);
@@ -217,8 +223,8 @@ export class CameraFlowService {
 
       if (processingResult.status === 'failed') {
         throw new CameraFlowError(
-          processingResult.error?.code || 'PROCESSING_FAILED',
-          processingResult.error?.message || 'OCR processing failed',
+          safeString(processingResult.error, 'PROCESSING_FAILED'),
+          safeString(processingResult.error, 'OCR processing failed'),
           'processing',
           true,
           { jobId: processingJob.jobId }

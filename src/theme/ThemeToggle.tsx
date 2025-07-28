@@ -2,21 +2,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { ThemePreference, useTheme } from '../context/ThemeContext';
-import { getThemeStyles } from '../theme';
+import { ThemePreference, useAppTheme } from '../hooks/useAppTheme';
 
 export default function ThemeToggle(): JSX.Element {
   const {
-    theme,
     themePreference,
     setTheme,
     isDarkTheme,
-    isChangingTheme, // ✅ NEW: Get loading state
+    isChangingTheme,
+    themeStyles,
     themeConstants: { THEME_SYSTEM, THEME_LIGHT, THEME_DARK },
-  } = useTheme();
-
-  // Get theme styles
-  const themeStyles = getThemeStyles(theme);
+  } = useAppTheme();
 
   const getNextTheme = (): ThemePreference => {
     // Cycle through theme options: system -> light -> dark -> system
@@ -58,7 +54,7 @@ export default function ThemeToggle(): JSX.Element {
     }
   };
 
-  // ✅ ENHANCED: Proper error handling and user feedback
+  // Proper error handling and user feedback
   const handleThemeChange = async () => {
     try {
       // Haptic feedback
@@ -84,16 +80,16 @@ export default function ThemeToggle(): JSX.Element {
         styles.container,
         {
           padding: themeStyles.spacing.sm,
-          opacity: isChangingTheme ? 0.6 : 1, // ✅ Visual feedback during change
+          opacity: isChangingTheme ? 0.6 : 1, // Visual feedback during change
         },
       ]}
       onPress={handleThemeChange}
-      disabled={isChangingTheme} // ✅ Prevent double-taps
+      disabled={isChangingTheme} // Prevent double-taps
       accessibilityLabel="Toggle theme"
       accessibilityHint={`Current theme is ${getThemeLabel()}, tap to change`}
     >
       {isChangingTheme ? (
-        // ✅ Show loading indicator during theme change
+        // Show loading indicator during theme change
         <ActivityIndicator size="small" color={themeStyles.colors.text.primary} />
       ) : (
         <Ionicons
@@ -102,7 +98,6 @@ export default function ThemeToggle(): JSX.Element {
           color={themeStyles.colors.text.primary}
         />
       )}
-
       <Text
         style={[
           styles.label,
@@ -113,7 +108,7 @@ export default function ThemeToggle(): JSX.Element {
           },
         ]}
       >
-        {isChangingTheme ? 'Changing...' : getThemeLabel()} {/* ✅ Loading text */}
+        {isChangingTheme ? 'Changing...' : getThemeLabel()} {/* Loading text */}
       </Text>
     </TouchableOpacity>
   );

@@ -207,11 +207,11 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
       t('camera.cancelMessage', 'Are you sure you want to cancel? All progress will be lost.'),
       [
         { text: t('common.no', 'No'), style: 'cancel' },
-        { 
-          text: t('common.yes', 'Yes'), 
+        {
+          text: t('common.yes', 'Yes'),
           style: 'destructive',
-          onPress: () => cancelFlow('user_cancelled')
-        }
+          onPress: () => cancelFlow('user_cancelled'),
+        },
       ]
     );
   }, [cancelFlow, t]);
@@ -272,10 +272,7 @@ const CameraWorkflowCoordinatorInner: React.FC<CameraWorkflowCoordinatorProps> =
       />
       <CameraNavigationGuard targetStep={currentStep}>
         <SafeAreaView style={[styles.container, { backgroundColor }]}>
-          <StepComponent
-            flowId={currentFlow?.id || ''}
-            testID={`camera-step-${currentStep}`}
-          />
+          <StepComponent flowId={currentFlow?.id || ''} testID={`camera-step-${currentStep}`} />
         </SafeAreaView>
       </CameraNavigationGuard>
     </>

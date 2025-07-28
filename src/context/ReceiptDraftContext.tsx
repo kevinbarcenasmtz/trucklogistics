@@ -1,5 +1,6 @@
 // src/context/ReceiptDraftContext.tsx
 
+import { safeDateString } from '@/src/utils/safeAccess';
 import React, { createContext, useCallback, useContext, useEffect, useReducer } from 'react';
 import { ProcessedReceipt } from '../state/ocr/types';
 import { Receipt } from '../types/ReceiptInterfaces';
@@ -110,7 +111,7 @@ function createDraftFromProcessedData(processedData: ProcessedReceipt): Receipt 
 
   return {
     id: '', // Will be set when saved
-    date: classification.date || currentTimestamp.split('T')[0], // Convert to date string
+    date: safeDateString(classification.date),
     type: classification.type || 'Other',
     amount: classification.amount || '0.00',
     vehicle: classification.vehicle || '',

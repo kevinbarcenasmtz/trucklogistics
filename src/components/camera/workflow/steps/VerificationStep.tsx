@@ -222,6 +222,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   /**
    * Get field error message
    */
+  /* eslint-disable-next-line */
   const getFieldErrorMessage = useCallback(
     (field: keyof Receipt): string | undefined => {
       return getFieldError(field);
@@ -242,6 +243,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   /**
    * Get field status color
    */
+  /* eslint-disable-next-line */
   const getFieldStatusColor = useCallback(
     (field: keyof Receipt): string => {
       if (hasFieldError(field)) return errorColor;

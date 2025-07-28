@@ -6,11 +6,11 @@ import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useOCRProcessing } from '../../../../context/OCRProcessingContext';
 import { useBackendOCR } from '../../../../hooks/useBackendOCR';
 import { useCameraFlow } from '../../../../hooks/useCameraFlow';
 import { BaseCameraStepProps } from '../../../../types';
 import StepTransition from '../StepTransition';
-import { useOCRProcessing } from '../../../../context/OCRProcessingContext';
 
 /**
  * Animated Progress Bar Component - extracted from useEffect animation logic
@@ -173,14 +173,14 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
   testID = 'processing-step',
   style,
 }) => {
-  const { 
-    processCurrentImage, 
-    getCurrentImage, 
+  const {
+    processCurrentImage,
+    getCurrentImage,
     getCurrentProcessedData,
-    canRetryProcessing, 
+    canRetryProcessing,
     clearError,
     navigateNext,
-    cancelFlow
+    cancelFlow,
   } = useCameraFlow();
 
   const {
@@ -230,7 +230,6 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
     }
   }, [processCurrentImage, t]);
 
-
   React.useEffect(() => {
     const existingResult = getCurrentProcessedData();
     if (existingResult && !isCompleted && !isProcessing && !hasError) {
@@ -238,7 +237,7 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
       completeProcessing();
     }
   }, [getCurrentProcessedData, isCompleted, isProcessing, hasError, completeProcessing]);
-  
+
   const handleRetry = useCallback(async () => {
     try {
       console.log('[ProcessingStep] User retrying processing');
@@ -323,7 +322,9 @@ export const ProcessingStep: React.FC<BaseCameraStepProps> = ({
       console.error('[ProcessingStep] Processing error:', error);
       Alert.alert(
         t('error.title', 'Processing Error'),
-        error.userMessage || error.message || t('processing.unexpectedError', 'An unexpected error occurred during processing.')
+        error.userMessage ||
+          error.message ||
+          t('processing.unexpectedError', 'An unexpected error occurred during processing.')
       );
     }
   }, [hasError, error, t]);

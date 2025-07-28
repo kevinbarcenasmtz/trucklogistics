@@ -1,5 +1,6 @@
 // src/utils/correlation.ts
 
+import { safeParseInt, safeString } from '@/src/utils/safeAccess';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -37,7 +38,7 @@ export function getTimestampFromCorrelationId(correlationId: string): number | n
 
   // handle both long and short formats
   const timestampPart = parts.length >= 4 ? parts[2] : parts[0];
-  const timestamp = parseInt(timestampPart, 10);
+  const timestamp = safeParseInt(timestampPart);
 
   return isNaN(timestamp) ? null : timestamp;
 }
@@ -51,25 +52,19 @@ export function isValidCorrelationId(correlationId: string): boolean {
   }
 
   const parts = correlationId.split('-');
-
-  // check for long format (4+ parts)
-  if (parts.length >= 4) {
-    const [platform, device, timestamp, random] = parts;
-    return (
-      ['ios', 'android', 'web'].includes(platform) &&
-      device.length > 0 &&
-      !isNaN(parseInt(timestamp, 10)) &&
-      random.length >= 8
-    );
+  if (parts.length !== 4) {
+    return false;
   }
 
-  // check for short format (2 parts)
-  if (parts.length === 2) {
-    const [timestamp, random] = parts;
-    return !isNaN(parseInt(timestamp, 10)) && random.length >= 8;
-  }
+  const [platform, device, timestamp, random] = parts;
 
-  return false;
+  // Validate each part exists and has correct format
+  const isValidPlatform = ['ios', 'android', 'web'].includes(safeString(platform));
+  const isValidDevice = safeString(device).length > 0;
+  const isValidTimestamp = !isNaN(safeParseInt(timestamp));
+  const isValidRandom = safeString(random).length >= 8;
+
+  return isValidPlatform && isValidDevice && isValidTimestamp && isValidRandom;
 }
 
 /**
@@ -93,7 +88,7 @@ function getDeviceIdentifier(): string {
 
     // final fallback
     return 'Unknown';
-  } catch (error) {
+  } catch {
     return 'Unknown';
   }
 }

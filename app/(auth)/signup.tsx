@@ -21,6 +21,7 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+import { safeArrayAccess } from '../../src/utils/safeAccess';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -48,7 +49,10 @@ export default function SignupScreen() {
     const validation = AuthService.validateSignupForm(state.form);
 
     if (!validation.isValid) {
-      dispatch({ type: 'VALIDATE_ERROR', error: validation.errors[0] });
+      dispatch({
+        type: 'VALIDATE_ERROR',
+        error: safeArrayAccess(validation.errors, 0, 'Validation failed'),
+      });
       Alert.alert(t('error', 'Error'), validation.errors[0]);
       return;
     }

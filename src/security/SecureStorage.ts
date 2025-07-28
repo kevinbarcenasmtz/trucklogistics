@@ -41,7 +41,7 @@ export class SecureStorage {
     try {
       const token = await this.getAuthToken();
       return token !== null;
-    } catch (error) {
+    } catch {
       return false;
     }
   }

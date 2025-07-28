@@ -5,6 +5,7 @@ import { useReceiptDraft as useReceiptDraftContext } from '../context/ReceiptDra
 import { ReceiptDraftService } from '../services/camera/ReceiptDraftService';
 import { ProcessedReceipt } from '../state/ocr/types';
 import { Receipt } from '../types/ReceiptInterfaces';
+import { safeFieldErrors, safeFieldValidationError } from '../utils/safeAccess';
 
 /**
  * Receipt draft hook configuration
@@ -505,7 +506,7 @@ export function useReceiptDraft(config: UseReceiptDraftConfig = {}): UseReceiptD
   const getFieldError = useCallback(
     (field: keyof Receipt): string | undefined => {
       const errors = draftContext.state.fieldErrors[field];
-      return errors && errors.length > 0 ? errors[0].message : undefined;
+      return errors && errors.length > 0 ? safeFieldValidationError(errors, 0).message : undefined;
     },
     [draftContext.state.fieldErrors]
   );
@@ -553,7 +554,7 @@ export function useReceiptDraft(config: UseReceiptDraftConfig = {}): UseReceiptD
         0
       ),
       fieldsWithErrors: Object.keys(draftContext.state.fieldErrors).filter(field =>
-        draftContext.state.fieldErrors[field].some(e => e.severity === 'error')
+        safeFieldErrors(draftContext.state.fieldErrors, field).some(e => e.severity === 'error')
       ),
     };
   }, [draftContext.state]);
@@ -595,7 +596,7 @@ export function useReceiptDraft(config: UseReceiptDraftConfig = {}): UseReceiptD
 
   // Derived state
   const fieldsWithErrors = Object.keys(draftContext.state.fieldErrors).filter(field =>
-    draftContext.state.fieldErrors[field].some(e => e.severity === 'error')
+    safeFieldErrors(draftContext.state.fieldErrors, field).some(e => e.severity === 'error')
   );
 
   const modifiedFields = Array.from(draftContext.state.modifiedFields);

@@ -3,6 +3,7 @@
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { OptimizationMetrics } from '../../state/ocr/types';
+import { safeArrayAccess } from '../../utils/safeAccess';
 
 /**
  * Image optimization configuration
@@ -387,7 +388,9 @@ export class ImageOptimizer {
 
     for (let i = 0; i < imageUris.length; i++) {
       try {
-        const result = await this.optimizeImage(imageUris[i], options);
+        const imageUri = safeArrayAccess(imageUris, i, '');
+        if (!imageUri) continue; // Skip if no valid URI
+        const result = await this.optimizeImage(imageUri, options);
         results.push(result);
 
         if (onProgress) {
