@@ -85,7 +85,7 @@ export default function TabLayout() {
               style={{
                 width: moderateScale(32),
                 height: moderateScale(32),
-                tintColor: backgroundColor,
+                tintColor: '#FFFFFF', 
               }}
             />
           ),

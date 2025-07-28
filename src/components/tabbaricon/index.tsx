@@ -1,78 +1,55 @@
-// src/components/TabBarIcon.tsx
-import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
+// src/components/tabbaricon.tsx
+import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { useAppTheme } from '../../hooks/useAppTheme';
 
 interface TabBarIconProps {
   focused: boolean;
   name: string;
   iconSource: any;
-  size?: number;
 }
 
-export const TabBarIcon = ({
-  focused,
-  name,
-  iconSource,
-  size = moderateScale(26),
-}: TabBarIconProps) => {
-  const { themeStyles } = useAppTheme();
+export default function TabBarIcon({ focused, name, iconSource }: TabBarIconProps) {
+  const { primaryColor, secondaryTextColor } = useAppTheme();
 
   return (
-    <View style={[styles.tabIconContainer, focused && styles.tabIconContainerActive]}>
+    <View style={styles.container}>
       <Image
         source={iconSource}
         style={[
-          styles.tabIcon,
+          styles.icon,
           {
-            width: size,
-            height: size,
-            tintColor: focused ? themeStyles.colors.primary : themeStyles.colors.gray.medium,
-            opacity: focused ? 1 : 0.8,
+            // Theme-reactive tint color
+            tintColor: focused ? primaryColor : secondaryTextColor,
           },
         ]}
       />
       <Text
         style={[
-          styles.tabLabel,
+          styles.label,
           {
-            color: focused ? themeStyles.colors.primary : themeStyles.colors.gray.light,
+            // Theme-reactive text color
+            color: focused ? primaryColor : secondaryTextColor,
           },
         ]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-        maxFontSizeMultiplier={1}
       >
         {name}
       </Text>
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
-  tabIconContainer: {
+  container: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: verticalScale(12),
-    gap: verticalScale(6),
-    width: horizontalScale(50),
-    height: verticalScale(45),
   },
-  tabIconContainerActive: {
-    transform: [{ scale: 1.1 }],
+  icon: {
+    width: 24,
+    height: 24,
+    marginBottom: 4,
   },
-  tabIcon: {
-    // Base styling - color and opacity now applied inline
-  },
-  tabLabel: {
-    fontSize: moderateScale(9),
-    marginTop: verticalScale(2),
+  label: {
+    fontSize: 12,
     fontWeight: '500',
-    textAlign: 'center',
-    lineHeight: moderateScale(11),
-    maxWidth: '100%',
-    // Color applied inline
   },
 });
-
-export default TabBarIcon;

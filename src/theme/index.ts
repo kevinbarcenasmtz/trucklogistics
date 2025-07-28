@@ -1,68 +1,53 @@
-// src/theme/index.ts - FIXED VERSION (No Circular Dependency)
+// src/theme/index.ts
 import { Dimensions } from 'react-native';
 import { ThemeType } from '../hooks/useAppTheme';
 
-// Window dimensions (from Dimensions.ts)
+// Window dimensions
 const { width: windowWidth, height: windowHeight } = Dimensions.get('window');
 
-// Responsive scaling utilities (from Metrics.ts)
+// Responsive scaling utilities
 const guidelineBaseWidth = 375;
 const guidelineBaseHeight = 812;
 
 const horizontalScale = (size: number): number => (windowWidth / guidelineBaseWidth) * size;
-
 const verticalScale = (size: number): number => (windowHeight / guidelineBaseHeight) * size;
-
 const moderateScale = (size: number, factor = 0.5): number =>
   size + (horizontalScale(size) - size) * factor;
 
 // Shadow type
 interface ShadowProps {
   shadowColor: string;
-  shadowOffset: {
-    width: number;
-    height: number;
-  };
+  shadowOffset: { width: number; height: number };
   shadowOpacity: number;
   shadowRadius: number;
   elevation: number;
 }
 
-// Theme constants - integrated with Colors.ts values
+// Colors - SIMPLIFIED
 const COLORS = {
-  // Basic colors
-  white: '#FFFFFF',
-  black: '#000000',
-  offWhite: '#f3f3ec', // From Colors.ts
-
-  // Brand colors
+  // Primary colors
   primary: {
-    light: '#2563EB', // Blue 600
-    dark: '#3B82F6', // Blue 500
-    main: '#004d40', // From Colors.ts greenThemeColor
-    light2: '#00796b', // From Colors.ts thirdOnboardingColor
+    light: '#004d40', // Your green brand color
+    dark: '#00796b',  // Slightly lighter green for dark mode
   },
-
+  
   // Background colors
   background: {
     light: '#FFFFFF',
     dark: '#121212',
-    main: '#1c1c1e', // From Colors.ts black_grey
-    card: '#29292b', // From Colors.ts darkGrey
-    elevated: '#38393d', // From Colors.ts
   },
-
-  // Surface colors
+  
+  // Surface colors (cards, elevated elements)
   surface: {
-    light: '#F3F4F6',
+    light: '#F8F9FA',
     dark: '#1E1E1E',
   },
-
+  
   // Text colors
   text: {
     light: {
       primary: '#111827',
-      secondary: '#4B5563',
+      secondary: '#6B7280',
       disabled: '#9CA3AF',
     },
     dark: {
@@ -70,44 +55,28 @@ const COLORS = {
       secondary: '#D1D5DB',
       disabled: '#6B7280',
     },
-    // From Colors.ts
-    primary: '#FFFFFF',
-    secondary: '#b0b0b0',
   },
-
+  
   // Border colors
   border: {
     light: '#E5E7EB',
     dark: '#374151',
   },
-
-  // Status colors - integrated with Colors.ts values
+  
+  // Status colors
   status: {
-    success: '#4CAF50', // From Colors.ts
-    warning: '#FFC107', // From Colors.ts
-    error: '#FF3B30', // From Colors.ts
-    info: '#2196F3', // From Colors.ts
+    success: '#10B981',
+    warning: '#F59E0B',
+    error: '#EF4444',
+    info: '#3B82F6',
   },
-
-  // Grayscale (from Colors.ts)
-  gray: {
-    light: '#b0b0b0',
-    medium: '#6c6c6e',
-    dark: '#29292b',
-    darker: '#1c1c1e',
-    transparent: '#b6b9bf',
-  },
-
-  // Legacy colors for backward compatibility
-  grey: '#b0b0b0',
-  darkGrey: '#29292b',
-  black_grey: '#1c1c1e',
-  transParent: '#b6b9bf',
-  greenThemeColor: '#004d40',
-  thirdOnboardingColor: '#00796b',
+  
+  // Basic colors
+  white: '#FFFFFF',
+  black: '#000000',
 };
 
-// Typography - using moderateScale for responsive sizing
+// Typography
 const TYPOGRAPHY = {
   fontFamily: {
     regular: 'System',
@@ -122,45 +91,9 @@ const TYPOGRAPHY = {
     xl: moderateScale(20),
     xxl: moderateScale(24),
   },
-  // Additional styles from old project
-  header: {
-    large: {
-      fontSize: moderateScale(28),
-      fontWeight: '700' as const,
-      lineHeight: moderateScale(34),
-    },
-    medium: {
-      fontSize: moderateScale(22),
-      fontWeight: '600' as const,
-      lineHeight: moderateScale(28),
-    },
-    small: {
-      fontSize: moderateScale(18),
-      fontWeight: '600' as const,
-      lineHeight: moderateScale(24),
-    },
-  },
-  body: {
-    large: {
-      fontSize: moderateScale(16),
-      lineHeight: moderateScale(24),
-    },
-    medium: {
-      fontSize: moderateScale(14),
-      lineHeight: moderateScale(20),
-    },
-    small: {
-      fontSize: moderateScale(12),
-      lineHeight: moderateScale(18),
-    },
-  },
-  button: {
-    fontSize: moderateScale(16),
-    fontWeight: '600' as const,
-  },
 };
 
-// Spacing with moderateScale for consistency
+// Spacing
 const SPACING = {
   xs: moderateScale(4),
   sm: moderateScale(8),
@@ -170,17 +103,16 @@ const SPACING = {
   xxl: moderateScale(48),
 };
 
-// Border radius with moderateScale
+// Border radius
 const BORDER_RADIUS = {
   sm: moderateScale(4),
   md: moderateScale(8),
   lg: moderateScale(12),
   xl: moderateScale(16),
   round: 9999,
-  circle: (size: number) => size / 2,
 };
 
-// Shadow presets for light theme
+// Shadows
 const SHADOW_LIGHT: Record<string, ShadowProps> = {
   sm: {
     shadowColor: '#000',
@@ -205,7 +137,6 @@ const SHADOW_LIGHT: Record<string, ShadowProps> = {
   },
 };
 
-// Shadow presets for dark theme (more subtle)
 const SHADOW_DARK: Record<string, ShadowProps> = {
   sm: {
     shadowColor: '#000',
@@ -230,18 +161,9 @@ const SHADOW_DARK: Record<string, ShadowProps> = {
   },
 };
 
-// Application base styles (from ApplicationStyles)
-const APPLICATION_STYLES = {
-  screen: {
-    flex: 1,
-  },
-  // Add more application level styles here
-};
-
-// Theme styles interface
+// Theme styles interface - SIMPLIFIED
 export interface ThemeStyles {
   colors: {
-    error: string;
     primary: string;
     background: string;
     surface: string;
@@ -257,16 +179,6 @@ export interface ThemeStyles {
       error: string;
       info: string;
     };
-    // Adding gray scale for backward compatibility
-    gray: typeof COLORS.gray;
-    // Adding legacy colors
-    greenThemeColor: string;
-    thirdOnboardingColor: string;
-    grey: string;
-    darkGrey: string;
-    black_grey: string;
-    transParent: string;
-    offWhite: string;
     white: string;
     black: string;
   };
@@ -274,26 +186,14 @@ export interface ThemeStyles {
   spacing: typeof SPACING;
   borderRadius: typeof BORDER_RADIUS;
   shadow: Record<string, ShadowProps>;
-  applicationStyles: typeof APPLICATION_STYLES;
 }
 
-// ✅ CLEANED UP: Generate theme styles based on theme type
+// Create themed styles - CLEAN VERSION
 export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
   const isDark = theme === 'dark';
 
-  // Define light theme variants of legacy colors
-  const lightModeLegacyColors = {
-    grey: '#757575', // Medium gray for light theme
-    darkGrey: '#f0f0f0', // Light gray for light theme (card backgrounds)
-    black_grey: '#f8f8f8', // Off-white for light theme (backgrounds)
-    transParent: '#d0d0d0', // Lighter transparent for light theme
-    greenThemeColor: '#004d40', // Keep brand color consistent
-    thirdOnboardingColor: '#00796b', // Keep brand color consistent
-  };
-
   return {
     colors: {
-      error: COLORS.status.error,
       primary: isDark ? COLORS.primary.dark : COLORS.primary.light,
       background: isDark ? COLORS.background.dark : COLORS.background.light,
       surface: isDark ? COLORS.surface.dark : COLORS.surface.light,
@@ -303,75 +203,16 @@ export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
         disabled: isDark ? COLORS.text.dark.disabled : COLORS.text.light.disabled,
       },
       border: isDark ? COLORS.border.dark : COLORS.border.light,
-      status: COLORS.status, // Same for both themes
-      gray: COLORS.gray, // Same for both themes
-
-      // Legacy colors - modify based on theme
-      greenThemeColor: COLORS.greenThemeColor, // Keep brand color consistent
-      thirdOnboardingColor: COLORS.thirdOnboardingColor, // Keep brand color consistent
-      grey: isDark ? COLORS.grey : lightModeLegacyColors.grey,
-      darkGrey: isDark ? COLORS.darkGrey : lightModeLegacyColors.darkGrey,
-      black_grey: isDark ? COLORS.black_grey : lightModeLegacyColors.black_grey,
-      transParent: isDark ? COLORS.transParent : lightModeLegacyColors.transParent,
-      offWhite: COLORS.offWhite, // Keep this consistent
-      white: COLORS.white, // Keep this consistent
-      black: COLORS.black, // Keep this consistent
+      status: COLORS.status,
+      white: COLORS.white,
+      black: COLORS.black,
     },
     typography: TYPOGRAPHY,
     spacing: SPACING,
     borderRadius: BORDER_RADIUS,
     shadow: isDark ? SHADOW_DARK : SHADOW_LIGHT,
-    applicationStyles: APPLICATION_STYLES,
   };
 };
 
-// Type for style functions
-export type StyleFunction<T> = (themeStyles: ThemeStyles) => T;
-
-// Hook to get themed styles (same as your original implementation)
-export function useThemedStyles<T>(styleFn: StyleFunction<T>): (theme: ThemeType) => T {
-  return (theme: ThemeType) => {
-    const themeStyles = getThemeStyles(theme);
-    return styleFn(themeStyles);
-  };
-}
-
-// Export constants for direct use
-export {
-  APPLICATION_STYLES,
-  BORDER_RADIUS,
-  COLORS,
-  horizontalScale,
-  moderateScale,
-  SHADOW_DARK,
-  SHADOW_LIGHT,
-  SPACING,
-  TYPOGRAPHY,
-  verticalScale,
-  windowHeight,
-  windowWidth,
-};
-
-// Default export of all theme elements
-const Theme = {
-  colors: COLORS,
-  typography: TYPOGRAPHY,
-  spacing: SPACING,
-  borderRadius: BORDER_RADIUS,
-  shadow: {
-    light: SHADOW_LIGHT,
-    dark: SHADOW_DARK,
-  },
-  applicationStyles: APPLICATION_STYLES,
-  scale: {
-    horizontalScale,
-    verticalScale,
-    moderateScale,
-  },
-  dimensions: {
-    windowWidth,
-    windowHeight,
-  },
-};
-
-export default Theme;
+// Export utilities
+export { horizontalScale, moderateScale, verticalScale, windowHeight, windowWidth };
