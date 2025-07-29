@@ -17,19 +17,17 @@ const FormInput: React.FC<FormInputProps> = ({
   iconType,
   ...rest
 }) => {
-  const { themeStyles, surfaceColor, textColor, secondaryTextColor, borderColor, isDarkTheme } =
-    useAppTheme();
+  const { inputBackground, textPrimary, textSecondary, borderDefault, isDarkTheme } = useAppTheme();
 
   return (
     <View
       style={[
         styles.inputContainer,
         {
-          marginVertical: themeStyles.spacing.sm,
+          marginVertical: moderateScale(8),
           height: verticalScale(50),
-          borderRadius: themeStyles.borderRadius.md,
-          backgroundColor: surfaceColor,
-          ...themeStyles.shadow.sm,
+          borderRadius: moderateScale(8),
+          backgroundColor: inputBackground,
         },
       ]}
     >
@@ -37,22 +35,22 @@ const FormInput: React.FC<FormInputProps> = ({
         style={[
           styles.iconStyle,
           {
-            padding: themeStyles.spacing.sm,
-            borderRightColor: borderColor,
+            padding: moderateScale(8),
+            borderRightColor: borderDefault,
             width: horizontalScale(50),
           },
         ]}
       >
-        <AntDesign name={iconType} size={moderateScale(25)} color={secondaryTextColor} />
+        <AntDesign name={iconType} size={moderateScale(25)} color={textSecondary} />
       </View>
       <TextInput
         value={labelValue}
         style={[
           styles.input,
           {
-            paddingHorizontal: themeStyles.spacing.md,
-            fontSize: themeStyles.typography.fontSize.md,
-            color: textColor,
+            paddingHorizontal: moderateScale(16),
+            fontSize: moderateScale(16),
+            color: textPrimary,
           },
         ]}
         numberOfLines={1}

@@ -9,13 +9,13 @@ import { Image, Platform, Pressable, StyleSheet, View } from 'react-native';
 export default function TabLayout() {
   const { t } = useTranslation();
   const {
-    surfaceColor,
-    secondaryTextColor,
-    primaryColor,
-    borderColor,
-    themeStyles,
+    cardBackground, // instead of surfaceColor
+    textSecondary, // instead of secondaryTextColor
+    primary, // instead of primaryColor
+    borderDefault, // instead of borderColor
+    black, // for shadow color
     isDarkTheme,
-    backgroundColor,
+    screenBackground, // instead of backgroundColor
   } = useAppTheme();
 
   return (
@@ -23,19 +23,19 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: surfaceColor,
+          backgroundColor: cardBackground,
           height: verticalScale(90),
-          paddingTop: themeStyles.spacing.xs,
+          paddingTop: moderateScale(4), // Using moderateScale instead of themeStyles.spacing.xs
           paddingBottom: verticalScale(22),
           position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
           borderTopWidth: 1,
-          borderTopColor: borderColor,
+          borderTopColor: borderDefault,
           ...Platform.select({
             ios: {
-              shadowColor: themeStyles.colors.black,
+              shadowColor: black,
               shadowOffset: { width: 0, height: -3 },
               shadowOpacity: isDarkTheme ? 0.3 : 0.1,
               shadowRadius: 4,
@@ -46,8 +46,8 @@ export default function TabLayout() {
           }),
         },
         tabBarShowLabel: false,
-        tabBarActiveTintColor: primaryColor,
-        tabBarInactiveTintColor: secondaryTextColor,
+        tabBarActiveTintColor: primary,
+        tabBarInactiveTintColor: textSecondary,
       }}
     >
       <Tabs.Screen
@@ -85,7 +85,7 @@ export default function TabLayout() {
               style={{
                 width: moderateScale(32),
                 height: moderateScale(32),
-                tintColor: '#FFFFFF', 
+                tintColor: '#FFFFFF',
               }}
             />
           ),
@@ -105,10 +105,10 @@ export default function TabLayout() {
                 style={[
                   styles.cameraButtonInner,
                   {
-                    backgroundColor: primaryColor,
+                    backgroundColor: primary,
                     ...Platform.select({
                       ios: {
-                        shadowColor: themeStyles.colors.black,
+                        shadowColor: black,
                         shadowOffset: { width: 0, height: 4 },
                         shadowOpacity: 0.3,
                         shadowRadius: 5,

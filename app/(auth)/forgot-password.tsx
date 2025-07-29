@@ -18,8 +18,15 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { resetPassword } = useAuth();
-  const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles } =
-    useAppTheme();
+
+  const {
+    screenBackground, // instead of backgroundColor
+    textPrimary, // instead of textColor
+    textSecondary, // instead of secondaryTextColor
+    primary, // instead of primaryColor
+    error, // semantic error color
+    white, // pure white color
+  } = useAppTheme();
 
   const { state, dispatch } = useAuthFormMachine('forgot-password');
 
@@ -78,7 +85,7 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: screenBackground }]}>
       <View style={styles.container}>
         <TouchableOpacity
           onPress={() => router.back()}
@@ -86,15 +93,15 @@ export default function ForgotPasswordScreen() {
           activeOpacity={0.7}
           disabled={isSubmitting}
         >
-          <Feather name="arrow-left" size={24} color={textColor} />
+          <Feather name="arrow-left" size={24} color={textPrimary} />
         </TouchableOpacity>
 
         <View style={styles.contentContainer}>
-          <Text style={[styles.title, { color: textColor }]}>
+          <Text style={[styles.title, { color: textPrimary }]}>
             {t('forgotPasswordTitle', 'Forgot Password')}
           </Text>
 
-          <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
+          <Text style={[styles.subtitle, { color: textSecondary }]}>
             {t(
               'forgotPasswordSubtitle',
               'Enter your email address and we will send you instructions to reset your password.'
@@ -102,13 +109,9 @@ export default function ForgotPasswordScreen() {
           </Text>
 
           {hasError && (
-            <View
-              style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}
-            >
-              <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
-              <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
-                {state.error}
-              </Text>
+            <View style={[styles.errorContainer, { backgroundColor: error + '10' }]}>
+              <Feather name="alert-circle" size={16} color={error} />
+              <Text style={[styles.errorText, { color: error }]}>{state.error}</Text>
             </View>
           )}
 
@@ -130,8 +133,8 @@ export default function ForgotPasswordScreen() {
             }
             onPress={handleReset}
             disabled={isSubmitting}
-            backgroundColor={primaryColor}
-            textColor={themeStyles.colors.white}
+            backgroundColor={primary}
+            textColor={white}
           />
         </View>
       </View>

@@ -17,7 +17,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   totalSteps,
   showProgress = true,
 }) => {
-  const { backgroundColor, primaryColor, borderColor } = useAppTheme();
+  const { screenBackground, primary, borderDefault } = useAppTheme();
 
   const renderProgressDots = () => {
     if (!showProgress) return null;
@@ -30,7 +30,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
             style={[
               styles.progressDot,
               {
-                backgroundColor: index <= stepIndex ? primaryColor : borderColor,
+                backgroundColor: index <= stepIndex ? primary : borderDefault,
               },
             ]}
           />
@@ -40,7 +40,7 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = ({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
       {renderProgressDots()}
       <View style={styles.content}>{children}</View>
     </View>

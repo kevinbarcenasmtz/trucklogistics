@@ -35,21 +35,21 @@ export const AppStateRenderer = ({ state }: AppStateRendererProps) => {
 
 // Individual state components - clean abstractions
 const InitializingView = () => {
-  const { backgroundColor, primaryColor } = useAppTheme();
+  const { screenBackground, primary } = useAppTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <ActivityIndicator size="large" color={primaryColor} />
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <ActivityIndicator size="large" color={primary} />
     </View>
   );
 };
 
 const ErrorView = ({ error }: { error: string }) => {
-  const { backgroundColor, textColor } = useAppTheme();
+  const { screenBackground, textPrimary } = useAppTheme(); 
 
   return (
-    <View style={[styles.container, { backgroundColor }]}>
-      <Text style={[styles.errorText, { color: textColor }]}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
+      <Text style={[styles.errorText, { color: textPrimary }]}>
         Something went wrong. Please restart the app.
       </Text>
     </View>

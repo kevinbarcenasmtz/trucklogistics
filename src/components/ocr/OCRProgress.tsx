@@ -13,22 +13,17 @@ interface OCRProgressProps {
 
 export function OCRProgress({ onCancel }: OCRProgressProps) {
   const { t } = useTranslation();
-  const { surfaceColor, textColor, secondaryTextColor, primaryColor, backgroundColor } =
-    useAppTheme();
+  const { cardBackground, textPrimary, textSecondary, primary, screenBackground } = useAppTheme();
 
-  // Get state directly from context
   const { state } = useOCRProcessing();
 
-  // Calculate processing time if we have a start timestamp
   const processingTime = state.startTimestamp ? Date.now() - state.startTimestamp : 0;
 
   const getStageText = (status: ProcessingStatus, stage?: ProcessingStage): string => {
-    // First check if we have a specific stage description from backend
     if (state.stageDescription) {
       return state.stageDescription;
     }
 
-    // Otherwise, use status and stage to determine text
     if (status === 'uploading') {
       return t('uploadingImage', 'Uploading Image...');
     }
@@ -95,51 +90,50 @@ export function OCRProgress({ onCancel }: OCRProgressProps) {
     }
   };
 
-  // Don't render if idle
   if (state.status === 'idle') {
     return null;
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: surfaceColor }]}>
+    <View style={[styles.container, { backgroundColor: cardBackground }]}>
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <Feather
             name={getStageIcon(state.status, state.stage) as any}
             size={20}
-            color={state.hasError ? '#FF3B30' : primaryColor}
+            color={state.hasError ? '#FF3B30' : primary}
           />
-          <Text style={[styles.title, { color: textColor }]}>
+          <Text style={[styles.title, { color: textPrimary }]}>
             {getStageText(state.status, state.stage)}
           </Text>
         </View>
 
         {(state.isProcessing || state.isUploading) && (
           <TouchableOpacity onPress={onCancel} style={styles.cancelButton}>
-            <Feather name="x" size={20} color={secondaryTextColor} />
+            <Feather name="x" size={20} color={textSecondary} />
           </TouchableOpacity>
         )}
       </View>
 
       {!state.hasError && (
         <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { backgroundColor }]}>
+          <View style={[styles.progressBar, { backgroundColor: screenBackground }]}>
             <View
               style={[
                 styles.progressFill,
                 {
-                  backgroundColor: primaryColor,
+                  backgroundColor: primary,
                   width: `${Math.round(state.totalProgress)}%`,
                 },
               ]}
             />
           </View>
           <View style={styles.progressDetails}>
-            <Text style={[styles.progressText, { color: secondaryTextColor }]}>
+            <Text style={[styles.progressText, { color: textSecondary }]}>
               {Math.round(state.totalProgress)}%
             </Text>
             {processingTime > 0 && (
-              <Text style={[styles.progressText, { color: secondaryTextColor }]}>
+              <Text style={[styles.progressText, { color: textSecondary }]}>
                 {Math.round(processingTime / 1000)}s
               </Text>
             )}

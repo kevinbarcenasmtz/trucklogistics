@@ -17,23 +17,20 @@ interface DotsProps {
 interface ShadowImageProps {
   source: any;
   isDarkTheme: boolean;
-  themeStyles: any;
   backgroundColor: string;
 }
 
 const Dots: React.FC<DotsProps> = ({ selected }) => {
-  const { isDarkTheme, textColor, borderColor, specialTextColor, specialSecondaryTextColor } =
-    useAppTheme();
+  const { isDarkTheme, textPrimary, borderDefault, white, textSecondary } = useAppTheme();
 
-  // Page 1 (index 1) is the green page, pages 0 and 2 are normal
   const isOnGreenPage = globalCurrentPage === 1;
 
   const dotColor = selected
     ? isOnGreenPage
-      ? specialTextColor
-      : textColor
+      ? white
+      : textPrimary
     : isOnGreenPage
-      ? specialSecondaryTextColor
+      ? textSecondary
       : isDarkTheme
         ? 'rgba(255, 255, 255, 0.3)'
         : 'rgba(0, 0, 0, 0.2)';
@@ -45,10 +42,10 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
         {
           backgroundColor: dotColor,
           borderWidth: selected ? 0 : 1,
-          borderColor: isOnGreenPage ? specialSecondaryTextColor : borderColor,
+          borderColor: isOnGreenPage ? textSecondary : borderDefault,
           ...Platform.select({
             ios: {
-              shadowColor: isOnGreenPage ? specialTextColor : textColor,
+              shadowColor: isOnGreenPage ? white : textPrimary,
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.2,
               shadowRadius: 1,
@@ -66,7 +63,7 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
 
 const Skip = ({ ...props }) => {
   const { t } = useTranslation();
-  const { textColor, specialTextColor } = useAppTheme();
+  const { textPrimary, white } = useAppTheme();
   const isOnGreenPage = globalCurrentPage === 1;
 
   return (
@@ -79,7 +76,7 @@ const Skip = ({ ...props }) => {
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: isOnGreenPage ? specialTextColor : textColor }]}>
+      <Text style={[styles.buttonText, { color: isOnGreenPage ? white : textPrimary }]}>
         {t('skip', 'Skip')}
       </Text>
     </TouchableOpacity>
@@ -88,7 +85,7 @@ const Skip = ({ ...props }) => {
 
 const Next = ({ ...props }) => {
   const { t } = useTranslation();
-  const { textColor, specialTextColor } = useAppTheme();
+  const { textPrimary, white } = useAppTheme();
   const isOnGreenPage = globalCurrentPage === 1;
 
   return (
@@ -97,13 +94,12 @@ const Next = ({ ...props }) => {
       {...props}
       activeOpacity={0.7}
       onPress={() => {
-        // Track page advancement
         globalCurrentPage = Math.min(globalCurrentPage + 1, 2);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         props.onPress?.();
       }}
     >
-      <Text style={[styles.buttonText, { color: isOnGreenPage ? specialTextColor : textColor }]}>
+      <Text style={[styles.buttonText, { color: isOnGreenPage ? white : textPrimary }]}>
         {t('next', 'Next')}
       </Text>
     </TouchableOpacity>
@@ -112,8 +108,7 @@ const Next = ({ ...props }) => {
 
 const Done = ({ ...props }) => {
   const { t } = useTranslation();
-  const { primaryColor } = useAppTheme();
-  // Done button is on the last page (index 2), which should be normal theme
+  const { primary } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -121,7 +116,7 @@ const Done = ({ ...props }) => {
         styles.button,
         styles.doneButton,
         {
-          backgroundColor: primaryColor,
+          backgroundColor: primary,
         },
       ]}
       {...props}
@@ -136,7 +131,7 @@ const Done = ({ ...props }) => {
           styles.buttonText,
           styles.doneButtonText,
           {
-            color: '#FFFFFF', // Always white text on primary button
+            color: '#FFFFFF',
           },
         ]}
       >
@@ -146,60 +141,47 @@ const Done = ({ ...props }) => {
   );
 };
 
-const ShadowImage: React.FC<ShadowImageProps> = ({
-  source,
-  isDarkTheme,
-  themeStyles,
-  backgroundColor,
-}) => (
-  <Image
-    source={source}
-    style={[
-      styles.image,
-      { backgroundColor },
-      Platform.select({
-        ios: {
-          shadowColor: themeStyles.colors.black,
-          shadowOffset: { width: 0, height: 3 },
-          shadowOpacity: isDarkTheme ? 0.4 : 0.2,
-          shadowRadius: 5,
-        },
-        android: {
-          elevation: 5,
-        },
-      }),
-    ]}
-  />
-);
+const ShadowImage: React.FC<ShadowImageProps> = ({ source, isDarkTheme, backgroundColor }) => {
+  const { black } = useAppTheme();
+
+  return (
+    <Image
+      source={source}
+      style={[
+        styles.image,
+        { backgroundColor },
+        Platform.select({
+          ios: {
+            shadowColor: black,
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: isDarkTheme ? 0.4 : 0.2,
+            shadowRadius: 5,
+          },
+          android: {
+            elevation: 5,
+          },
+        }),
+      ]}
+    />
+  );
+};
 
 export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
   const { t } = useTranslation();
-  const {
-    getBackgroundColor,
-    getTextColor,
-    getSecondaryTextColor,
-    specialBackgroundColor,
-    specialTextColor,
-    specialSecondaryTextColor,
-    themeStyles,
-    isDarkTheme,
-  } = useAppTheme();
+  const { getBackground, getText, primary, white, textSecondary, isDarkTheme } = useAppTheme();
 
-  // Reset global page counter when component mounts
   React.useEffect(() => {
     globalCurrentPage = 0;
   }, []);
 
   const pages = [
-    // Page 0: Normal theme (white/dark background, black/white dots and text)
     {
-      backgroundColor: getBackgroundColor(),
+      backgroundColor: getBackground('screen'),
       image: (
         <ShadowImage
           source={require('@/assets/icons/logistics1.png')}
           isDarkTheme={isDarkTheme}
-          themeStyles={themeStyles}
-          backgroundColor={getBackgroundColor()}
+          backgroundColor={getBackground('screen')}
         />
       ),
       title: t('onboardingTitle1', 'Welcome to Trucking Logistics Pro'),
@@ -207,18 +189,16 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
         'onboardingSubtitle1',
         'Simplify your logistics with advanced tools for seamless trucking operations.'
       ),
-      titleStyles: [styles.title, { color: getTextColor() }],
-      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor() }],
+      titleStyles: [styles.title, { color: getText('primary') }],
+      subTitleStyles: [styles.subtitle, { color: getText('secondary') }],
     },
-    // Page 1: Green theme (green background, white dots and text)
     {
-      backgroundColor: specialBackgroundColor,
+      backgroundColor: primary,
       image: (
         <ShadowImage
           source={require('@/assets/icons/logistics2.png')}
           isDarkTheme={isDarkTheme}
-          themeStyles={themeStyles}
-          backgroundColor={specialBackgroundColor}
+          backgroundColor={primary}
         />
       ),
       title: t('onboardingTitle2', 'Generate Insightful Reports'),
@@ -226,18 +206,16 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
         'onboardingSubtitle2',
         'Track and analyze your performance with professional-grade reporting tools.'
       ),
-      titleStyles: [styles.title, { color: specialTextColor }],
-      subTitleStyles: [styles.subtitle, { color: specialSecondaryTextColor }],
+      titleStyles: [styles.title, { color: white }],
+      subTitleStyles: [styles.subtitle, { color: textSecondary }],
     },
-    // Page 2: Back to normal theme (white/dark background, black/white dots and text)
     {
-      backgroundColor: getBackgroundColor(),
+      backgroundColor: getBackground('screen'),
       image: (
         <ShadowImage
           source={require('@/assets/icons/logistics3.png')}
           isDarkTheme={isDarkTheme}
-          themeStyles={themeStyles}
-          backgroundColor={getBackgroundColor()}
+          backgroundColor={getBackground('screen')}
         />
       ),
       title: t('onboardingTitle3', 'Stay on Track'),
@@ -245,8 +223,8 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
         'onboardingSubtitle3',
         'Real-time navigation and scheduling for efficient deliveries.'
       ),
-      titleStyles: [styles.title, { color: getTextColor() }],
-      subTitleStyles: [styles.subtitle, { color: getSecondaryTextColor() }],
+      titleStyles: [styles.title, { color: getText('primary') }],
+      subTitleStyles: [styles.subtitle, { color: getText('secondary') }],
     },
   ];
 

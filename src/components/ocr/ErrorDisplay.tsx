@@ -15,8 +15,7 @@ interface ErrorDisplayProps {
 
 export function ErrorDisplay({ error, onRetry, onDismiss }: ErrorDisplayProps) {
   const { t } = useTranslation();
-  const { textColor, secondaryTextColor, errorColor, primaryColor, getSurfaceColor } =
-    useAppTheme();
+  const { textPrimary, textSecondary, error: errorColor, primary, cardBackground } = useAppTheme();
 
   return (
     <View
@@ -30,12 +29,12 @@ export function ErrorDisplay({ error, onRetry, onDismiss }: ErrorDisplayProps) {
     >
       <View style={styles.header}>
         <MaterialIcons name="error" size={24} color={errorColor} />
-        <Text style={[styles.title, { color: textColor }]}>
+        <Text style={[styles.title, { color: textPrimary }]}>
           {t('processingError', 'Processing Error')}
         </Text>
       </View>
 
-      <Text style={[styles.message, { color: secondaryTextColor }]}>{error.userMessage}</Text>
+      <Text style={[styles.message, { color: textSecondary }]}>{error.userMessage}</Text>
 
       <View style={styles.buttonContainer}>
         {onRetry && error.retryable && (
@@ -43,16 +42,15 @@ export function ErrorDisplay({ error, onRetry, onDismiss }: ErrorDisplayProps) {
             title={t('retry', 'Retry')}
             icon="refresh"
             onPress={onRetry}
-            backgroundColor={primaryColor}
+            backgroundColor={primary}
             style={styles.button}
           />
         )}
-
         <ActionButton
           title={t('cancel', 'Cancel')}
-          icon="cancel" // Changed from "x" to valid MaterialIcons name
+          icon="cancel"
           onPress={onDismiss}
-          backgroundColor={getSurfaceColor()}
+          backgroundColor={cardBackground}
           style={styles.button}
         />
       </View>

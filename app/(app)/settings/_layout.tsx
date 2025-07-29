@@ -3,13 +3,13 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { Stack } from 'expo-router';
 
 export default function SettingsLayout() {
-  const { backgroundColor } = useAppTheme();
+  const { screenBackground } = useAppTheme();
 
   return (
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor },
+        contentStyle: { backgroundColor: screenBackground },
       }}
     >
       <Stack.Screen

@@ -68,16 +68,17 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
     validationMode: 'onChange',
   });
 
+  // Updated to use new semantic theme colors
   const {
-    backgroundColor,
-    surfaceColor,
-    textColor,
-    secondaryTextColor,
-    primaryColor,
-    borderColor,
-    errorColor,
-    warningColor,
-    successColor,
+    screenBackground,
+    cardBackground,
+    textPrimary,
+    textSecondary,
+    primary,
+    borderDefault,
+    error,
+    warning,
+    success,
   } = useAppTheme();
 
   const { t } = useTranslation();
@@ -222,7 +223,6 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   /**
    * Get field error message
    */
-  /* eslint-disable-next-line */
   const getFieldErrorMessage = useCallback(
     (field: keyof Receipt): string | undefined => {
       return getFieldError(field);
@@ -243,23 +243,14 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   /**
    * Get field status color
    */
-  /* eslint-disable-next-line */
   const getFieldStatusColor = useCallback(
     (field: keyof Receipt): string => {
-      if (hasFieldError(field)) return errorColor;
-      if (isFieldModified(field)) return warningColor;
-      if (isFieldValid(field)) return successColor;
-      return borderColor;
+      if (hasFieldError(field)) return error;
+      if (isFieldModified(field)) return warning;
+      if (isFieldValid(field)) return success;
+      return borderDefault;
     },
-    [
-      hasFieldError,
-      isFieldModified,
-      isFieldValid,
-      errorColor,
-      warningColor,
-      successColor,
-      borderColor,
-    ]
+    [hasFieldError, isFieldModified, isFieldValid, error, warning, success, borderDefault]
   );
 
   // Initialize draft from processed data
@@ -285,9 +276,9 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   // Validate draft data exists - moved after all hooks
   if (!draft) {
     return (
-      <SafeAreaView style={[{ flex: 1, backgroundColor }, style]} testID={testID}>
+      <SafeAreaView style={[{ flex: 1, backgroundColor: screenBackground }, style]} testID={testID}>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: textColor }}>Loading draft data...</Text>
+          <Text style={{ color: textPrimary }}>Loading draft data...</Text>
         </View>
       </SafeAreaView>
     );
@@ -296,23 +287,23 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor,
+      backgroundColor: screenBackground,
     },
     header: {
       padding: 20,
       borderBottomWidth: 1,
-      borderBottomColor: borderColor,
-      backgroundColor: surfaceColor,
+      borderBottomColor: borderDefault,
+      backgroundColor: cardBackground,
     },
     title: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: textColor,
+      color: textPrimary,
       marginBottom: 8,
     },
     subtitle: {
       fontSize: 16,
-      color: secondaryTextColor,
+      color: textSecondary,
     },
     statusBar: {
       flexDirection: 'row',
@@ -320,9 +311,9 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
       alignItems: 'center',
       paddingHorizontal: 20,
       paddingVertical: 12,
-      backgroundColor: surfaceColor,
+      backgroundColor: cardBackground,
       borderBottomWidth: 1,
-      borderBottomColor: borderColor,
+      borderBottomColor: borderDefault,
     },
     statusItem: {
       flexDirection: 'row',
@@ -331,14 +322,14 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
     },
     statusText: {
       fontSize: 12,
-      color: secondaryTextColor,
+      color: textSecondary,
     },
     statusTextModified: {
-      color: warningColor,
+      color: warning,
       fontWeight: '600',
     },
     statusTextError: {
-      color: errorColor,
+      color: error,
       fontWeight: '600',
     },
     scrollContent: {
@@ -352,6 +343,8 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
       right: 0,
       padding: 20,
       borderTopWidth: 1,
+      backgroundColor: cardBackground,
+      borderTopColor: borderDefault,
     },
     buttonRow: {
       flexDirection: 'row',
@@ -365,13 +358,13 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
       paddingHorizontal: 20,
       borderRadius: 8,
       borderWidth: 1,
-      borderColor: primaryColor,
+      borderColor: primary,
       alignItems: 'center',
     },
     secondaryButtonText: {
       fontSize: 16,
       fontWeight: '600',
-      color: primaryColor,
+      color: primary,
     },
     cancelButton: {
       backgroundColor: 'transparent',
@@ -383,7 +376,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
     },
     cancelButtonText: {
       fontSize: 14,
-      color: secondaryTextColor,
+      color: textSecondary,
     },
     bottomSpacing: {
       height: 20,
@@ -395,7 +388,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
       alignItems: 'center',
     },
     modalContent: {
-      backgroundColor: surfaceColor,
+      backgroundColor: cardBackground,
       borderRadius: 12,
       padding: 20,
       margin: 20,
@@ -405,18 +398,18 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
     modalTitle: {
       fontSize: 18,
       fontWeight: 'bold',
-      color: textColor,
+      color: textPrimary,
       marginBottom: 16,
       textAlign: 'center',
     },
     modalText: {
       fontSize: 12,
-      color: textColor,
+      color: textPrimary,
       fontFamily: 'monospace',
       lineHeight: 16,
     },
     modalButton: {
-      backgroundColor: primaryColor,
+      backgroundColor: primary,
       padding: 12,
       borderRadius: 8,
       alignItems: 'center',
@@ -445,7 +438,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
             <MaterialIcons
               name={isDirty ? 'edit' : 'check'}
               size={16}
-              color={isDirty ? warningColor : successColor}
+              color={isDirty ? warning : success}
             />
             <Text style={[styles.statusText, isDirty && styles.statusTextModified]}>
               {isDirty
@@ -458,7 +451,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
             <MaterialIcons
               name={errorCount > 0 ? 'error' : 'check-circle'}
               size={16}
-              color={errorCount > 0 ? errorColor : successColor}
+              color={errorCount > 0 ? error : success}
             />
             <Text style={[styles.statusText, errorCount > 0 && styles.statusTextError]}>
               {errorCount > 0
@@ -471,7 +464,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
             <MaterialIcons
               name="edit-note"
               size={16}
-              color={modifiedFields.length > 0 ? warningColor : secondaryTextColor}
+              color={modifiedFields.length > 0 ? warning : textSecondary}
             />
             <Text style={styles.statusText}>
               {t('verification.modified', `${modifiedFields.length} modified`)}
@@ -561,12 +554,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
         </ScrollView>
 
         {/* Action Buttons */}
-        <View
-          style={[
-            styles.buttonContainer,
-            { backgroundColor: surfaceColor, borderTopColor: borderColor },
-          ]}
-        >
+        <View style={styles.buttonContainer}>
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.secondaryButton}
@@ -634,7 +622,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
                 </Text>
                 <View style={{ gap: 12 }}>
                   <TouchableOpacity
-                    style={[styles.modalButton, { backgroundColor: successColor }]}
+                    style={[styles.modalButton, { backgroundColor: success }]}
                     onPress={() => handleUnsavedChangesResponse('save')}
                   >
                     <Text style={styles.modalButtonText}>
@@ -643,7 +631,7 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.modalButton, { backgroundColor: errorColor }]}
+                    style={[styles.modalButton, { backgroundColor: error }]}
                     onPress={() => handleUnsavedChangesResponse('discard')}
                   >
                     <Text style={styles.modalButtonText}>
@@ -654,11 +642,15 @@ export const VerificationStep: React.FC<BaseCameraStepProps> = ({
                   <TouchableOpacity
                     style={[
                       styles.modalButton,
-                      { backgroundColor: 'transparent', borderWidth: 1, borderColor: borderColor },
+                      {
+                        backgroundColor: 'transparent',
+                        borderWidth: 1,
+                        borderColor: borderDefault,
+                      },
                     ]}
                     onPress={() => handleUnsavedChangesResponse('cancel')}
                   >
-                    <Text style={[styles.modalButtonText, { color: textColor }]}>
+                    <Text style={[styles.modalButtonText, { color: textPrimary }]}>
                       {t('common.cancel', 'Cancel')}
                     </Text>
                   </TouchableOpacity>

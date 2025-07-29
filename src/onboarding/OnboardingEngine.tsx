@@ -10,12 +10,12 @@ import { getAvailableSteps } from './stepRegistry';
 export const OnboardingEngine: React.FC = () => {
   const { state, completeOnboardingStep, goBackToStep, completeOnboarding } = useAppStateMachine();
   const { completeOnboarding: authCompleteOnboarding } = useAuth();
-  const { backgroundColor, primaryColor } = useAppTheme();
+  const { screenBackground, primary } = useAppTheme();
 
   if (state.type !== 'onboarding') {
     return (
-      <View style={[styles.loadingContainer, { backgroundColor }]}>
-        <ActivityIndicator size="large" color={primaryColor} />
+      <View style={[styles.loadingContainer, { backgroundColor: screenBackground }]}>
+        <ActivityIndicator size="large" color={primary} />
       </View>
     );
   }

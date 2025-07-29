@@ -7,14 +7,12 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const ActivityItem = ({ icon, text }: { icon: any; text: string }) => {
-  const { themeStyles } = useAppTheme();
+  const { primary, textSecondary } = useAppTheme();
 
   return (
     <View style={styles.activityItem}>
-      <Feather name={icon} size={20} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.activityText, { color: themeStyles.colors.text.secondary }]}>
-        {text}
-      </Text>
+      <Feather name={icon} size={20} color={primary} />
+      <Text style={[styles.activityText, { color: textSecondary }]}>{text}</Text>
     </View>
   );
 };
@@ -28,29 +26,27 @@ const QuickAccessButton = ({
   title: string;
   onPress: () => void;
 }) => {
-  const { themeStyles } = useAppTheme();
+  const { cardBackground, primary, textPrimary } = useAppTheme();
 
   return (
     <TouchableOpacity
-      style={[styles.quickButton, { backgroundColor: themeStyles.colors.darkGrey }]}
+      style={[styles.quickButton, { backgroundColor: cardBackground }]}
       onPress={onPress}
     >
-      <Feather name={icon} size={30} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.quickButtonText, { color: themeStyles.colors.text.primary }]}>
-        {title}
-      </Text>
+      <Feather name={icon} size={30} color={primary} />
+      <Text style={[styles.quickButtonText, { color: textPrimary }]}>{title}</Text>
     </TouchableOpacity>
   );
 };
 
 const StatItem = ({ icon, value, label }: { icon: any; value: string; label: string }) => {
-  const { themeStyles } = useAppTheme();
+  const { primary, textPrimary, textSecondary } = useAppTheme();
 
   return (
     <View style={styles.statItem}>
-      <Feather name={icon} size={24} color={themeStyles.colors.greenThemeColor} />
-      <Text style={[styles.statValue, { color: themeStyles.colors.text.primary }]}>{value}</Text>
-      <Text style={[styles.statLabel, { color: themeStyles.colors.text.secondary }]}>{label}</Text>
+      <Feather name={icon} size={24} color={primary} />
+      <Text style={[styles.statValue, { color: textPrimary }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: textSecondary }]}>{label}</Text>
     </View>
   );
 };
@@ -58,26 +54,20 @@ const StatItem = ({ icon, value, label }: { icon: any; value: string; label: str
 export default function HomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
-  const { themeStyles } = useAppTheme();
+  const { screenBackground, cardBackground, primary, textPrimary, textSecondary } = useAppTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: themeStyles.colors.black_grey }]}>
+    <View style={[styles.container, { backgroundColor: screenBackground }]}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.header}>
-          <Text style={[styles.welcomeText, { color: themeStyles.colors.text.primary }]}>
-            {t('welcomeTitle')}
-          </Text>
-          <Text style={[styles.subText, { color: themeStyles.colors.text.secondary }]}>
-            {t('welcomeSubtitle')}
-          </Text>
+          <Text style={[styles.welcomeText, { color: textPrimary }]}>{t('welcomeTitle')}</Text>
+          <Text style={[styles.subText, { color: textSecondary }]}>{t('welcomeSubtitle')}</Text>
         </View>
 
-        <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
+        <View style={[styles.card, { backgroundColor: cardBackground }]}>
           <View style={styles.cardHeader}>
-            <Feather name="activity" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>
-              {t('recentActivity')}
-            </Text>
+            <Feather name="activity" size={24} color={primary} />
+            <Text style={[styles.cardTitle, { color: textPrimary }]}>{t('recentActivity')}</Text>
           </View>
           <View style={styles.cardContent}>
             <ActivityItem icon="bookmark" text={t('lastReceipt')} />
@@ -86,12 +76,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
+        <View style={[styles.card, { backgroundColor: cardBackground }]}>
           <View style={styles.cardHeader}>
-            <Feather name="star" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>
-              {t('quickAccess')}
-            </Text>
+            <Feather name="star" size={24} color={primary} />
+            <Text style={[styles.cardTitle, { color: textPrimary }]}>{t('quickAccess')}</Text>
           </View>
           <View style={styles.buttonGrid}>
             <QuickAccessButton
@@ -107,12 +95,10 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        <View style={[styles.card, { backgroundColor: themeStyles.colors.darkGrey }]}>
+        <View style={[styles.card, { backgroundColor: cardBackground }]}>
           <View style={styles.cardHeader}>
-            <Feather name="bar-chart-2" size={24} color={themeStyles.colors.greenThemeColor} />
-            <Text style={[styles.cardTitle, { color: themeStyles.colors.text.primary }]}>
-              {t('statistics')}
-            </Text>
+            <Feather name="bar-chart-2" size={24} color={primary} />
+            <Text style={[styles.cardTitle, { color: textPrimary }]}>{t('statistics')}</Text>
           </View>
           <View style={styles.statsGrid}>
             <StatItem icon="truck" value="15" label={t('activeTrucks')} />

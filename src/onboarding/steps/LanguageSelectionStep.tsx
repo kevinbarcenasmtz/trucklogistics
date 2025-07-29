@@ -22,27 +22,15 @@ const LANGUAGE_OPTIONS: LanguageOption[] = [
 
 export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, onComplete }) => {
   const { t, i18n } = useTranslation();
-  const {
-    getBackgroundColor,
-    getTextColor,
-    getSecondaryTextColor,
-    buttonPrimaryBg,
-    surfaceColor,
-    themeStyles,
-    isDarkTheme,
-  } = useAppTheme();
+  const { getBackground, getText, primary, cardBackground, white, black, isDarkTheme } =
+    useAppTheme();
 
   const handleLanguageSelect = async (language: Language) => {
     try {
-      // Save preference and change language
       await Promise.all([saveLanguagePreference(language), i18n.changeLanguage(language)]);
-
-      // Complete the step with language data
       onComplete({ language });
     } catch (error) {
       console.error('Failed to set language:', error);
-
-      // Show user-friendly error
       Alert.alert(
         t('error', 'Error'),
         t('languageChangeError', 'Failed to change language. Please try again.'),
@@ -61,19 +49,19 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: getBackgroundColor() }]}>
+    <View style={[styles.container, { backgroundColor: getBackground('screen') }]}>
       <View style={styles.headerContainer}>
         <Image
           source={require('@/assets/icons/logo.jpg')}
           style={[
             styles.logo,
             {
-              borderRadius: themeStyles.borderRadius.circle(120),
-              backgroundColor: getBackgroundColor(),
+              borderRadius: 60,
+              backgroundColor: getBackground('screen'),
             },
             Platform.select({
               ios: {
-                shadowColor: themeStyles.colors.black,
+                shadowColor: black,
                 shadowOffset: { width: 0, height: 3 },
                 shadowOpacity: isDarkTheme ? 0.4 : 0.2,
                 shadowRadius: 5,
@@ -82,8 +70,8 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             }),
           ]}
         />
-        <Text style={[styles.appTitle, { color: getTextColor() }]}>Trucking Logistics Pro</Text>
-        <Text style={[styles.title, { color: getTextColor() }]}>
+        <Text style={[styles.appTitle, { color: getText('primary') }]}>Trucking Logistics Pro</Text>
+        <Text style={[styles.title, { color: getText('primary') }]}>
           {t('selectLanguage', 'Choose your preferred language')}
         </Text>
       </View>
@@ -94,16 +82,14 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             key={option.code}
             buttonTitle={`${option.flag} ${option.nativeLabel}`}
             onPress={() => handleLanguageSelect(option.code)}
-            backgroundColor={
-              context.selectedLanguage === option.code ? surfaceColor : buttonPrimaryBg
-            }
-            textColor={context.selectedLanguage === option.code ? getTextColor() : '#FFFFFF'}
+            backgroundColor={context.selectedLanguage === option.code ? cardBackground : primary}
+            textColor={context.selectedLanguage === option.code ? getText('primary') : white}
             style={styles.languageButton}
           />
         ))}
       </View>
 
-      <Text style={[styles.footerText, { color: getSecondaryTextColor() }]}>
+      <Text style={[styles.footerText, { color: getText('secondary') }]}>
         {t('chooseLater', 'You can change the language later in settings')}
       </Text>
     </View>

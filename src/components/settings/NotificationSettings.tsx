@@ -24,7 +24,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
-  const { textColor, borderColor, primaryColor, themeStyles, isDarkTheme } = useAppTheme();
+  const { textPrimary, borderDefault, primary, white, black, isDarkTheme } = useAppTheme();
 
   const renderNotificationRow = (
     iconName: string,
@@ -34,16 +34,12 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
     onValueChange: (value: boolean) => void,
     isFirst: boolean = false
   ) => (
-    <View style={[styles.rowWrapper, isFirst && styles.rowFirst, { borderColor }]}>
+    <View style={[styles.rowWrapper, isFirst && styles.rowFirst, { borderColor: borderDefault }]}>
       <View style={styles.row}>
         <View style={[styles.rowIcon, { backgroundColor }]}>
-          <Feather
-            color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-            name={iconName as any}
-            size={20}
-          />
+          <Feather color={isDarkTheme ? black : white} name={iconName as any} size={20} />
         </View>
-        <Text style={[styles.rowLabel, { color: textColor }]}>{label}</Text>
+        <Text style={[styles.rowLabel, { color: textPrimary }]}>{label}</Text>
         <View style={styles.rowSpacer} />
         <AnimatedSwitch
           entering={FadeIn}
@@ -52,7 +48,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
           disabled={disabled}
           trackColor={{
             false: isDarkTheme ? '#555555' : '#D0D0D0',
-            true: primaryColor + '80',
+            true: primary + '80',
           }}
           thumbColor={isDarkTheme ? '#f4f3f4' : '#FFFFFF'}
           ios_backgroundColor={isDarkTheme ? '#555555' : '#D0D0D0'}

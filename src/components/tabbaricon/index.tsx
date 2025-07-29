@@ -9,7 +9,7 @@ interface TabBarIconProps {
 }
 
 export default function TabBarIcon({ focused, name, iconSource }: TabBarIconProps) {
-  const { primaryColor, secondaryTextColor } = useAppTheme();
+  const { primary, textSecondary } = useAppTheme();
 
   return (
     <View style={styles.container}>
@@ -19,7 +19,7 @@ export default function TabBarIcon({ focused, name, iconSource }: TabBarIconProp
           styles.icon,
           {
             // Theme-reactive tint color
-            tintColor: focused ? primaryColor : secondaryTextColor,
+            tintColor: focused ? primary : textSecondary,
           },
         ]}
       />
@@ -28,7 +28,7 @@ export default function TabBarIcon({ focused, name, iconSource }: TabBarIconProp
           styles.label,
           {
             // Theme-reactive text color
-            color: focused ? primaryColor : secondaryTextColor,
+            color: focused ? primary : textSecondary,
           },
         ]}
       >

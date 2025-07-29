@@ -1,6 +1,6 @@
 // src/components/forms/FormButton.tsx
 import { useAppTheme } from '@/src/hooks/useAppTheme';
-import { verticalScale } from '@/src/theme';
+import { moderateScale, verticalScale } from '@/src/theme';
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, TouchableOpacityProps } from 'react-native';
 
@@ -19,7 +19,7 @@ const FormButton: React.FC<FormButtonProps> = ({
   style,
   ...rest
 }) => {
-  const { themeStyles, buttonPrimaryBg } = useAppTheme();
+  const { primary, white } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -27,9 +27,9 @@ const FormButton: React.FC<FormButtonProps> = ({
         styles.buttonContainer,
         {
           height: verticalScale(50),
-          backgroundColor: backgroundColor || buttonPrimaryBg,
-          borderRadius: themeStyles.borderRadius.md,
-          marginVertical: themeStyles.spacing.md,
+          backgroundColor: backgroundColor || primary,
+          borderRadius: moderateScale(8),
+          marginVertical: moderateScale(16),
         },
         style,
       ]}
@@ -41,8 +41,8 @@ const FormButton: React.FC<FormButtonProps> = ({
         style={[
           styles.buttonText,
           {
-            fontSize: themeStyles.typography.fontSize.md,
-            color: textColor || '#FFFFFF',
+            fontSize: moderateScale(16),
+            color: textColor || white,
           },
         ]}
       >

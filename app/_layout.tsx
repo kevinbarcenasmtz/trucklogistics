@@ -13,28 +13,28 @@ import '../src/config/firebaseMigration';
 
 // Theme-aware stack navigator
 function ThemedStack(): JSX.Element {
-  const { isDarkTheme, backgroundColor, textColor } = useAppTheme();
+  const { isDarkTheme, screenBackground, textPrimary } = useAppTheme();
 
   return (
     <View
       style={{
         flex: 1,
-        backgroundColor,
+        backgroundColor: screenBackground,
       }}
     >
       <StatusBar
         style={isDarkTheme ? 'light' : 'dark'}
-        backgroundColor={Platform.OS === 'android' ? backgroundColor : 'transparent'}
+        backgroundColor={Platform.OS === 'android' ? screenBackground : 'transparent'}
         translucent={Platform.OS === 'android'}
       />
       <Stack
         screenOptions={{
           headerStyle: {
-            backgroundColor,
+            backgroundColor: screenBackground,
           },
-          headerTintColor: textColor,
+          headerTintColor: textPrimary,
           contentStyle: {
-            backgroundColor,
+            backgroundColor: screenBackground,
           },
           headerShown: false,
           animation: Platform.OS === 'ios' ? 'default' : 'fade_from_bottom',

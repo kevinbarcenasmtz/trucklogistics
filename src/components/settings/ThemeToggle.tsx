@@ -1,4 +1,3 @@
-// src/components/settings/ThemeToggle.tsx
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import { Feather } from '@expo/vector-icons';
@@ -19,7 +18,7 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
   disabled = false,
 }) => {
   const { t } = useTranslation();
-  const { textColor, secondaryTextColor, primaryColor, borderColor, themeStyles, isDarkTheme } =
+  const { textPrimary, textSecondary, primary, borderDefault, white, black, isDarkTheme } =
     useAppTheme();
 
   const getThemeLabel = () => {
@@ -39,19 +38,19 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
 
   const renderThemeValue = () => {
     if (isLoading) {
-      return <ActivityIndicator size="small" color={primaryColor} />;
+      return <ActivityIndicator size="small" color={primary} />;
     }
 
     return (
       <>
-        <Text style={[styles.rowValue, { color: secondaryTextColor }]}>{getThemeLabel()}</Text>
-        <Feather color={secondaryTextColor} name="chevron-right" size={20} />
+        <Text style={[styles.rowValue, { color: textSecondary }]}>{getThemeLabel()}</Text>
+        <Feather color={textSecondary} name="chevron-right" size={20} />
       </>
     );
   };
 
   return (
-    <View style={[styles.rowWrapper, { borderColor }]}>
+    <View style={[styles.rowWrapper, { borderColor: borderDefault }]}>
       <TouchableOpacity
         onPress={onThemeChange}
         style={styles.row}
@@ -60,12 +59,12 @@ export const ThemeToggle: React.FC<ThemeToggleProps> = ({
       >
         <View style={[styles.rowIcon, { backgroundColor: '#007AFF' }]}>
           <Feather
-            color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
+            color={isDarkTheme ? black : white}
             name={isDarkTheme ? 'moon' : 'sun'}
             size={20}
           />
         </View>
-        <Text style={[styles.rowLabel, { color: textColor }]}>{t('theme', 'Theme')}</Text>
+        <Text style={[styles.rowLabel, { color: textPrimary }]}>{t('theme', 'Theme')}</Text>
         <View style={styles.rowSpacer} />
         {renderThemeValue()}
       </TouchableOpacity>

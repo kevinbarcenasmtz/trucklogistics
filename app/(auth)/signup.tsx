@@ -27,8 +27,14 @@ export default function SignupScreen() {
   const router = useRouter();
   const { register, googleLogin } = useAuth();
   const { t } = useTranslation();
-  const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles } =
-    useAppTheme();
+  const {
+    screenBackground, // instead of backgroundColor
+    textPrimary, // instead of textColor
+    textSecondary, // instead of secondaryTextColor
+    primary, // instead of primaryColor
+    error, // semantic error color
+    white, // semantic white color
+  } = useAppTheme();
 
   const { state, dispatch } = useAuthFormMachine('signup');
 
@@ -100,26 +106,22 @@ export default function SignupScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: screenBackground }]}>
       <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         <View style={styles.headerContainer}>
-          <Text style={[styles.title, { color: textColor }]}>
+          <Text style={[styles.title, { color: textPrimary }]}>
             {t('createAccount', 'Create Account')}
           </Text>
-          <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
+          <Text style={[styles.subtitle, { color: textSecondary }]}>
             {t('joinTruckingPro', 'Join Trucking Logistics Pro')}
           </Text>
         </View>
 
         <View style={styles.formContainer}>
           {hasError && (
-            <View
-              style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}
-            >
-              <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
-              <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
-                {state.error}
-              </Text>
+            <View style={[styles.errorContainer, { backgroundColor: error + '10' }]}>
+              <Feather name="alert-circle" size={16} color={error} />
+              <Text style={[styles.errorText, { color: error }]}>{state.error}</Text>
             </View>
           )}
 
@@ -174,19 +176,19 @@ export default function SignupScreen() {
             buttonTitle={isSignupLoading ? t('signingUp', 'Signing Up...') : t('signUp', 'Sign Up')}
             onPress={handleSignup}
             disabled={isSubmitting}
-            backgroundColor={primaryColor}
-            textColor={themeStyles.colors.white}
+            backgroundColor={primary}
+            textColor={white}
           />
         </View>
 
         <View style={styles.termsContainer}>
-          <Text style={[styles.termsText, { color: secondaryTextColor }]}>
+          <Text style={[styles.termsText, { color: textSecondary }]}>
             {t('termsText', 'By signing up, you agree to our')}{' '}
-            <Text style={[styles.termsLink, { color: primaryColor }]}>
+            <Text style={[styles.termsLink, { color: primary }]}>
               {t('termsService', 'Terms of Service')}
             </Text>{' '}
             {t('and', 'and')}{' '}
-            <Text style={[styles.termsLink, { color: primaryColor }]}>
+            <Text style={[styles.termsLink, { color: primary }]}>
               {t('privacyPolicy', 'Privacy Policy')}
             </Text>
           </Text>
@@ -195,15 +197,15 @@ export default function SignupScreen() {
         <SocialButton
           buttonTitle={t('signUpWithGoogle', 'Sign Up with Google')}
           btnType="google"
-          color={themeStyles.colors.white}
-          backgroundColor={primaryColor}
+          color={white}
+          backgroundColor={primary}
           onPress={handleGoogleSignup}
           disabled={isGoogleLoading}
         />
 
         <View style={styles.signInButton}>
           <View style={styles.signInTextContainer}>
-            <Text style={[styles.signInText, { color: secondaryTextColor }]}>
+            <Text style={[styles.signInText, { color: textSecondary }]}>
               {t('haveAccount', 'Already have an account?')}{' '}
             </Text>
             <TouchableOpacity
@@ -211,7 +213,7 @@ export default function SignupScreen() {
               activeOpacity={0.6}
               disabled={isSubmitting}
             >
-              <Text style={[styles.signInLink, { color: textColor }]}>
+              <Text style={[styles.signInLink, { color: textPrimary }]}>
                 {t('signInLink', 'Sign In')}
               </Text>
             </TouchableOpacity>

@@ -88,7 +88,11 @@ const CameraErrorFallback: React.FC<{
   error?: Error;
   resetError: () => void;
 }> = ({ error, resetError }) => {
-  const { backgroundColor, textColor, primaryColor } = useAppTheme();
+  const {
+    screenBackground, // instead of backgroundColor
+    textPrimary, // instead of textColor
+    primary, // instead of primaryColor
+  } = useAppTheme();
   const { t } = useTranslation();
   const router = useRouter();
 
@@ -103,31 +107,31 @@ const CameraErrorFallback: React.FC<{
   };
 
   return (
-    <View style={[styles.errorContainer, { backgroundColor }]}>
-      <Text style={[styles.errorTitle, { color: textColor }]}>
+    <View style={[styles.errorContainer, { backgroundColor: screenBackground }]}>
+      <Text style={[styles.errorTitle, { color: textPrimary }]}>
         {t('camera.errorTitle', 'Camera Error')}
       </Text>
-      <Text style={[styles.errorMessage, { color: textColor }]}>
+      <Text style={[styles.errorMessage, { color: textPrimary }]}>
         {t('camera.errorMessage', 'Something went wrong with the camera workflow.')}
       </Text>
 
       {__DEV__ && error && (
-        <Text style={[styles.errorDetails, { color: textColor }]}>{error.message}</Text>
+        <Text style={[styles.errorDetails, { color: textPrimary }]}>{error.message}</Text>
       )}
 
       <View style={styles.errorActions}>
         <TouchableOpacity
-          style={[styles.errorButton, { backgroundColor: primaryColor }]}
+          style={[styles.errorButton, { backgroundColor: primary }]}
           onPress={handleRestart}
         >
           <Text style={styles.errorButtonText}>{t('camera.restart', 'Restart Camera')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.errorButton, styles.secondaryButton, { borderColor: primaryColor }]}
+          style={[styles.errorButton, styles.secondaryButton, { borderColor: primary }]}
           onPress={handleGoHome}
         >
-          <Text style={[styles.errorButtonText, { color: primaryColor }]}>
+          <Text style={[styles.errorButtonText, { color: primary }]}>
             {t('common.goHome', 'Go Home')}
           </Text>
         </TouchableOpacity>
@@ -141,7 +145,7 @@ const CameraErrorFallback: React.FC<{
  * Providers now at root level
  */
 export default function CameraLayout() {
-  const { backgroundColor } = useAppTheme();
+  const { screenBackground } = useAppTheme(); // instead of backgroundColor
 
   const handleError = (error: Error, errorInfo: ErrorInfo) => {
     console.error('[CameraLayout] Error boundary triggered:', error);
@@ -160,7 +164,7 @@ export default function CameraLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor },
+          contentStyle: { backgroundColor: screenBackground },
           animation: 'slide_from_right',
           gestureEnabled: false,
         }}

@@ -29,13 +29,11 @@ export default function LoginScreen() {
   const router = useRouter();
   const { login, googleLogin } = useAuth();
   const { t } = useTranslation();
-  const { backgroundColor, textColor, secondaryTextColor, primaryColor, themeStyles, isDarkTheme } =
+  const { screenBackground, textPrimary, textSecondary, primary, error, white, isDarkTheme } =
     useAppTheme();
 
-  // Single state machine replaces all individual useState calls
   const { state, dispatch } = useAuthFormMachine('login');
 
-  // Pure calculations - no useState needed
   const isSubmitting = state.type === 'submitting';
   const hasError = state.type === 'error';
   const isGoogleLoading = state.type === 'submitting' && state.method === 'google';
@@ -48,7 +46,6 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     dispatch({ type: 'SUBMIT_CREDENTIALS' });
 
-    // Business logic separated from UI
     const validation = AuthService.validateLoginForm(state.form);
 
     if (!validation.isValid) {
@@ -101,7 +98,7 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: screenBackground }]}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -113,13 +110,13 @@ export default function LoginScreen() {
             style={[
               styles.logo,
               {
-                borderRadius: themeStyles.borderRadius.circle(120),
-                backgroundColor: backgroundColor,
+                borderRadius: 60,
+                backgroundColor: screenBackground,
               },
               Platform.select({
                 ios: {
-                  shadowColor: themeStyles.colors.black,
-                  shadowOffset: { width: 0, height: 3 },
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 8 },
                   shadowOpacity: isDarkTheme ? 0.3 : 0.1,
                   shadowRadius: 8,
                 },
@@ -129,23 +126,19 @@ export default function LoginScreen() {
               }),
             ]}
           />
-          <Text style={[styles.title, { color: textColor }]}>
+          <Text style={[styles.title, { color: textPrimary }]}>
             {t('welcomeBack', 'Welcome Back')}
           </Text>
-          <Text style={[styles.subtitle, { color: secondaryTextColor }]}>
+          <Text style={[styles.subtitle, { color: textSecondary }]}>
             {t('signInToContinue', 'Sign in to continue')}
           </Text>
         </View>
 
         <View style={styles.formContainer}>
           {hasError && (
-            <View
-              style={[styles.errorContainer, { backgroundColor: themeStyles.colors.error + '10' }]}
-            >
-              <Feather name="alert-circle" size={16} color={themeStyles.colors.error} />
-              <Text style={[styles.errorText, { color: themeStyles.colors.error }]}>
-                {state.error}
-              </Text>
+            <View style={[styles.errorContainer, { backgroundColor: error + '10' }]}>
+              <Feather name="alert-circle" size={16} color={error} />
+              <Text style={[styles.errorText, { color: error }]}>{state.error}</Text>
             </View>
           )}
 
@@ -175,7 +168,7 @@ export default function LoginScreen() {
             activeOpacity={0.7}
             disabled={isSubmitting}
           >
-            <Text style={[styles.forgotPasswordText, { color: primaryColor }]}>
+            <Text style={[styles.forgotPasswordText, { color: primary }]}>
               {t('forgotPassword', 'Forgot Password?')}
             </Text>
           </TouchableOpacity>
@@ -186,30 +179,30 @@ export default function LoginScreen() {
             }
             onPress={handleLogin}
             disabled={isSubmitting}
-            backgroundColor={primaryColor}
-            textColor={themeStyles.colors.white}
+            backgroundColor={primary}
+            textColor={white}
             style={styles.signInButton}
           />
         </View>
 
         <View style={styles.dividerContainer}>
-          <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
-          <Text style={[styles.dividerText, { color: secondaryTextColor }]}>{t('or', 'OR')}</Text>
-          <View style={[styles.divider, { backgroundColor: secondaryTextColor }]} />
+          <View style={[styles.divider, { backgroundColor: textSecondary }]} />
+          <Text style={[styles.dividerText, { color: textSecondary }]}>{t('or', 'OR')}</Text>
+          <View style={[styles.divider, { backgroundColor: textSecondary }]} />
         </View>
 
         <SocialButton
           buttonTitle={t('signInWithGoogle', 'Sign In with Google')}
           btnType="google"
-          color={themeStyles.colors.white}
-          backgroundColor={primaryColor}
+          color={white}
+          backgroundColor={primary}
           onPress={handleGoogleLogin}
           disabled={isGoogleLoading}
         />
 
         <View style={styles.footer}>
           <View style={styles.footerTextContainer}>
-            <Text style={[styles.footerText, { color: secondaryTextColor }]}>
+            <Text style={[styles.footerText, { color: textSecondary }]}>
               {t('noAccount', "Don't have an account?")}{' '}
             </Text>
             <TouchableOpacity
@@ -217,9 +210,7 @@ export default function LoginScreen() {
               activeOpacity={0.7}
               disabled={isSubmitting}
             >
-              <Text style={[styles.signUpLink, { color: primaryColor }]}>
-                {t('signUp', 'Sign Up')}
-              </Text>
+              <Text style={[styles.signUpLink, { color: primary }]}>{t('signUp', 'Sign Up')}</Text>
             </TouchableOpacity>
           </View>
         </View>

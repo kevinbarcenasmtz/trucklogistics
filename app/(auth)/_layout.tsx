@@ -4,7 +4,8 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 
 export default function AuthLayout() {
-  const { backgroundColor } = useAppTheme();
+  const { getBackground } = useAppTheme();
+  const backgroundColor = getBackground('screen');
 
   useEffect(() => {
     console.log('Auth layout mounted');

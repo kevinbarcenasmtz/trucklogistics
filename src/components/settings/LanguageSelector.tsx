@@ -17,26 +17,26 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
   disabled = false,
 }) => {
   const { t, i18n } = useTranslation();
-  const { textColor, secondaryTextColor, primaryColor, borderColor, themeStyles, isDarkTheme } =
+  const { textPrimary, textSecondary, primary, borderDefault, white, black, isDarkTheme } =
     useAppTheme();
 
   const renderLanguageValue = () => {
     if (isLoading) {
-      return <ActivityIndicator size="small" color={primaryColor} />;
+      return <ActivityIndicator size="small" color={primary} />;
     }
 
     return (
       <>
-        <Text style={[styles.rowValue, { color: secondaryTextColor }]}>
+        <Text style={[styles.rowValue, { color: textSecondary }]}>
           {i18n.language === 'en' ? t('english', 'English') : t('spanish', 'Español')}
         </Text>
-        <Feather color={secondaryTextColor} name="chevron-right" size={20} />
+        <Feather color={textSecondary} name="chevron-right" size={20} />
       </>
     );
   };
 
   return (
-    <View style={[styles.rowWrapper, styles.rowFirst, { borderColor }]}>
+    <View style={[styles.rowWrapper, styles.rowFirst, { borderColor: borderDefault }]}>
       <TouchableOpacity
         onPress={onLanguageChange}
         style={styles.row}
@@ -44,13 +44,9 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
         disabled={disabled || isLoading}
       >
         <View style={[styles.rowIcon, { backgroundColor: '#fe9400' }]}>
-          <Feather
-            color={isDarkTheme ? themeStyles.colors.darkGrey : themeStyles.colors.white}
-            name="globe"
-            size={20}
-          />
+          <Feather color={isDarkTheme ? black : white} name="globe" size={20} />
         </View>
-        <Text style={[styles.rowLabel, { color: textColor }]}>
+        <Text style={[styles.rowLabel, { color: textPrimary }]}>
           {t('languagePreference', 'Language')}
         </Text>
         <View style={styles.rowSpacer} />
