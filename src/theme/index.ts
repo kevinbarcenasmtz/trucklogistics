@@ -29,7 +29,7 @@ const COLORS = {
   brand: {
     primary: {
       light: '#317039', // Emerald green - primary brand color
-      dark: '#34D399', // Lighter emerald for dark mode contrast
+      dark: '#149954', // Lighter emerald for dark mode contrast : Palestine Green
     },
     secondary: {
       light: '#059669', // Darker emerald for accents
@@ -52,7 +52,7 @@ const COLORS = {
       900: '#111827', // darkest text
     },
     dark: {
-      50: '#18181B', // darkest background (dark mode)
+      50: '#171717', // darkest background (dark mode)
       100: '#27272A', // card backgrounds (dark mode)
       200: '#3F3F46', // borders (dark mode)
       300: '#52525B', // disabled (dark mode)
@@ -80,7 +80,7 @@ const COLORS = {
 
   // Pure colors
   pure: {
-    white: '#f8edd9',
+    white: '#fffaf0',
     black: '#0b1215',
   },
 };
@@ -218,6 +218,7 @@ const SHADOW_DARK: Record<string, ShadowProps> = {
 // Clean theme interface
 export interface ThemeStyles {
   colors: {
+    contrastBackground: any;
     // Brand colors
     primary: string;
     primaryVariant: string;
@@ -272,6 +273,7 @@ export const getThemeStyles = (theme: ThemeType): ThemeStyles => {
       background: isDark ? COLORS.neutral.dark[50] : COLORS.pure.white,
       surface: isDark ? COLORS.neutral.dark[100] : COLORS.neutral.light[50],
       surfaceVariant: isDark ? COLORS.neutral.dark[200] : COLORS.neutral.light[100],
+      contrastBackground: isDark ? COLORS.neutral.dark[200] : COLORS.neutral.light[200],
 
       // Text colors (semantic naming)
       onBackground: isDark ? COLORS.neutral.dark[700] : COLORS.neutral.light[900],

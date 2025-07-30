@@ -2,8 +2,8 @@
 import { AppState, AppStateRenderer } from '@/src/components/app/AppStateRenderer';
 import { useAuth } from '@/src/context/AuthContextMigration';
 import { useAppStateMachine } from '@/src/state/appStateMachine';
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// import React from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React from 'react';
 
 // Remove the globalThis line and useEffect - we'll handle this differently later
 // globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
@@ -16,19 +16,19 @@ export default function Index() {
   // Pure calculation - no useState or conditional logic needed
   const appState = calculateAppState(user, state);
 
-  // React.useEffect(() => {
-  //   if (__DEV__) {
-  //     AsyncStorage.multiRemove([
-  //       'onboarding_progress',
-  //       'onboardingCompleted',
-  //       'languageSelected',
-  //       'userLanguage',
-  //       'trucklogistics_theme',
-  //     ]).then(() => {
-  //       console.log('🔧 DEV: Cleared onboarding data + theme for testing');
-  //     });
-  //   }
-  // }, []);
+  React.useEffect(() => {
+    if (__DEV__) {
+      AsyncStorage.multiRemove([
+        'onboarding_progress',
+        'onboardingCompleted',
+        'languageSelected',
+        'userLanguage',
+        'trucklogistics_theme',
+      ]).then(() => {
+        console.log('🔧 DEV: Cleared onboarding data + theme for testing');
+      });
+    }
+  }, []);
 
   return <AppStateRenderer state={appState} />;
 }

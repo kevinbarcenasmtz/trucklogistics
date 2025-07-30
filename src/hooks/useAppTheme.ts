@@ -14,6 +14,7 @@ const THEME_DARK: 'dark' = 'dark';
 
 // SEMANTIC COLOR INTERFACE - Designer Friendly
 export interface AppThemeColors {
+  contrastBackground: any;
   // === BACKGROUNDS ===
   screenBackground: string; // Main screen background
   cardBackground: string; // Cards, elevated surfaces
@@ -67,7 +68,7 @@ export interface AppThemeHelpers extends AppThemeColors {
   };
 
   // Semantic helper functions
-  getBackground: (variant?: 'screen' | 'card' | 'input' | 'modal') => string;
+  getBackground: (variant?: 'screen' | 'card' | 'input' | 'modal' | 'contrast') => string;
   getText: (variant?: 'primary' | 'secondary' | 'muted' | 'inverse') => string;
   getBorder: (variant?: 'default' | 'focus') => string;
   getButton: (variant?: 'primary' | 'secondary' | 'ghost' | 'danger') => {
@@ -146,6 +147,7 @@ export const useAppTheme = (): AppThemeHelpers => {
       cardBackground: themeStyles.colors.surface,
       inputBackground: themeStyles.colors.surfaceVariant,
       modalBackground: themeStyles.colors.surface,
+      contrastBackground: themeStyles.colors.contrastBackground,
 
       // === TEXT COLORS ===
       textPrimary: themeStyles.colors.onBackground,
@@ -185,7 +187,7 @@ export const useAppTheme = (): AppThemeHelpers => {
   // SEMANTIC HELPER FUNCTIONS
   const helpers = useMemo(
     () => ({
-      getBackground: (variant: 'screen' | 'card' | 'input' | 'modal' = 'screen') => {
+      getBackground: (variant: 'screen' | 'card' | 'input' | 'contrast' | 'modal' = 'screen') => {
         switch (variant) {
           case 'screen':
             return colors.screenBackground;
@@ -195,6 +197,8 @@ export const useAppTheme = (): AppThemeHelpers => {
             return colors.inputBackground;
           case 'modal':
             return colors.modalBackground;
+          case 'contrast':
+            return colors.contrastBackground;
           default:
             return colors.screenBackground;
         }

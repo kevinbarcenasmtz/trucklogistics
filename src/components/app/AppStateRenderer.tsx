@@ -45,7 +45,7 @@ const InitializingView = () => {
 };
 
 const ErrorView = ({ error }: { error: string }) => {
-  const { screenBackground, textPrimary } = useAppTheme(); 
+  const { screenBackground, textPrimary } = useAppTheme();
 
   return (
     <View style={[styles.container, { backgroundColor: screenBackground }]}>

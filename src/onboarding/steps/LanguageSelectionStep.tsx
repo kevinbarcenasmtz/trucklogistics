@@ -1,29 +1,43 @@
 // src/onboarding/steps/LanguageSelectionStep.tsx
-import FormButton from '@/src/components/forms/FormButton';
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Language, OnboardingStepProps } from '../types';
 import { saveLanguagePreference } from '../utils/storage';
 
 interface LanguageOption {
+  descText: ReactNode;
   code: Language;
   label: string;
   nativeLabel: string;
   flag: string;
+  actionText: string;
 }
 
 const LANGUAGE_OPTIONS: LanguageOption[] = [
-  { code: 'en', label: 'English', nativeLabel: 'English', flag: '🇺🇸' },
-  { code: 'es', label: 'Spanish', nativeLabel: 'Español', flag: '🇪🇸' },
+  {
+    code: 'en',
+    label: 'English',
+    nativeLabel: 'English',
+    flag: '🇺🇸',
+    actionText: 'Start Your Journey →',
+    descText: 'Manage your trucks with confidence',
+  },
+  {
+    code: 'es',
+    label: 'Spanish',
+    nativeLabel: 'Español',
+    flag: '🇪🇸',
+    actionText: 'Comienza tu Viaje →',
+    descText: 'Maneje sus camiones con confianza',
+  },
 ];
 
 export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, onComplete }) => {
   const { t, i18n } = useTranslation();
-  const { getBackground, getText, primary, cardBackground, white, black, isDarkTheme } =
-    useAppTheme();
+  const { getBackground, getText, getButton, themeStyles, isDarkTheme } = useAppTheme();
 
   const handleLanguageSelect = async (language: Language) => {
     try {
@@ -61,7 +75,7 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             },
             Platform.select({
               ios: {
-                shadowColor: black,
+                shadowColor: themeStyles.colors.black,
                 shadowOffset: { width: 0, height: 3 },
                 shadowOpacity: isDarkTheme ? 0.4 : 0.2,
                 shadowRadius: 5,
@@ -72,21 +86,52 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
         />
         <Text style={[styles.appTitle, { color: getText('primary') }]}>Trucking Logistics Pro</Text>
         <Text style={[styles.title, { color: getText('primary') }]}>
-          {t('selectLanguage', 'Choose your preferred language')}
+          {t('selectLanguage', 'Ready to hit the road?')}
         </Text>
       </View>
 
       <View style={styles.formContainer}>
-        {LANGUAGE_OPTIONS.map(option => (
-          <FormButton
-            key={option.code}
-            buttonTitle={`${option.flag} ${option.nativeLabel}`}
-            onPress={() => handleLanguageSelect(option.code)}
-            backgroundColor={context.selectedLanguage === option.code ? cardBackground : primary}
-            textColor={context.selectedLanguage === option.code ? getText('primary') : white}
-            style={styles.languageButton}
-          />
-        ))}
+        {LANGUAGE_OPTIONS.map(option => {
+          return (
+            <TouchableOpacity
+              key={option.code}
+              style={[
+                styles.routeButton,
+                {
+                  backgroundColor: getBackground('card'),
+                  borderLeftColor: getButton('primary').backgroundColor,
+                  borderLeftWidth: moderateScale(8),
+                  ...themeStyles.shadow.sm,
+                },
+              ]}
+              onPress={() => handleLanguageSelect(option.code)}
+            >
+              <View style={styles.routeInfo}>
+                <View
+                  style={[
+                    styles.flagContainer,
+                    {
+                      backgroundColor: getBackground('contrast'),
+                    },
+                  ]}
+                >
+                  <Text style={styles.routeFlag}>{option.flag}</Text>
+                </View>
+                <View style={styles.destinationInfo}>
+                  <Text style={[styles.destination, { color: getText('primary') }]}>
+                    {option.nativeLabel} Route
+                  </Text>
+                  <Text style={[styles.journey, { color: getText('primary') }]}>
+                    {option.actionText}
+                  </Text>
+                  <Text style={[styles.distance, { color: getText('secondary') }]}>
+                    {option.descText}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <Text style={[styles.footerText, { color: getText('secondary') }]}>
@@ -141,5 +186,40 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(13),
     textAlign: 'center',
     lineHeight: moderateScale(48),
+  },
+  routeButton: {
+    padding: moderateScale(16),
+    borderRadius: moderateScale(8),
+    marginVertical: verticalScale(6),
+  },
+  routeInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  flagContainer: {
+    width: moderateScale(50),
+    height: moderateScale(50),
+    borderRadius: moderateScale(25),
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: horizontalScale(16),
+  },
+  routeFlag: {
+    fontSize: moderateScale(20),
+  },
+  destinationInfo: {
+    flex: 1,
+  },
+  destination: {
+    fontSize: moderateScale(16),
+    fontWeight: '700',
+  },
+  journey: {
+    fontSize: moderateScale(14),
+    fontWeight: '600',
+    marginVertical: verticalScale(2),
+  },
+  distance: {
+    fontSize: moderateScale(12),
   },
 });
