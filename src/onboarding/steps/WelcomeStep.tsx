@@ -21,10 +21,11 @@ interface ShadowImageProps {
 }
 
 const Dots: React.FC<DotsProps> = ({ selected }) => {
-  const { isDarkTheme, textPrimary, borderDefault, white, textSecondary } = useAppTheme();
+  const { isDarkTheme, textPrimary, borderDefault, white, textSecondary, black } = useAppTheme();
 
   const isOnGreenPage = globalCurrentPage === 1;
 
+  // Use solid colors instead of rgba with transparency
   const dotColor = selected
     ? isOnGreenPage
       ? white
@@ -32,8 +33,8 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
     : isOnGreenPage
       ? textSecondary
       : isDarkTheme
-        ? 'rgba(255, 255, 255, 0.3)'
-        : 'rgba(0, 0, 0, 0.2)';
+        ? '#555555' // Solid color instead of rgba(255, 255, 255, 0.3)
+        : '#CCCCCC'; // Solid color instead of rgba(0, 0, 0, 0.2)
 
   return (
     <View
@@ -43,9 +44,10 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
           backgroundColor: dotColor,
           borderWidth: selected ? 0 : 1,
           borderColor: isOnGreenPage ? textSecondary : borderDefault,
-          ...Platform.select({
+          // Only apply shadow if we have a solid background color
+          ...(dotColor.includes('rgba') ? {} : Platform.select({
             ios: {
-              shadowColor: isOnGreenPage ? white : textPrimary,
+              shadowColor: isOnGreenPage ? white : (isDarkTheme ? black : textPrimary),
               shadowOffset: { width: 0, height: 1 },
               shadowOpacity: 0.2,
               shadowRadius: 1,
@@ -53,7 +55,7 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
             android: {
               elevation: 4,
             },
-          }),
+          })),
         },
         selected && styles.selectedDot,
       ]}
@@ -108,17 +110,11 @@ const Next = ({ ...props }) => {
 
 const Done = ({ ...props }) => {
   const { t } = useTranslation();
-  const { primary } = useAppTheme();
+  const { textPrimary } = useAppTheme(); 
 
   return (
     <TouchableOpacity
-      style={[
-        styles.button,
-        styles.doneButton,
-        {
-          backgroundColor: primary,
-        },
-      ]}
+      style={styles.button}
       {...props}
       activeOpacity={0.7}
       onPress={() => {
@@ -129,9 +125,8 @@ const Done = ({ ...props }) => {
       <Text
         style={[
           styles.buttonText,
-          styles.doneButtonText,
           {
-            color: '#FFFFFF',
+            color: textPrimary
           },
         ]}
       >
@@ -141,27 +136,12 @@ const Done = ({ ...props }) => {
   );
 };
 
+// Apply shadow to wrapper View with solid background
 const ShadowImage: React.FC<ShadowImageProps> = ({ source, isDarkTheme, backgroundColor }) => {
-  const { black } = useAppTheme();
-
   return (
     <Image
       source={source}
-      style={[
-        styles.image,
-        { backgroundColor },
-        Platform.select({
-          ios: {
-            shadowColor: black,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: isDarkTheme ? 0.4 : 0.2,
-            shadowRadius: 5,
-          },
-          android: {
-            elevation: 5,
-          },
-        }),
-      ]}
+      style={styles.image}
     />
   );
 };
@@ -254,20 +234,15 @@ export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
 const styles = StyleSheet.create({
   button: {
     marginHorizontal: horizontalScale(16),
-    paddingVertical: verticalScale(12),
+    paddingVertical: verticalScale(8),
     paddingHorizontal: horizontalScale(20),
     borderRadius: moderateScale(8),
-  },
-  doneButton: {
-    paddingVertical: verticalScale(14),
+    marginBottom: verticalScale(20),
   },
   buttonText: {
     fontSize: moderateScale(16),
     fontWeight: '500',
     letterSpacing: 0.1,
-  },
-  doneButtonText: {
-    fontWeight: '600',
   },
   dot: {
     width: moderateScale(10),
