@@ -1,9 +1,18 @@
 // src/onboarding/steps/LanguageSelectionStep.tsx
 import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import React, { ReactNode } from 'react';
+import * as Haptics from 'expo-haptics';
+import React, { ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { 
+  Alert, 
+  Image, 
+  Platform, 
+  StyleSheet, 
+  Text, 
+  TouchableOpacity, 
+  View 
+} from 'react-native';
 import { Language, OnboardingStepProps } from '../types';
 import { saveLanguagePreference } from '../utils/storage';
 
@@ -38,13 +47,34 @@ const LANGUAGE_OPTIONS: LanguageOption[] = [
 export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, onComplete }) => {
   const { t, i18n } = useTranslation();
   const { getBackground, getText, getButton, themeStyles, isDarkTheme } = useAppTheme();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleLanguageSelect = async (language: Language) => {
+    // Prevent multiple selections
+    if (isProcessing) return;
+    
     try {
-      await Promise.all([saveLanguagePreference(language), i18n.changeLanguage(language)]);
+      setIsProcessing(true);
+      
+      // Haptic feedback
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+      // Save language preference
+      await Promise.all([
+        saveLanguagePreference(language), 
+        i18n.changeLanguage(language)
+      ]);
+
+      // Simple delay for smooth transition (adjust as needed)
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Complete the step
       onComplete({ language });
+
     } catch (error) {
       console.error('Failed to set language:', error);
+      setIsProcessing(false);
+      
       Alert.alert(
         t('error', 'Error'),
         t('languageChangeError', 'Failed to change language. Please try again.'),
@@ -84,7 +114,9 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             }),
           ]}
         />
-        <Text style={[styles.appTitle, { color: getText('primary') }]}>Trucking Logistics Pro</Text>
+        <Text style={[styles.appTitle, { color: getText('primary') }]}>
+          Trucking Logistics Pro
+        </Text>
         <Text style={[styles.title, { color: getText('primary') }]}>
           {t('selectLanguage', 'Ready to hit the road?')}
         </Text>
@@ -105,6 +137,8 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
                 },
               ]}
               onPress={() => handleLanguageSelect(option.code)}
+              activeOpacity={0.7}
+              disabled={isProcessing}
             >
               <View style={styles.routeInfo}>
                 <View
@@ -178,15 +212,6 @@ const styles = StyleSheet.create({
     gap: verticalScale(16),
     marginBottom: verticalScale(58),
   },
-  languageButton: {
-    marginVertical: 0,
-    height: verticalScale(52),
-  },
-  footerText: {
-    fontSize: moderateScale(13),
-    textAlign: 'center',
-    lineHeight: moderateScale(48),
-  },
   routeButton: {
     padding: moderateScale(16),
     borderRadius: moderateScale(8),
@@ -221,5 +246,10 @@ const styles = StyleSheet.create({
   },
   distance: {
     fontSize: moderateScale(12),
+  },
+  footerText: {
+    fontSize: moderateScale(13),
+    textAlign: 'center',
+    lineHeight: moderateScale(48),
   },
 });
