@@ -3,7 +3,6 @@ import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
   Image,
   Platform,
   SafeAreaView,
@@ -22,20 +21,20 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import { Feather } from '@expo/vector-icons';
-import { safeArrayAccess } from '../../src/utils/safeAccess';
+import ValidationErrorList from '../../src/components/forms/ValidationErrorList';
 
 export default function LoginScreen() {
   const router = useRouter();
   const { login, googleLogin } = useAuth();
   const { t } = useTranslation();
-  const { screenBackground, textPrimary, textSecondary, primary, error, white, isDarkTheme } =
+  const { screenBackground, textPrimary, textSecondary, primary, white, isDarkTheme } =
     useAppTheme();
 
   const { state, dispatch } = useAuthFormMachine('login');
 
   const isSubmitting = state.type === 'submitting';
   const hasError = state.type === 'error';
+  const errors = hasError ? state.errors : [];
   const isGoogleLoading = state.type === 'submitting' && state.method === 'google';
   const isCredentialsLoading = state.type === 'submitting' && state.method === 'credentials';
 
@@ -51,12 +50,10 @@ export default function LoginScreen() {
     if (!validation.isValid) {
       dispatch({
         type: 'VALIDATE_ERROR',
-        error: safeArrayAccess(validation.errors, 0, 'Validation failed'),
+        errors: validation.formattedErrors,
       });
-      Alert.alert(t('error', 'Error'), validation.errors[0]);
       return;
     }
-
     dispatch({ type: 'VALIDATE_SUCCESS' });
 
     try {
@@ -135,12 +132,7 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.formContainer}>
-          {hasError && (
-            <View style={[styles.errorContainer, { backgroundColor: error + '10' }]}>
-              <Feather name="alert-circle" size={16} color={error} />
-              <Text style={[styles.errorText, { color: error }]}>{state.error}</Text>
-            </View>
-          )}
+          <ValidationErrorList errors={errors} />
 
           <FormInput
             labelValue={state.form.email}

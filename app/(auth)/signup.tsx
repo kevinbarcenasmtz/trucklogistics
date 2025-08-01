@@ -1,5 +1,4 @@
 // app/(auth)/signup.tsx
-import { Feather } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -21,7 +20,7 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import { safeArrayAccess } from '../../src/utils/safeAccess';
+import ValidationErrorList from '../../src/components/forms/ValidationErrorList';
 
 export default function SignupScreen() {
   const router = useRouter();
@@ -32,7 +31,6 @@ export default function SignupScreen() {
     textPrimary, // instead of textColor
     textSecondary, // instead of secondaryTextColor
     primary, // instead of primaryColor
-    error, // semantic error color
     white, // semantic white color
   } = useAppTheme();
 
@@ -41,6 +39,8 @@ export default function SignupScreen() {
   // Pure calculations - no useState needed
   const isSubmitting = state.type === 'submitting';
   const hasError = state.type === 'error';
+  const errors = hasError ? state.errors : [];
+  const hasPasswordErrors = hasError ? state.hasPasswordErrors : false;
   const isGoogleLoading = state.type === 'submitting' && state.method === 'google';
   const isSignupLoading = state.type === 'submitting' && state.method === 'credentials';
 
@@ -51,15 +51,13 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     dispatch({ type: 'SUBMIT_CREDENTIALS' });
 
-    // Business logic separated from UI
     const validation = AuthService.validateSignupForm(state.form);
-
     if (!validation.isValid) {
       dispatch({
         type: 'VALIDATE_ERROR',
-        error: safeArrayAccess(validation.errors, 0, 'Validation failed'),
+        errors: validation.formattedErrors,
+        hasPasswordErrors: validation.hasPasswordErrors,
       });
-      Alert.alert(t('error', 'Error'), validation.errors[0]);
       return;
     }
 
@@ -118,12 +116,7 @@ export default function SignupScreen() {
         </View>
 
         <View style={styles.formContainer}>
-          {hasError && (
-            <View style={[styles.errorContainer, { backgroundColor: error + '10' }]}>
-              <Feather name="alert-circle" size={16} color={error} />
-              <Text style={[styles.errorText, { color: error }]}>{state.error}</Text>
-            </View>
-          )}
+          <ValidationErrorList errors={errors} hasPasswordErrors={hasPasswordErrors} />
 
           <FormInput
             labelValue={state.form.fname || ''}

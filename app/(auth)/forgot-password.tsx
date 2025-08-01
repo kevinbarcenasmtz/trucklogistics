@@ -12,7 +12,7 @@ import { useAppTheme } from '@/src/hooks/useAppTheme';
 import { useAuthFormMachine } from '@/src/machines/authFormMachine';
 import { AuthService } from '@/src/services/AuthService';
 import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
-import { safeArrayAccess } from '../../src/utils/safeAccess';
+import ValidationErrorList from '../../src/components/forms/ValidationErrorList';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -24,7 +24,6 @@ export default function ForgotPasswordScreen() {
     textPrimary, // instead of textColor
     textSecondary, // instead of secondaryTextColor
     primary, // instead of primaryColor
-    error, // semantic error color
     white, // pure white color
   } = useAppTheme();
 
@@ -33,6 +32,7 @@ export default function ForgotPasswordScreen() {
   // Pure calculations - no useState needed
   const isSubmitting = state.type === 'submitting';
   const hasError = state.type === 'error';
+  const errors = hasError ? state.errors : [];
 
   const handleEmailChange = (email: string) => {
     dispatch({ type: 'UPDATE_FIELD', field: 'email', value: email });
@@ -45,13 +45,11 @@ export default function ForgotPasswordScreen() {
     const validation = AuthService.validateForgotPasswordForm({
       email: state.form.email,
     });
-
     if (!validation.isValid) {
       dispatch({
         type: 'VALIDATE_ERROR',
-        error: safeArrayAccess(validation.errors, 0, 'Validation failed'),
+        errors: validation.formattedErrors,
       });
-      Alert.alert(t('error', 'Error'), validation.errors[0]);
       return;
     }
 
@@ -108,12 +106,7 @@ export default function ForgotPasswordScreen() {
             )}
           </Text>
 
-          {hasError && (
-            <View style={[styles.errorContainer, { backgroundColor: error + '10' }]}>
-              <Feather name="alert-circle" size={16} color={error} />
-              <Text style={[styles.errorText, { color: error }]}>{state.error}</Text>
-            </View>
-          )}
+          <ValidationErrorList errors={errors} />
 
           <View style={styles.inputContainer}>
             <FormInput

@@ -13,7 +13,12 @@ export type AuthFormState =
   | { type: 'idle'; form: AuthFormData }
   | { type: 'validating'; form: AuthFormData }
   | { type: 'submitting'; form: AuthFormData; method: 'credentials' | 'google' }
-  | { type: 'error'; form: AuthFormData; error: string }
+  | {
+      type: 'error';
+      form: AuthFormData;
+      errors: string[];
+      hasPasswordErrors?: boolean;
+    }
   | { type: 'success'; form: AuthFormData };
 
 export type AuthFormEvent =
@@ -21,7 +26,7 @@ export type AuthFormEvent =
   | { type: 'SUBMIT_CREDENTIALS' }
   | { type: 'SUBMIT_GOOGLE' }
   | { type: 'VALIDATE_SUCCESS' }
-  | { type: 'VALIDATE_ERROR'; error: string }
+  | { type: 'VALIDATE_ERROR'; errors: string[]; hasPasswordErrors?: boolean }
   | { type: 'SUBMIT_SUCCESS' }
   | { type: 'SUBMIT_ERROR'; error: string }
   | { type: 'RESET' };
@@ -48,7 +53,12 @@ const authFormMachine = (state: AuthFormState, event: AuthFormEvent): AuthFormSt
         return { type: 'submitting', form: state.form, method: 'credentials' };
       }
       if (event.type === 'VALIDATE_ERROR') {
-        return { type: 'error', form: state.form, error: event.error };
+        return {
+          type: 'error',
+          form: state.form,
+          errors: event.errors,
+          hasPasswordErrors: event.hasPasswordErrors,
+        };
       }
       return state;
 
@@ -57,7 +67,12 @@ const authFormMachine = (state: AuthFormState, event: AuthFormEvent): AuthFormSt
         return { type: 'success', form: state.form };
       }
       if (event.type === 'SUBMIT_ERROR') {
-        return { type: 'error', form: state.form, error: event.error };
+        return {
+          type: 'error',
+          form: state.form,
+          errors: [event.error],
+          hasPasswordErrors: false,
+        };
       }
       return state;
 
@@ -83,7 +98,7 @@ const authFormMachine = (state: AuthFormState, event: AuthFormEvent): AuthFormSt
       if (event.type === 'RESET') {
         return {
           type: 'idle',
-          form: { email: '', password: '' },
+          form: { email: '', password: '', confirmPassword: '', fname: '', lname: '' },
         };
       }
       return state;
