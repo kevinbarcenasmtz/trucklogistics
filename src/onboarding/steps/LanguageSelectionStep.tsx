@@ -4,15 +4,7 @@ import { horizontalScale, moderateScale, verticalScale } from '@/src/theme';
 import * as Haptics from 'expo-haptics';
 import React, { ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { 
-  Alert, 
-  Image, 
-  Platform, 
-  StyleSheet, 
-  Text, 
-  TouchableOpacity, 
-  View 
-} from 'react-native';
+import { Alert, Image, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Language, OnboardingStepProps } from '../types';
 import { saveLanguagePreference } from '../utils/storage';
 
@@ -52,29 +44,25 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
   const handleLanguageSelect = async (language: Language) => {
     // Prevent multiple selections
     if (isProcessing) return;
-    
+
     try {
       setIsProcessing(true);
-      
+
       // Haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
       // Save language preference
-      await Promise.all([
-        saveLanguagePreference(language), 
-        i18n.changeLanguage(language)
-      ]);
+      await Promise.all([saveLanguagePreference(language), i18n.changeLanguage(language)]);
 
       // Simple delay for smooth transition (adjust as needed)
       await new Promise(resolve => setTimeout(resolve, 500));
 
       // Complete the step
       onComplete({ language });
-
     } catch (error) {
       console.error('Failed to set language:', error);
       setIsProcessing(false);
-      
+
       Alert.alert(
         t('error', 'Error'),
         t('languageChangeError', 'Failed to change language. Please try again.'),
@@ -114,9 +102,7 @@ export const LanguageSelectionStep: React.FC<OnboardingStepProps> = ({ context, 
             }),
           ]}
         />
-        <Text style={[styles.appTitle, { color: getText('primary') }]}>
-          Trucking Logistics Pro
-        </Text>
+        <Text style={[styles.appTitle, { color: getText('primary') }]}>Trucking Logistics Pro</Text>
         <Text style={[styles.title, { color: getText('primary') }]}>
           {t('selectLanguage', 'Ready to hit the road?')}
         </Text>

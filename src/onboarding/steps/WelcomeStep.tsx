@@ -45,17 +45,19 @@ const Dots: React.FC<DotsProps> = ({ selected }) => {
           borderWidth: selected ? 0 : 1,
           borderColor: isOnGreenPage ? textSecondary : borderDefault,
           // Only apply shadow if we have a solid background color
-          ...(dotColor.includes('rgba') ? {} : Platform.select({
-            ios: {
-              shadowColor: isOnGreenPage ? white : (isDarkTheme ? black : textPrimary),
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: 0.2,
-              shadowRadius: 1,
-            },
-            android: {
-              elevation: 4,
-            },
-          })),
+          ...(dotColor.includes('rgba')
+            ? {}
+            : Platform.select({
+                ios: {
+                  shadowColor: isOnGreenPage ? white : isDarkTheme ? black : textPrimary,
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 1,
+                },
+                android: {
+                  elevation: 4,
+                },
+              })),
         },
         selected && styles.selectedDot,
       ]}
@@ -110,7 +112,7 @@ const Next = ({ ...props }) => {
 
 const Done = ({ ...props }) => {
   const { t } = useTranslation();
-  const { textPrimary } = useAppTheme(); 
+  const { textPrimary } = useAppTheme();
 
   return (
     <TouchableOpacity
@@ -126,7 +128,7 @@ const Done = ({ ...props }) => {
         style={[
           styles.buttonText,
           {
-            color: textPrimary
+            color: textPrimary,
           },
         ]}
       >
@@ -138,12 +140,7 @@ const Done = ({ ...props }) => {
 
 // Apply shadow to wrapper View with solid background
 const ShadowImage: React.FC<ShadowImageProps> = ({ source, isDarkTheme, backgroundColor }) => {
-  return (
-    <Image
-      source={source}
-      style={styles.image}
-    />
-  );
+  return <Image source={source} style={styles.image} />;
 };
 
 export const WelcomeStep: React.FC<OnboardingStepProps> = ({ onComplete }) => {
