@@ -127,7 +127,7 @@ export default function LoginScreen() {
             {t('welcomeBack', 'Welcome Back')}
           </Text>
           <Text style={[styles.subtitle, { color: textSecondary }]}>
-            {t('signInToContinue', 'Sign in to continue')}
+            {t('signInToContinue', 'Login in to continue')}
           </Text>
         </View>
 
@@ -150,6 +150,7 @@ export default function LoginScreen() {
             onChangeText={value => handleFieldChange('password', value)}
             placeholderText={t('password', 'Password')}
             iconType="lock"
+            showPasswordToggle={true}
             secureTextEntry
             editable={!isSubmitting}
           />

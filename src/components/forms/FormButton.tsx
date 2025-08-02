@@ -19,22 +19,29 @@ const FormButton: React.FC<FormButtonProps> = ({
   style,
   ...rest
 }) => {
-  const { primary, white } = useAppTheme();
+  const { primary, white, textSecondary } = useAppTheme();
 
+  // Calculate disabled styles
+  const buttonBackgroundColor = backgroundColor || primary;
+  const buttonTextColor = textColor || white;
+  
   return (
     <TouchableOpacity
       style={[
         styles.buttonContainer,
         {
           height: verticalScale(50),
-          backgroundColor: backgroundColor || primary,
+          backgroundColor: disabled 
+            ? buttonBackgroundColor + '40' 
+            : buttonBackgroundColor,
           borderRadius: moderateScale(8),
           marginVertical: moderateScale(16),
+          opacity: disabled ? 0.6 : 1.0,
         },
         style,
       ]}
       disabled={disabled}
-      activeOpacity={0.7}
+      activeOpacity={disabled ? 1.0 : 0.7}
       {...rest}
     >
       <Text
@@ -42,7 +49,9 @@ const FormButton: React.FC<FormButtonProps> = ({
           styles.buttonText,
           {
             fontSize: moderateScale(16),
-            color: textColor || white,
+            color: disabled 
+              ? textSecondary
+              : buttonTextColor,
           },
         ]}
       >

@@ -140,7 +140,7 @@ export default function SignupScreen() {
             labelValue={state.form.email}
             onChangeText={value => handleFieldChange('email', value)}
             placeholderText={t('email', 'Email')}
-            iconType="user"
+            iconType="mail"
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -152,6 +152,7 @@ export default function SignupScreen() {
             onChangeText={value => handleFieldChange('password', value)}
             placeholderText={t('password', 'Password')}
             iconType="lock"
+            showPasswordToggle={true}
             secureTextEntry
             editable={!isSubmitting}
           />
@@ -161,6 +162,7 @@ export default function SignupScreen() {
             onChangeText={value => handleFieldChange('confirmPassword', value)}
             placeholderText={t('confirmPassword', 'Confirm Password')}
             iconType="lock"
+            showPasswordToggle={true}
             secureTextEntry
             editable={!isSubmitting}
           />
@@ -259,18 +261,18 @@ const styles = StyleSheet.create({
   termsContainer: {
     marginVertical: verticalScale(2),
     paddingHorizontal: horizontalScale(8),
-    paddingBottom: verticalScale(4),
+    paddingBottom: verticalScale(8),
   },
   termsText: {
     fontSize: moderateScale(14),
     textAlign: 'center',
-    lineHeight: moderateScale(20),
+    lineHeight: moderateScale(18),
   },
   termsLink: {
     fontWeight: '500',
   },
   signInButton: {
-    marginTop: verticalScale(24),
+    marginTop: verticalScale(18),
     alignItems: 'center',
   },
   signInTextContainer: {
