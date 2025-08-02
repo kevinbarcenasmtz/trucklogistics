@@ -21,11 +21,11 @@ const FormInput: React.FC<FormInputProps> = ({
   ...rest
 }) => {
   const { inputBackground, textPrimary, textSecondary, borderDefault, isDarkTheme } = useAppTheme();
-  
+
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  
+
   const shouldSecureText = showPasswordToggle ? !isPasswordVisible : secureTextEntry;
-  
+
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
   };
@@ -55,7 +55,7 @@ const FormInput: React.FC<FormInputProps> = ({
       >
         <Feather name={iconType} size={moderateScale(22)} color={textSecondary} />
       </View>
-      
+
       {/* Text Input */}
       <TextInput
         value={labelValue}
@@ -74,7 +74,7 @@ const FormInput: React.FC<FormInputProps> = ({
         secureTextEntry={shouldSecureText}
         {...rest}
       />
-      
+
       {/* Password Toggle Button */}
       {showPasswordToggle && (
         <TouchableOpacity
